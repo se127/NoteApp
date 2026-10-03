@@ -157,7 +157,7 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
               }}
               disabled={isDeleting}
             >
-              {isDeleting ? "در حال حذف…" : "بله"}
+              {isDeleting ? "در حال حذف..." : "بله"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

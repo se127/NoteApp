@@ -157,8 +157,24 @@ export function NewNotePage() {
          * pack it against the start edge, which is the right.
          */}
         <div className="flex justify-end gap-2">
+          {/*
+           * `disabled` on the Button does not dim this: asChild merges props onto
+           * the <a>, and Tailwind's disabled: variant compiles to :disabled,
+           * which only matches elements that can actually be disabled -- button,
+           * input, select, textarea. An anchor never matches, so the browser
+           * ignores the attribute entirely. The onClick guard is what actually
+           * stops the navigation; aria-disabled is what announces it.
+           */}
           <Button asChild type="button" variant="outline" disabled={isSaving}>
-            <Link to="/">انصراف</Link>
+            <Link
+              to="/"
+              aria-disabled={isSaving}
+              onClick={(event) => {
+                if (isSaving) event.preventDefault();
+              }}
+            >
+              انصراف
+            </Link>
           </Button>
           <Button type="submit" disabled={isSaving}>
             {isSaving ? "در حال افزودن..." : "افزودن"}
