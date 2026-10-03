@@ -6,7 +6,7 @@ function App() {
         React + TypeScript + Vite, with React Compiler and Tailwind CSS.
       </p>
     </main>
-  )
+  );
 }
 
-export default App
+export default App;
