@@ -127,8 +127,12 @@ function createWindow() {
     },
   });
 
-  // Avoid the white flash before React paints.
-  mainWindow.once("ready-to-show", () => mainWindow?.show());
+  // Avoid the white flash before React paints. Maximize before showing so the
+  // app never appears briefly at the default 1200x800 size.
+  mainWindow.once("ready-to-show", () => {
+    mainWindow?.maximize();
+    mainWindow?.show();
+  });
 
   if (DEV_SERVER_URL) {
     mainWindow.loadURL(DEV_SERVER_URL);
