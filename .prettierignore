@@ -1,3 +1,6 @@
 dist
 node_modules
 bun.lock
+
+# shadcn/ui generated components — vendored code, not ours to format
+src/components/ui
