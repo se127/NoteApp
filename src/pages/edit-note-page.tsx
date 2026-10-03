@@ -227,11 +227,11 @@ function EditNoteForm({ note, onSave }: EditNoteFormProps) {
          * pack it against the start edge, which is the right.
          */}
         <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={isSaving}>
-            ذخیره
-          </Button>
-          <Button asChild type="button" variant="outline">
+          <Button asChild type="button" variant="outline" disabled={isSaving}>
             <Link to="/">انصراف</Link>
+          </Button>
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? "در حال ذخیره..." : "ذخیره"}
           </Button>
         </div>
       </form>

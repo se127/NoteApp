@@ -157,11 +157,11 @@ export function NewNotePage() {
          * pack it against the start edge, which is the right.
          */}
         <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={isSaving}>
-            افزودن
-          </Button>
-          <Button asChild type="button" variant="outline">
+          <Button asChild type="button" variant="outline" disabled={isSaving}>
             <Link to="/">انصراف</Link>
+          </Button>
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? "در حال افزودن..." : "افزودن"}
           </Button>
         </div>
       </form>
