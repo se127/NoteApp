@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>note-app</title>
     <script>
-      // Apply the stored theme before first paint, otherwise the app renders in
-      // light mode for a frame and then snaps to dark. Inside Electron the
-      // preload bridge has the value (it lives in userData, not localStorage);
-      // in a plain browser we fall back to localStorage.
       (() => {
         try {
           const stored =
@@ -21,9 +17,7 @@
               window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.toggle("dark", dark);
           document.documentElement.style.colorScheme = dark ? "dark" : "light";
-        } catch {
-          // Private mode or storage disabled: fall back to the light theme.
-        }
+        } catch {}
       })();
     </script>
   </head>

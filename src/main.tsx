@@ -13,12 +13,8 @@ import "./index.css";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
-      {/* HashRouter, not BrowserRouter: the packaged app is served over
-          file://, where path-based routes cannot be resolved on reload. */}
       <HashRouter>
         <DirectionProvider dir="rtl">
-          {/* Inside DirectionProvider so tooltip content picks up the RTL
-              direction Radix reads for arrow placement. */}
           <TooltipProvider>
             <App />
           </TooltipProvider>

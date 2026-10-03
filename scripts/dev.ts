@@ -1,11 +1,3 @@
-/**
- * Dev orchestrator: start Vite, wait for it to answer, then launch Electron
- * pointed at it. Ctrl-C tears both processes down.
- *
- * Written by hand instead of pulling in `concurrently` + `wait-on` so the dev
- * flow stays dependency-free. Uses bun's native TypeScript support, so this
- * runs directly under `bun run` with no build step.
- */
 import { type ChildProcess, spawn } from "node:child_process";
 import process from "node:process";
 
@@ -40,7 +32,6 @@ function start(
   return child;
 }
 
-/** Poll the dev server until it responds, so Electron never loads a dead port. */
 async function waitForServer(url: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
@@ -48,9 +39,7 @@ async function waitForServer(url: string, timeoutMs: number): Promise<void> {
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
       if (response.ok || response.status === 404) return;
-    } catch {
-      // Not up yet; keep waiting.
-    }
+    } catch {}
     await new Promise((resolve) => setTimeout(resolve, POLL_MS));
   }
 

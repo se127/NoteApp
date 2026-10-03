@@ -1,12 +1,3 @@
-/**
- * SQLite access for the notes table.
- *
- * Uses node:sqlite, which ships with the Node build inside Electron, so there
- * is no native module to compile or rebuild against Electron's ABI.
- *
- * Lives in the main process: the renderer runs sandboxed with no Node access,
- * so all queries go through IPC (see ipc handlers in main.mjs).
- */
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -34,14 +25,12 @@ let deleteStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
 let updateStatement = null;
 
-/** Open (once) and migrate the database inside the app's userData directory. */
 export function openDatabase(userDataPath) {
   if (db) return db;
 
   mkdirSync(userDataPath, { recursive: true });
   db = new DatabaseSync(path.join(userDataPath, "notes.db"));
 
-  // WAL lets the UI keep reading while a write is in flight.
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
   db.exec(SCHEMA);
@@ -74,36 +63,6 @@ function requireDb() {
   return db;
 }
 
-const TITLE_MAX = 120;
-const BODY_MAX = 5000;
-
-/**
- * Re-check the rules the renderer already enforced with zod: the title is
- * required, the body is optional, and both are length-capped. The renderer is
- * untrusted, so anything arriving over IPC is validated again here before it
- * reaches SQLite.
- */
-function assertValidNote(title, body) {
-  if (typeof title !== "string" || typeof body !== "string") {
-    throw new Error("یادداشت نامعتبر است");
-  }
-
-  const cleanTitle = title.trim();
-  const cleanBody = body.trim();
-
-  if (cleanTitle === "") {
-    throw new Error("عنوان یادداشت الزامی است");
-  }
-  if (cleanTitle.length > TITLE_MAX) {
-    throw new Error(`عنوان نباید بیشتر از ${TITLE_MAX} کاراکتر باشد`);
-  }
-  if (cleanBody.length > BODY_MAX) {
-    throw new Error(`متن نباید بیشتر از ${BODY_MAX} کاراکتر باشد`);
-  }
-
-  return { cleanTitle, cleanBody };
-}
-
 /** @returns {Array<{id: number, title: string, body: string, createdAt: string, updatedAt: string}>} */
 export function listNotes() {
   requireDb();
@@ -113,17 +72,10 @@ export function listNotes() {
 /** @returns {{id: number, title: string, body: string, createdAt: string, updatedAt: string}} */
 export function createNote(title, body) {
   requireDb();
-  const { cleanTitle, cleanBody } = assertValidNote(title, body);
 
-  return /** @type {any} */ (insertStatement).get(cleanTitle, cleanBody);
+  return /** @type {any} */ (insertStatement).get(title, body);
 }
 
-/**
- * Delete one note by id.
- *
- * @returns {boolean} false when no row matched, so the caller can tell a stale
- * delete (the note was already removed elsewhere) from a successful one.
- */
 export function deleteNote(id) {
   requireDb();
 
@@ -135,14 +87,6 @@ export function deleteNote(id) {
   return Number(result.changes) > 0;
 }
 
-/**
- * Update one note's text.
- *
- * @returns {object|null} the updated row, or null when no row matched, so the
- * caller can tell a stale edit (the note was already removed elsewhere) from a
- * successful one. updated_at is bumped, which also moves the note to the top of
- * the list ordering.
- */
 export function updateNote(id, title, body) {
   requireDb();
 
@@ -150,15 +94,7 @@ export function updateNote(id, title, body) {
     throw new Error("شناسه یادداشت نامعتبر است");
   }
 
-  const { cleanTitle, cleanBody } = assertValidNote(title, body);
-
-  // StatementSync.get resolves to undefined when no row matched, normalise it
-  // to null so the IPC contract is the same on both sides of the bridge.
-  const row = /** @type {any} */ (updateStatement).get(
-    cleanTitle,
-    cleanBody,
-    id,
-  );
+  const row = /** @type {any} */ (updateStatement).get(title, body, id);
 
   return row ?? null;
 }

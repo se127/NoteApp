@@ -5,9 +5,7 @@ export type Theme = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
 export type ThemeContextValue = {
-  /** The user's choice, which may be "system". */
   theme: Theme;
-  /** What "system" currently resolves to, i.e. the theme actually applied. */
   resolvedTheme: ResolvedTheme;
   setTheme: (theme: Theme) => void;
 };
@@ -24,10 +22,8 @@ export function useTheme(): ThemeContextValue {
   return context;
 }
 
-/** Key used for the localStorage fallback, e.g. when running in a plain browser. */
 export const THEME_STORAGE_KEY = "note-app-theme";
 
-/** The bridge exposed by electron/preload.mjs, when running inside Electron. */
 export type ElectronBridge = {
   theme: {
     get: () => Theme;
@@ -46,11 +42,6 @@ function isTheme(value: unknown): value is Theme {
   return value === "light" || value === "dark" || value === "system";
 }
 
-/**
- * Read the persisted choice. Prefers the Electron bridge, which is stored in
- * userData and therefore survives the dev-server origin changing; falls back to
- * localStorage so `bun run dev:web` works in a plain browser.
- */
 export function readStoredTheme(): Theme | null {
   const bridge = getElectronBridge();
   if (bridge) {
@@ -64,7 +55,6 @@ export function readStoredTheme(): Theme | null {
   return isTheme(stored) ? stored : null;
 }
 
-/** Persist the choice through whichever bridge is available. */
 export function persistTheme(theme: Theme): void {
   const bridge = getElectronBridge();
 
@@ -75,8 +65,5 @@ export function persistTheme(theme: Theme): void {
 
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch {
-    // Storage can be unavailable (private mode); the theme still applies for
-    // this session, it just will not be remembered.
-  }
+  } catch {}
 }

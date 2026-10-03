@@ -11,22 +11,16 @@ export type NewNote = {
   body: string;
 };
 
-/** The notes bridge exposed by electron/preload.cjs. */
 export type NotesBridge = {
   list: () => Promise<Note[]>;
   create: (note: NewNote) => Promise<Note>;
   remove: (id: number) => Promise<boolean>;
-  /** Resolves to null when the note no longer exists. */
   update: (id: number, note: NewNote) => Promise<Note | null>;
   onChanged: (callback: () => void) => () => void;
 };
 
 type WithBridge = { noteApp?: { notes?: NotesBridge } };
 
-/**
- * The bridge is only present inside Electron. `bun run dev:web` serves the
- * renderer in a plain browser, where there is no database to talk to.
- */
 export function getNotesBridge(): NotesBridge | null {
   if (typeof window === "undefined") return null;
 

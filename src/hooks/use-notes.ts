@@ -4,17 +4,12 @@ import { getNotesBridge, type NewNote, type Note } from "@/lib/notes";
 
 const UNAVAILABLE_MESSAGE = "پایگاه داده فقط در اپلیکیشن دسکتاپ در دسترس است";
 
-/**
- * Loads the notes list and exposes the create, update and remove actions.
- *
- * The bridge is resolved once: it is a stable object on window, and deciding
- * during render avoids setState on the synchronous path of an effect.
- */
 export function useNotes() {
   const bridge = useMemo(() => getNotesBridge(), []);
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(bridge !== null);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(
     bridge === null ? UNAVAILABLE_MESSAGE : null,
   );
@@ -39,9 +34,6 @@ export function useNotes() {
 
     let active = true;
 
-    // Fetched inside promise callbacks rather than via refresh(), so no
-    // setState runs synchronously in the effect body. `active` guards against
-    // updating after unmount.
     bridge.list().then(
       (result) => {
         if (!active) return;
@@ -60,7 +52,6 @@ export function useNotes() {
       },
     );
 
-    // Another window may add notes; refetch when the main process says so.
     const unsubscribe = bridge.onChanged(() => void refresh());
 
     return () => {
@@ -89,8 +80,6 @@ export function useNotes() {
       }
 
       const deleted = await bridge.remove(id);
-      // Refetch rather than splicing locally: the main process is the source
-      // of truth for ordering.
       setNotes(await bridge.list());
       return deleted;
     },
@@ -110,5 +99,14 @@ export function useNotes() {
     [bridge],
   );
 
-  return { notes, isLoading, error, create, remove, update };
+  return {
+    notes,
+    isLoading,
+    isSaving,
+    setIsSaving,
+    error,
+    create,
+    remove,
+    update,
+  };
 }

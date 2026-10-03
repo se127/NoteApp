@@ -1,29 +1,9 @@
-/**
- * Windows packaging: build the renderer with Vite, then hand the result to
- * electron-builder.
- *
- * Usage:
- *   bun run build:windows      NSIS installer .exe (needs wine on Linux/macOS)
- *   bun run build:windows:dir  unpacked win-unpacked/ folder (no wine needed)
- *
- * The `nsis` target is built with NSIS's makensis, so building it off Windows
- * goes through wine. Rather than let electron-builder fail deep inside
- * app-builder with "wine is required", check for it up front and explain the fix.
- *
- * Uses bun's native TypeScript support, so this runs directly under
- * `bun run` with no build step.
- */
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-/*
- * fileURLToPath rather than Bun's import.meta.dir: tsconfig.node.json sets
- * "types": ["node"], so the Bun extension is not typed and `tsc -b` rejects it,
- * even though bun runs this happily.
- */
 const projectRoot = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -46,12 +26,6 @@ function shutdown(code = 0): void {
 process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
-/**
- * Run a command to completion.
- *
- * Resolves on exit code 0, rejects otherwise. A non-zero exit is reported once
- * here rather than by a separate listener, so a failure cannot be handled twice.
- */
 function run(name: string, command: string, args: string[]): Promise<void> {
   console.log(`[build] ${name}: ${command} ${args.join(" ")}`);
 
@@ -61,7 +35,6 @@ function run(name: string, command: string, args: string[]): Promise<void> {
       stdio: ["ignore", "inherit", "inherit"],
     });
 
-    // A build step failing is fatal, so tear down any sibling still running.
     child.on("exit", (code, signal) => {
       if (code === 0) resolve();
       else {
@@ -76,7 +49,6 @@ function run(name: string, command: string, args: string[]): Promise<void> {
   });
 }
 
-/** True when the host cannot run a Windows .exe, so the installer needs wine. */
 function isCrossCompile(): boolean {
   return process.platform !== "win32";
 }
@@ -100,13 +72,6 @@ const INSTALL_HINT: Record<string, string> = {
   "opensuse-tumbleweed": "sudo zypper install wine",
 };
 
-/*
- * electron-builder runs the generated installer under wine to produce the
- * uninstaller (NsisTarget.js: the BUILD_UNINSTALLER pass). That installer is a
- * 32-bit NSIS executable, so an amd64-only wine fails with
- * "failed to load C:\windows\syswow64\ntdll.dll" deep into an otherwise
- * successful-looking build. Check syswow64 up front instead.
- */
 const WOW64_MARKER = "drive_c/windows/syswow64/ntdll.dll";
 
 function hasWow64Support(home: string): boolean {
@@ -179,16 +144,8 @@ function preflight(): void {
 async function build(): Promise<void> {
   preflight();
 
-  // tsc -b is left out on purpose: vite already type-strips, and the build
-  // should not fail on a lint-level type nit. Run `bun run build` separately
-  // when you want the type check.
   await run("vite build", "bunx", ["vite", "build"]);
 
-  /*
-   * The target list is positional and goes straight after --win, so the
-   * installer build is `--win nsis`, not `--win --nsis`. There is no standalone
-   * --nsis flag; passing one prints the help text and exits 1.
-   */
   const target = dirOnly ? "dir" : "nsis";
   await run("electron-builder", "bunx", [
     "electron-builder",
