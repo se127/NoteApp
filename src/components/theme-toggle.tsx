@@ -33,7 +33,7 @@ export function ThemeToggle() {
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="تغییر پوسته">
+            <Button variant="outline" size="icon" aria-label="تغییر پوسته">
               {resolvedTheme === "dark" ? (
                 <Moon className="size-4" />
               ) : (

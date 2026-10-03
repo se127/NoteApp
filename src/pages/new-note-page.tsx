@@ -13,6 +13,11 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useNotes } from "@/hooks/use-notes";
 import {
   BODY_MAX,
@@ -75,11 +80,16 @@ export function NewNotePage() {
     <div className="flex w-full flex-col gap-6 p-6">
       <header className="flex items-center gap-3">
         {/* RTL: the logical "back" arrow points right. */}
-        <Button asChild variant="ghost" size="icon" aria-label="بازگشت">
-          <Link to="/">
-            <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant={"outline"} size="icon" aria-label="بازگشت">
+              <Link to="/">
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">بازگشت</TooltipContent>
+        </Tooltip>
         <h1 className="font-heading text-2xl font-bold">یادداشت جدید</h1>
       </header>
 
