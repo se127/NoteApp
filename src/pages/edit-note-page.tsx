@@ -207,7 +207,7 @@ function EditNoteForm({ note, onSave }: EditNoteFormProps) {
               }}
               aria-invalid={errors.body !== undefined}
               aria-describedby="body-hint"
-              className="max-h-[40vh] min-h-[40vh] resize-y"
+              className="max-h-[40vh] min-h-[40vh] resize-none"
             />
             <FieldDescription id="body-hint">
               اختیاری — <CharacterCount value={body} max={BODY_MAX} />
