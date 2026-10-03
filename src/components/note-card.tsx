@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -12,6 +12,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Note } from "@/lib/notes";
 
 const DELETE_FAILED_MESSAGE = "حذف یادداشت ناموفق بود";
@@ -69,29 +80,49 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button asChild variant="outline" size="icon">
-          <Link
-            to={`/notes/${note.id}/edit`}
-            aria-label={`ویرایش یادداشت ${note.title}`}
-          >
-            <Pencil className="size-4" />
-          </Link>
-        </Button>
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-label={`گزینه‌ های یادداشت ${note.title}`}
+              >
+                <Ellipsis className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent align="end" side="right">
+            گزینه ها
+          </TooltipContent>
+        </Tooltip>
 
-        <Button
-          type="button"
-          variant="destructive"
-          size="icon"
-          aria-label={`حذف یادداشت ${note.title}`}
-          onClick={() => {
-            setDeleteError(null);
-            setIsOpen(true);
-          }}
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link to={`/notes/${note.id}/edit`}>
+              <Pencil className="size-4" />
+              ویرایش
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => {
+              setDeleteError(null);
+              /*
+               * Deferred by a tick: Radix marks the body pointer-events: none
+               * while a menu is open, and opening the dialog in the same tick
+               * makes it swallow the interaction that dismisses the menu.
+               */
+              setTimeout(() => setIsOpen(true));
+            }}
+          >
+            <Trash2 className="size-4" />
+            حذف
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
         <AlertDialogContent>
