@@ -1,4 +1,4 @@
-# یادداشت
+# note-app
 
 An Electron desktop note-taking app. RTL-first (`fa-IR`), with shadcn/ui on
 Tailwind CSS v4.
