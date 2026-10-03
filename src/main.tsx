@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router";
 
 import { DirectionProvider } from "@/components/ui/direction";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 
 import App from "./App.tsx";
@@ -16,7 +17,11 @@ createRoot(document.getElementById("root")!).render(
           file://, where path-based routes cannot be resolved on reload. */}
       <HashRouter>
         <DirectionProvider dir="rtl">
-          <App />
+          {/* Inside DirectionProvider so tooltip content picks up the RTL
+              direction Radix reads for arrow placement. */}
+          <TooltipProvider>
+            <App />
+          </TooltipProvider>
         </DirectionProvider>
       </HashRouter>
     </ThemeProvider>
