@@ -82,7 +82,6 @@ function createWindow() {
     width: 1200,
     height: 800,
     show: false,
-    resizable: false,
     backgroundColor: "#ffffff",
     autoHideMenuBar: true,
     webPreferences: {
@@ -94,17 +93,9 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
-    mainWindow?.setResizable(false);
     mainWindow?.maximize();
     mainWindow?.show();
   });
-
-  const keepMaximized = () => {
-    if (mainWindow && !mainWindow.isMaximized()) mainWindow.maximize();
-  };
-  mainWindow.on("resize", keepMaximized);
-  mainWindow.on("unmaximize", keepMaximized);
-  mainWindow.on("maximize", () => mainWindow?.setResizable(false));
 
   if (DEV_SERVER_URL) {
     mainWindow.loadURL(DEV_SERVER_URL);
