@@ -175,7 +175,6 @@ function EditNoteForm({ note, onSave }: EditNoteFormProps) {
                   ? "title-error title-count"
                   : "title-count"
               }
-              placeholder="عنوان یادداشت"
             />
             <FieldDescription id="title-count">
               <CharacterCount value={title} max={TITLE_MAX} />
@@ -198,7 +197,6 @@ function EditNoteForm({ note, onSave }: EditNoteFormProps) {
               }}
               aria-invalid={errors.body !== undefined}
               aria-describedby="body-hint"
-              placeholder="متن یادداشت"
               className="max-h-[40vh] min-h-[40vh] resize-y"
             />
             <FieldDescription id="body-hint">
