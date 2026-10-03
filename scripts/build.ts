@@ -17,8 +17,17 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
-const projectRoot = path.join(import.meta.dir, "..");
+/*
+ * fileURLToPath rather than Bun's import.meta.dir: tsconfig.node.json sets
+ * "types": ["node"], so the Bun extension is not typed and `tsc -b` rejects it,
+ * even though bun runs this happily.
+ */
+const projectRoot = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 
 /** `bun run build:windows:dir` skips the installer and just unpacks the app. */
 const dirOnly = process.argv.includes("--dir");
