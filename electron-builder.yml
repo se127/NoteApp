@@ -1,0 +1,76 @@
+# electron-builder configuration.
+#
+# `bun run build:windows` produces a Windows NSIS installer (.exe). The `portable`
+# and `zip` targets work too if you ever need a no-install artifact; see the
+# README for the wine requirement when building off Windows.
+#
+# See https://www.electron.build/configuration/configuration
+
+appId: dev.saeid.note-app
+productName: Note App
+
+directories:
+  output: release
+  # Icons live here. Nothing is committed yet, so electron-builder falls back to
+  # the default Electron icon; drop an icon.ico in this folder to change that.
+  buildResources: build
+
+# Only ship what the app actually loads at runtime. `electron/main.mjs` resolves
+# the preload script and the built `dist/index.html` relative to the repo root,
+# so both directories have to be inside the archive.
+#
+# Note that node_modules cannot be excluded here. electron-builder appends
+# `**/node_modules/**/*` (production deps only) to whatever you configure, so the
+# renderer libraries are inlined by Vite and belong in devDependencies to keep
+# them out of the package. See the note on package.json.
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+asar: true
+
+# Electron ships 55 locale packs by default, ~49 MB of them. The UI text is
+# ours; these only back Chromium's own strings, so keep the two we can hit.
+# The Farsi pack is named `fa`, not `fa-IR`.
+electronLanguages:
+  - en-US
+  - fa
+
+# `maximum` shrinks the artifact by a few percent but is markedly slower on the
+# 7z pass. Leave it at the `normal` default unless you are chasing size.
+# compression: store   # uncommitted, for a quick smoke test
+
+# Applies to every artifact, so the installer lands as Note App-0.0.0.exe.
+# The dot before ${ext} is required: without it the file has no extension at all
+# and Windows will not treat it as an executable.
+artifactName: ${productName}-${version}.${ext}
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  # Double-click, next, install. No wizard pages and no directory picker.
+  oneClick: true
+
+  # Per-user install into %LOCALAPPDATA%\Programs\Note App. This is what keeps
+  # the installer from demanding admin rights (a UAC prompt), which matters a
+  # lot for an unsigned build.
+  perMachine: false
+
+  # Only reachable when oneClick is false: NSIS shows a directory picker only in
+  # the assisted installer. Flip oneClick to false to get it.
+  allowToChangeInstallationDirectory: false
+
+  shortcutName: Note App
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+  # Uninstaller in Apps & Features, rather than a bare .exe in the install dir.
+  runAfterFinish: true
+
+  # Notes live in userData, so leave them alone when the app is uninstalled.
+  deleteAppDataOnUninstall: false
