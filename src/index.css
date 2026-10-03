@@ -6,27 +6,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Slightly larger type scale.
- *
- * shadcn/ui ships `text-xs` / `text-sm` / `text-base` on most of its parts
- * (14 occurrences of text-sm alone), so raising the scale here enlarges inputs,
- * buttons, menu items and labels in one place. Overriding the scale beats
- * editing the vendored components in src/components/ui, which the CLI would
- * overwrite on the next update.
- *
- * Each size carries a paired --line-height in Tailwind's default theme, so both
- * are overridden to keep the vertical rhythm intact.
- */
-@theme {
-  --text-xs: 0.8125rem; /* 13px */
-  --text-xs--line-height: calc(1.25 / 0.8125);
-  --text-sm: 0.9375rem; /* 15px */
-  --text-sm--line-height: calc(1.35 / 0.9375);
-  --text-base: 1.0625rem; /* 17px */
-  --text-base--line-height: calc(1.5 / 1.0625);
-}
-
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "vazirmatn", "Inter Variable", sans-serif;
