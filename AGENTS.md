@@ -17,15 +17,17 @@ Use **bun** exclusively.
 
 ## Build before commit
 
-Run `bun run build` after making changes, once lint and format are clean, and before committing. It is `tsc -b && vite build`, so it covers the type-check too — there is no separate type-check step to remember.
+Run `bun run build` before committing. It is `tsc -b && vite build`, so it covers the type-check too — there is no separate type-check step to remember. The pre-commit hook does not run it, so nothing else will catch a type error.
 
-| Do               | Never                               |
-| ---------------- | ----------------------------------- |
-| `bun run format` | `bun run build:windows`             |
-| `bun run lint`   | `bun run build:windows:dir`         |
-| `bun run build`  | `vite build`, `tsc -b` on their own |
+Do **not** run `bun run format` or `bun run lint` first. The husky pre-commit hook runs lint-staged over the staged files, with `prettier --write` and `oxlint --fix --deny-warnings`. That hook is the authority on formatting and linting, and it is stricter than the standalone commands — `bun run lint` does not deny warnings, so a warning passes on its own but fails the commit.
 
-The order is format, then lint, then build, then commit. Fix what each step reports before moving to the next.
+Use `bun run lint` and `bun run format:check` only when you want to check the whole working tree rather than just the staged files.
+
+| Do              | Never                                 |
+| --------------- | ------------------------------------- |
+| `bun run build` | `bun run build:windows`               |
+|                 | `bun run build:windows:dir`           |
+|                 | `vite build` or `tsc -b` on their own |
 
 The `build:windows` scripts cross-compile a Windows installer through wine. They take minutes and exist to produce a distributable, not to validate a change, so they are never part of the verify loop. Only run one when the user asks for a release artifact.
 
