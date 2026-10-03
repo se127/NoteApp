@@ -8,7 +8,14 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTheme, type Theme } from "@/lib/theme";
+
+const TRIGGER_LABEL = "انتخاب پوسته";
 
 const OPTIONS = [
   { value: "light", label: "روشن", icon: Sun },
@@ -24,33 +31,38 @@ export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="تغییر پوسته">
-          {resolvedTheme === "dark" ? (
-            <Moon className="size-4" />
-          ) : (
-            <Sun className="size-4" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuRadioGroup
-          value={theme}
-          onValueChange={(value) => setTheme(value as Theme)}
-        >
-          {OPTIONS.map((option) => (
-            <DropdownMenuRadioItem
-              key={option.value}
-              value={option.value}
-              className="gap-2"
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={TRIGGER_LABEL}>
+              {resolvedTheme === "dark" ? (
+                <Moon className="size-4" />
+              ) : (
+                <Sun className="size-4" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuRadioGroup
+              value={theme}
+              onValueChange={(value) => setTheme(value as Theme)}
             >
-              <option.icon className="size-4" />
-              {option.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+              {OPTIONS.map((option) => (
+                <DropdownMenuRadioItem
+                  key={option.value}
+                  value={option.value}
+                  className="gap-2"
+                >
+                  <option.icon className="size-4" />
+                  {option.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{TRIGGER_LABEL}</TooltipContent>
+    </Tooltip>
   );
 }
