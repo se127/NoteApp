@@ -15,16 +15,19 @@ Use **bun** exclusively.
 - Run package scripts through bun: `bun run lint`, `bun run format`, `bun run format:check`.
 - Use the exact versions in `bun.lock`; never hand-edit it.
 
-## Never run the build
+## Build before commit
 
-Do **not** run `bun run build`, `vite build`, or `tsc -b`. Builds are slow and are not needed to validate a change.
+Run `bun run build` after making changes, once lint and format are clean, and before committing. It is `tsc -b && vite build`, so it covers the type-check too — there is no separate type-check step to remember.
 
-Verify work with the fast commands instead:
+| Do               | Never                               |
+| ---------------- | ----------------------------------- |
+| `bun run format` | `bun run build:windows`             |
+| `bun run lint`   | `bun run build:windows:dir`         |
+| `bun run build`  | `vite build`, `tsc -b` on their own |
 
-- `bun run lint` — oxlint
-- `bun run format:check` — prettier, includes the Tailwind class sort check
+The order is format, then lint, then build, then commit. Fix what each step reports before moving to the next.
 
-If a type error is suspected, ask before running any type-check or build step.
+The `build:windows` scripts cross-compile a Windows installer through wine. They take minutes and exist to produce a distributable, not to validate a change, so they are never part of the verify loop. Only run one when the user asks for a release artifact.
 
 ## Never run the dev server
 
