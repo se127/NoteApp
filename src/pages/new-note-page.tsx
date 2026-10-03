@@ -90,6 +90,7 @@ export function NewNotePage() {
             <Input
               id="title"
               name="title"
+              autoFocus
               value={title}
               maxLength={TITLE_MAX}
               onChange={(event) => {
@@ -102,7 +103,6 @@ export function NewNotePage() {
                 errors.title !== undefined ? "title-error" : undefined
               }
               placeholder="عنوان یادداشت"
-              className="w-full xl:max-w-1/2"
             />
             <FieldError id="title-error">{errors.title}</FieldError>
           </Field>
@@ -138,7 +138,11 @@ export function NewNotePage() {
           </p>
         )}
 
-        <div className="flex gap-2">
+        {/*
+         * justify-end puts the group on the left in RTL. A plain gap-2 row would
+         * pack it against the start edge, which is the right.
+         */}
+        <div className="flex justify-end gap-2">
           <Button type="submit" disabled={isSaving}>
             ذخیره
           </Button>
