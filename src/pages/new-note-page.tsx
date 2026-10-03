@@ -1,6 +1,6 @@
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -102,6 +102,7 @@ export function NewNotePage() {
                 errors.title !== undefined ? "title-error" : undefined
               }
               placeholder="عنوان یادداشت"
+              className="w-full xl:max-w-1/2"
             />
             <FieldError id="title-error">{errors.title}</FieldError>
           </Field>
@@ -112,7 +113,7 @@ export function NewNotePage() {
               id="body"
               name="body"
               value={body}
-              rows={10}
+              rows={16}
               maxLength={BODY_MAX}
               onChange={(event) => {
                 const value = event.target.value;
@@ -122,6 +123,7 @@ export function NewNotePage() {
               aria-invalid={errors.body !== undefined}
               aria-describedby="body-hint"
               placeholder="متن یادداشت"
+              className="max-h-[40vh] min-h-[40vh] resize-y"
             />
             <FieldDescription id="body-hint">
               اختیاری — حداکثر {BODY_MAX.toLocaleString("fa-IR")} نویسه
