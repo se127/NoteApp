@@ -10,10 +10,22 @@ const EMPTY_MESSAGE = "هیچ یادداشتی یافت نشد";
 export function NotesListPage() {
   const { notes, isLoading, error, remove } = useNotes();
 
+  /*
+   * Built as one string rather than a sibling <span> inside the heading: JSX
+   * strips the newline and indentation between a text line and a following
+   * expression, which would swallow the space before the bracket. Blank while
+   * loading, so the count does not flash ٠ before the first list arrives.
+   */
+  const countLabel = isLoading
+    ? ""
+    : ` (${notes.length.toLocaleString("fa-IR")})`;
+
   return (
     <div className="flex w-full flex-col gap-6 p-6">
       <header className="flex items-center justify-between gap-4">
-        <h1 className="font-heading text-2xl font-bold">یادداشت‌ ها</h1>
+        <h1 className="font-heading text-2xl font-bold">
+          یادداشت‌ ها{countLabel}
+        </h1>
         <Button asChild>
           <Link to="/notes/new">
             <Plus className="size-4" />
