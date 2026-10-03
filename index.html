@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>note-app</title>
+    <script>
+      // Apply the stored theme before first paint, otherwise the app renders in
+      // light mode for a frame and then snaps to dark.
+      (() => {
+        try {
+          const stored = localStorage.getItem("note-app-theme") ?? "system";
+          const dark =
+            stored === "dark" ||
+            (stored === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+          document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        } catch {
+          // Private mode or storage disabled: fall back to the light theme.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
