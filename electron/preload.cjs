@@ -28,6 +28,8 @@ const api = {
     list: () => ipcRenderer.invoke("notes:list"),
     create: (note) => ipcRenderer.invoke("notes:create", note),
     remove: (id) => ipcRenderer.invoke("notes:delete", id),
+    // Resolves to null when the note no longer exists.
+    update: (id, note) => ipcRenderer.invoke("notes:update", { id, ...note }),
     // Fires when any window adds a note, so views can refetch.
     onChanged: (callback) => {
       const listener = () => callback();

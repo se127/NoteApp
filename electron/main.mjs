@@ -19,6 +19,7 @@ import {
   deleteNote,
   listNotes,
   openDatabase,
+  updateNote,
 } from "./db.mjs";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -96,6 +97,13 @@ ipcMain.handle("notes:delete", (_event, id) => {
   const deleted = deleteNote(id);
   if (deleted) broadcastNotesChanged();
   return deleted;
+});
+
+ipcMain.handle("notes:update", (_event, { id, title, body } = {}) => {
+  // null when the row is gone, e.g. the note was deleted in another window.
+  const note = updateNote(id, title, body);
+  if (note !== null) broadcastNotesChanged();
+  return note;
 });
 
 function createWindow() {

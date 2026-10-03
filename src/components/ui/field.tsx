@@ -1,9 +1,9 @@
-import { useMemo } from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
+import { useMemo } from "react";
 
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
@@ -132,7 +132,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
       data-slot="field-description"
       className={cn(
         "text-start text-sm leading-normal font-normal text-muted-foreground group-has-data-horizontal/field:text-balance [[data-variant=legend]+&]:-mt-1.5",
-        "last:mt-0 nth-last-2:-mt-1",
+        "last:mt-0",
         "[&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
         className
       )}
@@ -223,14 +223,14 @@ function FieldError({
 }
 
 export {
-  Field,
-  FieldLabel,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLegend,
-  FieldSeparator,
-  FieldSet,
-  FieldContent,
-  FieldTitle,
-}
+    Field,
+    FieldContent,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSeparator,
+    FieldSet,
+    FieldTitle
+};

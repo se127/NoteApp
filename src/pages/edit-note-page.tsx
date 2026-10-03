@@ -1,6 +1,6 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import { CharacterCount } from "@/components/character-count";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useNotes } from "@/hooks/use-notes";
+import type { NewNote, Note } from "@/lib/notes";
 import {
   BODY_MAX,
   TITLE_MAX,
@@ -22,20 +23,80 @@ import {
 } from "@/lib/note-schema";
 
 const INITIAL_ERRORS: NoteErrors = {};
+const NOT_FOUND_MESSAGE = "یادداشت یافت نشد";
+const SAVE_FAILED_MESSAGE = "ذخیره یادداشت ناموفق بود";
+const GONE_MESSAGE = "این یادداشت حذف شده است";
 
-export function NewNotePage() {
+type EditNoteFormProps = {
+  note: Note;
+  /** Resolves to null when the note was deleted elsewhere. */
+  onSave: (id: number, note: NewNote) => Promise<Note | null>;
+};
+
+export function EditNotePage() {
+  const { id } = useParams<{ id: string }>();
+  const { notes, isLoading, error, update } = useNotes();
+
+  const page = (
+    <div className="flex w-full flex-col gap-6 p-6">
+      {error !== null && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
+      {isLoading ? (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          در حال بارگذاری…
+        </p>
+      ) : (
+        <NotFound />
+      )}
+    </div>
+  );
+
+  if (error !== null || isLoading) return page;
+
+  const noteId = Number(id);
+  const note = Number.isInteger(noteId)
+    ? notes.find((candidate) => candidate.id === noteId)
+    : undefined;
+
+  if (note === undefined) return page;
+
+  // key forces fresh form state when navigating straight from one note's editor
+  // to another's, which a plain remount would not catch.
+  return <EditNoteForm key={note.id} note={note} onSave={update} />;
+}
+
+function NotFound() {
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">{NOT_FOUND_MESSAGE}</p>
+      <div className="flex justify-end gap-2">
+        <Button asChild variant="outline">
+          <Link to="/">بازگشت</Link>
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function EditNoteForm({ note, onSave }: EditNoteFormProps) {
   const navigate = useNavigate();
-  const { create } = useNotes();
 
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  // Seeded from the note, which is why this is a separate component: the
+  // container only renders it once the note has arrived.
+  const [title, setTitle] = useState(note.title);
+  const [body, setBody] = useState(note.body);
   const [errors, setErrors] = useState<NoteErrors>(INITIAL_ERRORS);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Re-validate a field only once it is already showing an error, so the
   // message clears as soon as the input becomes valid without nagging while
-  // the user is still typing the first character.
+  // the user is still typing.
   function revalidate(
     field: keyof NoteErrors,
     value: { title: string; body: string },
@@ -61,12 +122,21 @@ export function NewNotePage() {
     setErrors(INITIAL_ERRORS);
     setIsSaving(true);
     try {
-      await create(data);
+      const updated = await onSave(note.id, data);
+
+      // The row is gone, most likely deleted from another window. Stay put and
+      // say so rather than navigating to a list that no longer has it.
+      if (updated === null) {
+        setFormError(GONE_MESSAGE);
+        return;
+      }
+
       navigate("/");
     } catch (cause) {
       setFormError(
-        cause instanceof Error ? cause.message : "ذخیره یادداشت ناموفق بود",
+        cause instanceof Error ? cause.message : SAVE_FAILED_MESSAGE,
       );
+    } finally {
       setIsSaving(false);
     }
   }
@@ -80,7 +150,7 @@ export function NewNotePage() {
             <ArrowRight className="size-4" />
           </Link>
         </Button>
-        <h1 className="font-heading text-2xl font-bold">یادداشت جدید</h1>
+        <h1 className="font-heading text-2xl font-bold">ویرایش یادداشت</h1>
       </header>
 
       {/* noValidate: zod owns the messages, the browser's are English. */}
@@ -150,7 +220,7 @@ export function NewNotePage() {
          */}
         <div className="flex justify-end gap-2">
           <Button type="submit" disabled={isSaving}>
-            افزودن
+            ذخیره
           </Button>
           <Button asChild type="button" variant="outline">
             <Link to="/">انصراف</Link>

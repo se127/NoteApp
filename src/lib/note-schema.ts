@@ -1,30 +1,28 @@
 import { z } from "zod";
 
 /**
- * Validation for note creation.
+ * Validation for note creation and editing.
  *
- * Runs in the renderer for instant feedback; electron/db.mjs re-checks the same
- * limits in the main process, because the renderer is untrusted and IPC can be
- * invoked by anything with access to the preload bridge.
+ * The title is always required; the body is optional but length-capped. Runs in
+ * the renderer for instant feedback; electron/db.mjs re-checks the same limits
+ * in the main process, because the renderer is untrusted and IPC can be invoked
+ * by anything with access to the preload bridge.
  */
 export const TITLE_MAX = 120;
 export const BODY_MAX = 5000;
 
-export const noteSchema = z
-  .object({
-    title: z
-      .string()
-      .trim()
-      .max(TITLE_MAX, `عنوان نباید بیشتر از ${TITLE_MAX} نویسه باشد`),
-    body: z
-      .string()
-      .trim()
-      .max(BODY_MAX, `متن نباید بیشتر از ${BODY_MAX} نویسه باشد`),
-  })
-  .refine((note) => note.title !== "" || note.body !== "", {
-    message: "عنوان یا متن یادداشت را وارد کنید",
-    path: ["title"],
-  });
+export const noteSchema = z.object({
+  // .trim() runs before .min(), so a whitespace-only title is rejected.
+  title: z
+    .string()
+    .trim()
+    .min(1, "عنوان یادداشت الزامی است")
+    .max(TITLE_MAX, `عنوان نباید بیشتر از ${TITLE_MAX} کاراکتر باشد`),
+  body: z
+    .string()
+    .trim()
+    .max(BODY_MAX, `متن نباید بیشتر از ${BODY_MAX} کاراکتر باشد`),
+});
 
 export type NoteInput = z.infer<typeof noteSchema>;
 

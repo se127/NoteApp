@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { EditNotePage } from "@/pages/edit-note-page";
 import { NewNotePage } from "@/pages/new-note-page";
 import { NotesListPage } from "@/pages/notes-list-page";
 
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<NotesListPage />} />
           <Route path="/notes/new" element={<NewNotePage />} />
+          <Route path="/notes/:id/edit" element={<EditNotePage />} />
           <Route path="*" element={<NotesListPage />} />
         </Routes>
       </div>

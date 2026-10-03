@@ -16,6 +16,8 @@ export type NotesBridge = {
   list: () => Promise<Note[]>;
   create: (note: NewNote) => Promise<Note>;
   remove: (id: number) => Promise<boolean>;
+  /** Resolves to null when the note no longer exists. */
+  update: (id: number, note: NewNote) => Promise<Note | null>;
   onChanged: (callback: () => void) => () => void;
 };
 

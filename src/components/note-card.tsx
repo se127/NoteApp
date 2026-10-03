@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Link } from "react-router";
+import { Pencil, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -68,18 +69,29 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
         )}
       </div>
 
-      <Button
-        type="button"
-        variant="destructive"
-        size="icon"
-        aria-label={`حذف یادداشت ${note.title}`}
-        onClick={() => {
-          setDeleteError(null);
-          setIsOpen(true);
-        }}
-      >
-        <Trash2 className="size-4" />
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button asChild variant="outline" size="icon">
+          <Link
+            to={`/notes/${note.id}/edit`}
+            aria-label={`ویرایش یادداشت ${note.title}`}
+          >
+            <Pencil className="size-4" />
+          </Link>
+        </Button>
+
+        <Button
+          type="button"
+          variant="destructive"
+          size="icon"
+          aria-label={`حذف یادداشت ${note.title}`}
+          onClick={() => {
+            setDeleteError(null);
+            setIsOpen(true);
+          }}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
 
       <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
         <AlertDialogContent>

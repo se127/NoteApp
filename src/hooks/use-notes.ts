@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getNotesBridge, type Note } from "@/lib/notes";
+import { getNotesBridge, type NewNote, type Note } from "@/lib/notes";
 
 const UNAVAILABLE_MESSAGE = "پایگاه داده فقط در اپلیکیشن دسکتاپ در دسترس است";
 
 /**
- * Loads the notes list and exposes a create action.
+ * Loads the notes list and exposes the create, update and remove actions.
  *
  * The bridge is resolved once: it is a stable object on window, and deciding
  * during render avoids setState on the synchronous path of an effect.
@@ -97,5 +97,18 @@ export function useNotes() {
     [bridge],
   );
 
-  return { notes, isLoading, error, create, remove };
+  const update = useCallback(
+    async (id: number, note: NewNote) => {
+      if (bridge === null) {
+        throw new Error(UNAVAILABLE_MESSAGE);
+      }
+
+      const updated = await bridge.update(id, note);
+      setNotes(await bridge.list());
+      return updated;
+    },
+    [bridge],
+  );
+
+  return { notes, isLoading, error, create, remove, update };
 }

@@ -31,6 +31,8 @@ let listStatement = null;
 let insertStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
 let deleteStatement = null;
+/** @type {import("node:sqlite").StatementSync | null} */
+let updateStatement = null;
 
 /** Open (once) and migrate the database inside the app's userData directory. */
 export function openDatabase(userDataPath) {
@@ -57,6 +59,13 @@ export function openDatabase(userDataPath) {
 
   deleteStatement = db.prepare("DELETE FROM notes WHERE id = ?");
 
+  updateStatement = db.prepare(
+    `UPDATE notes
+        SET title = ?, body = ?, updated_at = datetime('now')
+      WHERE id = ?
+ RETURNING id, title, body, created_at AS createdAt, updated_at AS updatedAt`,
+  );
+
   return db;
 }
 
@@ -69,7 +78,8 @@ const TITLE_MAX = 120;
 const BODY_MAX = 5000;
 
 /**
- * Re-check the limits the renderer already enforced with zod. The renderer is
+ * Re-check the rules the renderer already enforced with zod: the title is
+ * required, the body is optional, and both are length-capped. The renderer is
  * untrusted, so anything arriving over IPC is validated again here before it
  * reaches SQLite.
  */
@@ -81,14 +91,14 @@ function assertValidNote(title, body) {
   const cleanTitle = title.trim();
   const cleanBody = body.trim();
 
-  if (cleanTitle === "" && cleanBody === "") {
-    throw new Error("عنوان یا متن یادداشت را وارد کنید");
+  if (cleanTitle === "") {
+    throw new Error("عنوان یادداشت الزامی است");
   }
   if (cleanTitle.length > TITLE_MAX) {
-    throw new Error(`عنوان نباید بیشتر از ${TITLE_MAX} نویسه باشد`);
+    throw new Error(`عنوان نباید بیشتر از ${TITLE_MAX} کاراکتر باشد`);
   }
   if (cleanBody.length > BODY_MAX) {
-    throw new Error(`متن نباید بیشتر از ${BODY_MAX} نویسه باشد`);
+    throw new Error(`متن نباید بیشتر از ${BODY_MAX} کاراکتر باشد`);
   }
 
   return { cleanTitle, cleanBody };
@@ -125,10 +135,39 @@ export function deleteNote(id) {
   return Number(result.changes) > 0;
 }
 
+/**
+ * Update one note's text.
+ *
+ * @returns {object|null} the updated row, or null when no row matched, so the
+ * caller can tell a stale edit (the note was already removed elsewhere) from a
+ * successful one. updated_at is bumped, which also moves the note to the top of
+ * the list ordering.
+ */
+export function updateNote(id, title, body) {
+  requireDb();
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("شناسه یادداشت نامعتبر است");
+  }
+
+  const { cleanTitle, cleanBody } = assertValidNote(title, body);
+
+  // StatementSync.get resolves to undefined when no row matched, normalise it
+  // to null so the IPC contract is the same on both sides of the bridge.
+  const row = /** @type {any} */ (updateStatement).get(
+    cleanTitle,
+    cleanBody,
+    id,
+  );
+
+  return row ?? null;
+}
+
 export function closeDatabase() {
   db?.close();
   db = null;
   listStatement = null;
   insertStatement = null;
   deleteStatement = null;
+  updateStatement = null;
 }
