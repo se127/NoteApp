@@ -4,3 +4,6 @@ bun.lock
 
 # shadcn/ui generated components — vendored code, not ours to format
 src/components/ui
+
+# script-generated @font-face blocks — keep upstream formatting verbatim
+src/font

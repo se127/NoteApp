@@ -1,32 +1,45 @@
-# React + TypeScript + Vite
+# note-app
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+An Electron desktop note-taking app. RTL-first (`fa-IR`), with shadcn/ui on
+Tailwind CSS v4.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Electron 44 (main + preload in plain ESM, no bundler)
+- React 19 + TypeScript + Vite 8, React Compiler enabled
+- Tailwind CSS v4 with the `prettier-plugin-tailwindcss` class sorter
+- shadcn/ui (`radix-nova`, `rtl: true`)
 
-## React Compiler
+## Commands
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Use [bun](https://bun.sh) — do not use npm, yarn or pnpm.
 
-## Expanding the Oxlint configuration
+| Command           | What it does                                    |
+| ----------------- | ----------------------------------------------- |
+| `bun run dev`     | Starts Vite, then opens the app in Electron     |
+| `bun run dev:web` | Renderer only, in a browser at `localhost:5173` |
+| `bun run lint`    | oxlint                                          |
+| `bun run format`  | Prettier, including the Tailwind class sort     |
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Layout
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+electron/main.mjs      Electron main process (window, menu, navigation guard)
+electron/preload.mjs   contextBridge API exposed as window.noteApp
+scripts/dev.ts         Dev orchestrator: Vite + Electron
+src/components/ui/     Vendored shadcn components — never hand-edit
+src/font/vazirmatn/    Self-hosted Vazirmatn (Farsi + digits, no Latin)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Fonts resolve per glyph: Vazirmatn for Arabic script, Inter for Latin,
+`sans-serif` as the final fallback.
+
+## Notes
+
+- The renderer runs with `contextIsolation: true`, `nodeIntegration: false` and
+  `sandbox: true`. Extend the preload bridge rather than enabling Node in the
+  page.
+- `src/components/ui/**` is excluded from Prettier and oxlint so shadcn
+  updates never conflict with local formatting.
+- Pre-commit runs Prettier and oxlint over staged files only. See
+  `lint-staged.config.mjs`.
