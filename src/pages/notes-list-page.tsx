@@ -1,5 +1,5 @@
-import { Link } from "react-router";
 import { Loader2, NotebookPen, Plus } from "lucide-react";
+import { Link } from "react-router";
 
 import { NoteCard } from "@/components/note-card";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,11 @@ export function NotesListPage() {
   return (
     <div className="flex w-full flex-col gap-6 p-6">
       <header className="flex items-center justify-between gap-4">
-        <h1 className="font-heading text-2xl font-bold">یادداشت‌ها</h1>
+        <h1 className="font-heading text-2xl font-bold">یادداشت‌ ها</h1>
         <Button asChild>
           <Link to="/notes/new">
             <Plus className="size-4" />
-            افزودن یادداشت
+            افزودن
           </Link>
         </Button>
       </header>

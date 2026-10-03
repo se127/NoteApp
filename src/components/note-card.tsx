@@ -1,6 +1,6 @@
+import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
-import { Pencil, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import type { Note } from "@/lib/notes";
 
 const DELETE_FAILED_MESSAGE = "حذف یادداشت ناموفق بود";
-const NO_BODY_MESSAGE = "توضیحی برای این یادداشت ثبت نشده است";
+const NO_BODY_MESSAGE = "متن یادداشت خالی است";
 
 type NoteCardProps = {
   note: Note;
@@ -96,7 +96,9 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
       <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>آیا از حذف یادداشت مطمئن هستید؟</AlertDialogTitle>
+            <AlertDialogTitle>
+              آیا از حذف این یادداشت مطمئن هستید؟
+            </AlertDialogTitle>
             <AlertDialogDescription>
               «{note.title}» برای همیشه حذف می‌شود و قابل بازگشت نیست.
             </AlertDialogDescription>
@@ -124,7 +126,7 @@ export function NoteCard({ note, onDelete }: NoteCardProps) {
               }}
               disabled={isDeleting}
             >
-              {isDeleting ? "در حال حذف…" : "حذف"}
+              {isDeleting ? "در حال حذف…" : "بله"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

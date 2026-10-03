@@ -16,7 +16,7 @@ export const noteSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, "عنوان یادداشت الزامی است")
+    .min(1, "عنوان الزامی است")
     .max(TITLE_MAX, `عنوان نباید بیشتر از ${TITLE_MAX} کاراکتر باشد`),
   body: z
     .string()
