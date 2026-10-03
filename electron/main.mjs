@@ -8,7 +8,8 @@
  * In development it loads the Vite dev server over HTTP. It expects
  * VITE_DEV_SERVER_URL to be set by the dev script once the server is up.
  */
-import { app, BrowserWindow, Menu, shell } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -22,6 +23,43 @@ const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 /** @type {BrowserWindow | null} */
 let mainWindow = null;
 
+/*
+ * Theme persistence.
+ *
+ * Stored as JSON in the app's userData directory rather than in the renderer's
+ * localStorage: localStorage is scoped to an origin, and the renderer runs on
+ * http://127.0.0.1:5173 in development but file:// in a packaged build, so
+ * localStorage would silently lose the choice when the two are mixed.
+ */
+const THEME_FILE = path.join(app.getPath("userData"), "theme.json");
+const THEMES = ["light", "dark", "system"];
+
+function readStoredTheme() {
+  try {
+    const { theme } = JSON.parse(readFileSync(THEME_FILE, "utf8"));
+    return THEMES.includes(theme) ? theme : "system";
+  } catch {
+    // No file yet, or it is corrupt: fall back to following the OS.
+    return "system";
+  }
+}
+
+function writeStoredTheme(theme) {
+  try {
+    writeFileSync(THEME_FILE, JSON.stringify({ theme }));
+  } catch (error) {
+    console.error("[main] could not persist theme:", error);
+  }
+}
+
+ipcMain.on("theme:get", (event) => {
+  event.returnValue = readStoredTheme();
+});
+
+ipcMain.on("theme:set", (_event, theme) => {
+  if (THEMES.includes(theme)) writeStoredTheme(theme);
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -33,7 +71,8 @@ function createWindow() {
     // bar on Windows/Linux).
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(projectRoot, "electron", "preload.mjs"),
+      // Must be CommonJS: a sandboxed preload cannot be ESM.
+      preload: path.join(projectRoot, "electron", "preload.cjs"),
       // The renderer is untrusted: keep Node integration off and expose only
       // what preload deliberately bridges.
       contextIsolation: true,

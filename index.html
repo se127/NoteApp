@@ -6,10 +6,15 @@
     <title>note-app</title>
     <script>
       // Apply the stored theme before first paint, otherwise the app renders in
-      // light mode for a frame and then snaps to dark.
+      // light mode for a frame and then snaps to dark. Inside Electron the
+      // preload bridge has the value (it lives in userData, not localStorage);
+      // in a plain browser we fall back to localStorage.
       (() => {
         try {
-          const stored = localStorage.getItem("note-app-theme") ?? "system";
+          const stored =
+            window.noteApp?.theme?.get() ??
+            localStorage.getItem("note-app-theme") ??
+            "system";
           const dark =
             stored === "dark" ||
             (stored === "system" &&

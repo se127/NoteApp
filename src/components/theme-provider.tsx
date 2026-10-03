@@ -2,26 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ThemeContext,
+  persistTheme,
+  readStoredTheme,
   type ResolvedTheme,
   type Theme,
   type ThemeContextValue,
 } from "@/lib/theme";
 
-export const THEME_STORAGE_KEY = "note-app-theme";
-
 const DARK_QUERY = "(prefers-color-scheme: dark)";
-
-function isTheme(value: string | null): value is Theme {
-  return value === "light" || value === "dark" || value === "system";
-}
-
-/** The persisted choice, or null when nothing valid is stored. */
-function readStoredTheme(): Theme | null {
-  if (typeof window === "undefined") return null;
-
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return isTheme(stored) ? stored : null;
-}
 
 function readSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
@@ -65,7 +53,7 @@ export function ThemeProvider({
   }, [resolvedTheme]);
 
   const setTheme = useCallback((next: Theme) => {
-    window.localStorage.setItem(THEME_STORAGE_KEY, next);
+    persistTheme(next);
     setThemeState(next);
   }, []);
 
