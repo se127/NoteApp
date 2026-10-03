@@ -1,13 +1,25 @@
+import { Route, Routes } from "react-router";
+
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NewNotePage } from "@/pages/new-note-page";
+import { NotesListPage } from "@/pages/notes-list-page";
 
 function App() {
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Physically top-left. Swap `left-0` for `start-0` to follow the RTL
-          text direction instead (which would move it to the right edge).
-          Inset from the window edge by the padding. */}
-      <div className="absolute top-0 left-0 p-4">
+          text direction instead. */}
+      <div className="absolute top-0 left-0 z-10 p-4">
         <ThemeToggle />
+      </div>
+
+      {/* pt-16 keeps page content clear of the absolute theme button. */}
+      <div className="pt-12">
+        <Routes>
+          <Route path="/" element={<NotesListPage />} />
+          <Route path="/notes/new" element={<NewNotePage />} />
+          <Route path="*" element={<NotesListPage />} />
+        </Routes>
       </div>
     </div>
   );

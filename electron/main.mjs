@@ -13,6 +13,14 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
+import {
+  closeDatabase,
+  createNote,
+  deleteNote,
+  listNotes,
+  openDatabase,
+} from "./db.mjs";
+
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** Root of the repo, used to resolve the preload script and the built index.html. */
@@ -58,6 +66,33 @@ ipcMain.on("theme:get", (event) => {
 
 ipcMain.on("theme:set", (_event, theme) => {
   if (THEMES.includes(theme)) writeStoredTheme(theme);
+});
+
+/*
+ * Notes.
+ *
+ * handle (not on) so the renderer gets a promise and errors propagate instead
+ * of being silently dropped.
+ */
+ipcMain.handle("notes:list", () => listNotes());
+
+/** Tell every window to refetch, so the list stays consistent. */
+function broadcastNotesChanged() {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("notes:changed");
+  }
+}
+
+ipcMain.handle("notes:create", (_event, { title, body } = {}) => {
+  const note = createNote(title, body);
+  broadcastNotesChanged();
+  return note;
+});
+
+ipcMain.handle("notes:delete", (_event, id) => {
+  const deleted = deleteNote(id);
+  if (deleted) broadcastNotesChanged();
+  return deleted;
 });
 
 function createWindow() {
@@ -132,6 +167,8 @@ if (!app.requestSingleInstanceLock()) {
     // creating the window so no menu is ever attached to it.
     Menu.setApplicationMenu(null);
 
+    openDatabase(app.getPath("userData"));
+
     createWindow();
 
     app.on("activate", () => {
@@ -144,3 +181,6 @@ if (!app.requestSingleInstanceLock()) {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+// Flush WAL and release the handle on quit.
+app.on("will-quit", closeDatabase);

@@ -24,6 +24,17 @@ const api = {
     get: () => ipcRenderer.sendSync("theme:get"),
     set: (theme) => ipcRenderer.send("theme:set", theme),
   },
+  notes: {
+    list: () => ipcRenderer.invoke("notes:list"),
+    create: (note) => ipcRenderer.invoke("notes:create", note),
+    remove: (id) => ipcRenderer.invoke("notes:delete", id),
+    // Fires when any window adds a note, so views can refetch.
+    onChanged: (callback) => {
+      const listener = () => callback();
+      ipcRenderer.on("notes:changed", listener);
+      return () => ipcRenderer.removeListener("notes:changed", listener);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld("noteApp", api);

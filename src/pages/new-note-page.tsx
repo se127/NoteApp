@@ -1,0 +1,150 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { ArrowRight } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useNotes } from "@/hooks/use-notes";
+import {
+  BODY_MAX,
+  TITLE_MAX,
+  validateNote,
+  type NoteErrors,
+} from "@/lib/note-schema";
+
+const INITIAL_ERRORS: NoteErrors = {};
+
+export function NewNotePage() {
+  const navigate = useNavigate();
+  const { create } = useNotes();
+
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [errors, setErrors] = useState<NoteErrors>(INITIAL_ERRORS);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Re-validate a field only once it is already showing an error, so the
+  // message clears as soon as the input becomes valid without nagging while
+  // the user is still typing the first character.
+  function revalidate(
+    field: keyof NoteErrors,
+    value: { title: string; body: string },
+  ) {
+    setErrors((current) => {
+      if (current[field] === undefined) return current;
+
+      const { errors: next } = validateNote(value);
+      return { ...current, [field]: next[field] };
+    });
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const { data, errors: validationErrors } = validateNote({ title, body });
+
+    if (data === undefined) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors(INITIAL_ERRORS);
+    setIsSaving(true);
+    try {
+      await create(data);
+      navigate("/");
+    } catch (cause) {
+      setFormError(
+        cause instanceof Error ? cause.message : "ذخیره یادداشت ناموفق بود",
+      );
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-6 p-6">
+      <header className="flex items-center gap-3">
+        {/* RTL: the logical "back" arrow points right. */}
+        <Button asChild variant="ghost" size="icon" aria-label="بازگشت">
+          <Link to="/">
+            <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+        <h1 className="font-heading text-2xl font-bold">یادداشت جدید</h1>
+      </header>
+
+      {/* noValidate: zod owns the messages, the browser's are English. */}
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
+        <FieldGroup>
+          <Field data-invalid={errors.title !== undefined}>
+            <FieldLabel htmlFor="title">عنوان</FieldLabel>
+            <Input
+              id="title"
+              name="title"
+              value={title}
+              maxLength={TITLE_MAX}
+              onChange={(event) => {
+                const value = event.target.value;
+                setTitle(value);
+                revalidate("title", { title: value, body });
+              }}
+              aria-invalid={errors.title !== undefined}
+              aria-describedby={
+                errors.title !== undefined ? "title-error" : undefined
+              }
+              placeholder="عنوان یادداشت"
+            />
+            <FieldError id="title-error">{errors.title}</FieldError>
+          </Field>
+
+          <Field data-invalid={errors.body !== undefined}>
+            <FieldLabel htmlFor="body">متن</FieldLabel>
+            <Textarea
+              id="body"
+              name="body"
+              value={body}
+              rows={10}
+              maxLength={BODY_MAX}
+              onChange={(event) => {
+                const value = event.target.value;
+                setBody(value);
+                revalidate("body", { title, body: value });
+              }}
+              aria-invalid={errors.body !== undefined}
+              aria-describedby="body-hint"
+              placeholder="متن یادداشت"
+            />
+            <FieldDescription id="body-hint">
+              اختیاری — حداکثر {BODY_MAX.toLocaleString("fa-IR")} نویسه
+            </FieldDescription>
+            <FieldError>{errors.body}</FieldError>
+          </Field>
+        </FieldGroup>
+
+        {formError !== null && (
+          <p role="alert" className="text-sm text-destructive">
+            {formError}
+          </p>
+        )}
+
+        <div className="flex gap-2">
+          <Button type="submit" disabled={isSaving}>
+            ذخیره
+          </Button>
+          <Button asChild type="button" variant="outline">
+            <Link to="/">انصراف</Link>
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
