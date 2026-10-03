@@ -10,7 +10,7 @@
  */
 import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
 import { readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 
 import {
@@ -25,6 +25,9 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** Root of the repo, used to resolve the preload script and the built index.html. */
 const projectRoot = path.join(dirname, "..");
+
+/** The renderer entry point, loaded over http in dev and file:// when packaged. */
+const indexHtmlPath = path.join(projectRoot, "dist", "index.html");
 
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
@@ -122,7 +125,7 @@ function createWindow() {
   if (DEV_SERVER_URL) {
     mainWindow.loadURL(DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(path.join(projectRoot, "dist", "index.html"));
+    mainWindow.loadFile(indexHtmlPath);
   }
 
   // Open external links (http/https/mailto) in the user's browser instead of
@@ -138,10 +141,17 @@ function createWindow() {
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const isDevServer =
       DEV_SERVER_URL && url.startsWith(new URL(DEV_SERVER_URL).origin);
-    if (
-      !isDevServer &&
-      url !== `file://${path.join(projectRoot, "dist", "index.html")}`
-    ) {
+
+    /*
+     * Compare against pathToFileURL, not a `file://${path}` template. On
+     * Windows the path carries backslashes and a drive letter while the URL
+     * uses forward slashes and a leading slash, so the two never compared
+     * equal and this blocked the app's own page. The hash is dropped because
+     * HashRouter appends one, e.g. index.html#/notes/new.
+     */
+    const isAppFile = url.split("#")[0] === pathToFileURL(indexHtmlPath).href;
+
+    if (!isDevServer && !isAppFile) {
       event.preventDefault();
     }
   });
