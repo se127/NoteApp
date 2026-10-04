@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Note } from "@/lib/notes";
+import { getNotesBridge, type Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,23 @@ export function NoteEditor({ note }: { note: Note }) {
       void commit(data);
     };
   }, [commit]);
+
+  useEffect(() => {
+    const flushOnExit = () => {
+      const data = latestRef.current;
+      if (payloadKey(data) === savedRef.current) return;
+      getNotesBridge()?.updateSync(note.id, data);
+      savedRef.current = payloadKey(data);
+    };
+
+    window.addEventListener("beforeunload", flushOnExit);
+    window.addEventListener("pagehide", flushOnExit);
+
+    return () => {
+      window.removeEventListener("beforeunload", flushOnExit);
+      window.removeEventListener("pagehide", flushOnExit);
+    };
+  }, [note.id]);
 
   useEffect(() => {
     const data = { title, body };

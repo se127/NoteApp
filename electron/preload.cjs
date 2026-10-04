@@ -16,6 +16,8 @@ const api = {
     create: (note) => ipcRenderer.invoke("notes:create", note),
     remove: (id) => ipcRenderer.invoke("notes:delete", id),
     update: (id, note) => ipcRenderer.invoke("notes:update", { id, ...note }),
+    updateSync: (id, note) =>
+      ipcRenderer.sendSync("notes:update-sync", { id, ...note }),
     onChanged: (callback) => {
       const listener = () => callback();
       ipcRenderer.on("notes:changed", listener);

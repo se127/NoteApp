@@ -77,6 +77,14 @@ ipcMain.handle("notes:update", (_event, { id, title, body } = {}) => {
   return note;
 });
 
+ipcMain.on("notes:update-sync", (_event, { id, title, body } = {}) => {
+  try {
+    if (updateNote(id, title, body) !== null) broadcastNotesChanged();
+  } catch (error) {
+    console.error("[main] could not flush note before close:", error);
+  }
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
