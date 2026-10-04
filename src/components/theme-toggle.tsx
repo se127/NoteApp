@@ -1,4 +1,9 @@
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useRef } from "react";
+import {
+  ThemeAnimationType,
+  useModeAnimation,
+} from "react-theme-switch-animation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +18,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useTheme, type Theme } from "@/lib/theme";
+import {
+  readSystemTheme,
+  resolveTheme,
+  useTheme,
+  type Theme,
+} from "@/lib/theme";
 
 const OPTIONS = [
   { value: "light", label: "روشن", icon: Sun },
@@ -27,13 +37,42 @@ const OPTIONS = [
 
 export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const intentRef = useRef<Theme | null>(null);
+
+  const { ref, toggleSwitchTheme } = useModeAnimation({
+    animationType: ThemeAnimationType.CIRCLE,
+    isDarkMode: resolvedTheme === "dark",
+    onDarkModeChange: (isDark) => {
+      const next = intentRef.current ?? (isDark ? "dark" : "light");
+      intentRef.current = null;
+      setTheme(next);
+    },
+    duration: 300,
+  });
+
+  const handleValueChange = (value: string) => {
+    const next = value as Theme;
+
+    if (resolveTheme(next, readSystemTheme()) === resolvedTheme) {
+      setTheme(next);
+      return;
+    }
+
+    intentRef.current = next;
+    void toggleSwitchTheme();
+  };
 
   return (
     <DropdownMenu>
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="تغییر پوسته">
+            <Button
+              ref={ref}
+              variant="outline"
+              size="icon"
+              aria-label="تغییر پوسته"
+            >
               {resolvedTheme === "dark" ? (
                 <Moon className="size-4" />
               ) : (
@@ -47,10 +86,7 @@ export function ThemeToggle() {
         </TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end">
-        <DropdownMenuRadioGroup
-          value={theme}
-          onValueChange={(value) => setTheme(value as Theme)}
-        >
+        <DropdownMenuRadioGroup value={theme} onValueChange={handleValueChange}>
           {OPTIONS.map((option) => (
             <DropdownMenuRadioItem
               key={option.value}

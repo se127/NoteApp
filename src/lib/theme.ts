@@ -24,6 +24,20 @@ export function useTheme(): ThemeContextValue {
 
 export const THEME_STORAGE_KEY = "note-app-theme";
 
+export const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+export function readSystemTheme(): ResolvedTheme {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
+}
+
+export function resolveTheme(
+  theme: Theme,
+  systemTheme: ResolvedTheme,
+): ResolvedTheme {
+  return theme === "system" ? systemTheme : theme;
+}
+
 export type ElectronBridge = {
   theme: {
     get: () => Theme;

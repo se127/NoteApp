@@ -1,20 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  DARK_QUERY,
   ThemeContext,
   persistTheme,
   readStoredTheme,
+  readSystemTheme,
+  resolveTheme,
   type ResolvedTheme,
   type Theme,
   type ThemeContextValue,
 } from "@/lib/theme";
-
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-
-function readSystemTheme(): ResolvedTheme {
-  if (typeof window === "undefined") return "light";
-  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
-}
 
 export function ThemeProvider({
   children,
@@ -38,7 +34,7 @@ export function ThemeProvider({
     return () => media.removeEventListener("change", onChange);
   }, []);
 
-  const resolvedTheme = theme === "system" ? systemPreference : theme;
+  const resolvedTheme = resolveTheme(theme, systemPreference);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
