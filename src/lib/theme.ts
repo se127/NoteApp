@@ -22,7 +22,7 @@ export function useTheme(): ThemeContextValue {
   return context;
 }
 
-export const THEME_STORAGE_KEY = "note-app-theme";
+const THEME_STORAGE_KEY = "note-app-theme";
 
 export const DARK_QUERY = "(prefers-color-scheme: dark)";
 
@@ -38,14 +38,14 @@ export function resolveTheme(
   return theme === "system" ? systemTheme : theme;
 }
 
-export type ElectronBridge = {
+type ElectronBridge = {
   theme: {
     get: () => Theme;
     set: (theme: Theme) => void;
   };
 };
 
-export function getElectronBridge(): ElectronBridge | null {
+function getElectronBridge(): ElectronBridge | null {
   if (typeof window === "undefined") return null;
 
   const bridge = (window as { noteApp?: ElectronBridge }).noteApp;

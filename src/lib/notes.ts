@@ -28,10 +28,3 @@ export function getNotesBridge(): NotesBridge | null {
   const bridge = (window as WithBridge).noteApp?.notes;
   return bridge ?? null;
 }
-
-export class NotesUnavailableError extends Error {
-  constructor() {
-    super("Notes are only available in the Electron app");
-    this.name = "NotesUnavailableError";
-  }
-}
