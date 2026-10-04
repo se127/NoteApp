@@ -30,6 +30,15 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 2,
+    up: (db) => {
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS notes_created_at_idx ON notes (created_at DESC)",
+      );
+      db.exec("DROP INDEX IF EXISTS notes_updated_at_idx");
+    },
+  },
 ];
 
 export function migrate(db) {
@@ -69,7 +78,7 @@ export function openDatabase(userDataPath) {
   listStatement = db.prepare(
     `SELECT id, title, body, created_at AS createdAt, updated_at AS updatedAt
        FROM notes
-      ORDER BY updated_at DESC, id DESC`,
+      ORDER BY created_at DESC, id DESC`,
   );
 
   insertStatement = db.prepare(
