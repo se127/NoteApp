@@ -11,19 +11,23 @@
 - Tailwind CSS v4 به‌همراه مرتب‌کنندهٔ کلاس‌های `prettier-plugin-tailwindcss`
 - shadcn/ui با سبک `radix-nova` و `rtl: true`
 - lucide-react برای آیکون‌ها
+- react-router برای مسیریابی داخلی
+- react-theme-switch-animation برای انیمیشن تغییر تم
 - SQLite از طریق `node:sqlite`؛ چون با Node داخلی Electron عرضه می‌شود، هیچ ماژول نیتیویی برای کامپایل یا بازسازی وجود ندارد
 
 ## دستورها
 
 از [bun](https://bun.sh) استفاده کنید — نه npm، نه yarn و نه pnpm.
 
-| دستور             | توضیح                                                       |
-| ----------------- | ----------------------------------------------------------- |
-| `bun run dev`     | Vite را بالا می‌آورد و سپس برنامه را در Electron باز می‌کند |
-| `bun run dev:web` | فقط رندرر، در مرورگر روی `localhost:5173`                   |
-| `bun run build`   | `tsc -b && vite build` — هم بررسی نوع و هم بیلد رندرر       |
-| `bun run lint`    | oxlint                                                      |
-| `bun run format`  | Prettier، شامل مرتب‌سازی کلاس‌های Tailwind                  |
+| دستور                  | توضیح                                                       |
+| ---------------------- | ----------------------------------------------------------- |
+| `bun run dev`          | Vite را بالا می‌آورد و سپس برنامه را در Electron باز می‌کند |
+| `bun run dev:web`      | فقط رندرر، در مرورگر روی `localhost:5173`                   |
+| `bun run build`        | `tsc -b && vite build` — هم بررسی نوع و هم بیلد رندرر       |
+| `bun run lint`         | oxlint                                                      |
+| `bun run format`       | Prettier، شامل مرتب‌سازی کلاس‌های Tailwind                  |
+| `bun run format:check` | بررسی قالب‌بندی بدون تغییر فایل‌ها                          |
+| `bun run preview`      | پیش‌نمایش خروجی build روی سرور محلی                         |
 
 پیش از هر commit باید `bun run build` اجرا شود. قلاب pre-commit آن را اجرا نمی‌کند، پس تنها جایی است که خطاهای نوع گرفته می‌شوند.
 
@@ -75,9 +79,9 @@ electron/preload.cjs   پل contextBridge که به‌صورت window.noteApp د
 electron/db.mjs        دسترسی به SQLite برای جدول یادداشت‌ها
 scripts/dev.ts         هماهنگ‌کنندهٔ توسعه: Vite + Electron
 scripts/build.ts       هماهنگ‌کنندهٔ بسته‌بندی: Vite + electron-builder
-src/components/        کامپوننت‌های اختصاصی: note-card، character-count، theme-toggle
+src/components/        کامپوننت‌های اختصاصی: app-sidebar، theme-provider، theme-toggle، note-editor، notes-provider
 src/components/ui/     کامپوننت‌های vendored شدهٔ shadcn — هرگز ویرایش دستی نکنید؛ کامپوننت‌های استفاده‌نشده حذف شده‌اند
-src/pages/             فهرست یادداشت‌ها، ساخت یادداشت جدید، ویرایش یادداشت
+src/pages/             welcome-page (صفحهٔ خوش‌آمد) و edit-note-page (ویرایش یادداشت)
 src/font/vazirmatn/    Vazirmatn روی خود سرور (فارسی + ارقام، بدون لاتین)
 ```
 
@@ -88,8 +92,11 @@ src/font/vazirmatn/    Vazirmatn روی خود سرور (فارسی + ارقام
 - رندرر با `contextIsolation: true`، `nodeIntegration: false` و `sandbox: true` اجرا می‌شود. به‌جای فعال کردن Node در صفحه، پل preload را گسترش دهید.
 - preload باید CommonJS بماند؛ preload به‌صورت ESM و در حالت sandbox بی‌صدا اجرا نمی‌شود.
 - در `vite.config.ts` مقدار `base: "./"` تنظیم شده است. برنامهٔ بسته‌بندی‌شده `dist/index.html` را از طریق `file://` باز می‌کند و مسیرهای مطلق `/assets/...` به ریشهٔ درایو اشاره می‌کنند و پنجره سفید می‌ماند. به همین دلیل در `src/main.tsx` از `HashRouter` استفاده می‌شود، نه `BrowserRouter`.
-- هیچ فیلدی در فرم یادداشت `placeholder` ندارد، چون هر دو فیلد `FieldLabel` دارند.
-- عنوان یادداشت همیشه اجباری است و متن اختیاری؛ هر دو محدودیت طول دارند (عنوان ۱۲۰ و متن ۵۰۰۰ کاراکتر). `electron/db.mjs` همین قواعد را دوباره بررسی می‌کند، چون رندرر مورد اعتماد نیست.
+- فیلدهای فرم یادداشت از `contentEditable` با `data-placeholder` و CSS `empty:before` استفاده می‌کنند، نه `FieldLabel`.
+- عنوان یادداشت همیشه اجباری است و متن اختیاری. هیچ محدودیت طولی اعمال نمی‌شود.
 - `src/components/ui/**` از Prettier و oxlint مستثنا شده تا به‌روزرسانی‌های shadcn با قالب‌بندی محلی تضاد پیدا نکنند. هر تغییری در این پوشه با `bunx shadcn@latest` انجام شود، وگرنه بازنویسی می‌شود.
+- تم سیستم (روشن/تیره/پیروی از سیستم) با `theme-toggle` و `theme-provider` پیاده‌سازی شده و از طریق IPC در `theme.json` ذخیره می‌شود.
+- ذخیرهٔ خودکار با تأخیر ۸۰۰ میلی‌ثانیه پس از آخرین تغییر، همراه با نشانگر وضعیت ذخیره.
+- تأیید حذف یادداشت با `AlertDialog` قبل از پاک‌کردن در سایدبار.
 
 </div>
