@@ -10,6 +10,7 @@
 - React 19 + TypeScript + Vite 8 با React Compiler فعال
 - Tailwind CSS v4 به‌همراه مرتب‌کنندهٔ کلاس‌های `prettier-plugin-tailwindcss`
 - shadcn/ui با سبک `radix-nova` و `rtl: true`
+- lucide-react برای آیکون‌ها
 - SQLite از طریق `node:sqlite`؛ چون با Node داخلی Electron عرضه می‌شود، هیچ ماژول نیتیویی برای کامپایل یا بازسازی وجود ندارد
 
 ## دستورها
@@ -75,7 +76,7 @@ electron/db.mjs        دسترسی به SQLite برای جدول یادداشت
 scripts/dev.ts         هماهنگ‌کنندهٔ توسعه: Vite + Electron
 scripts/build.ts       هماهنگ‌کنندهٔ بسته‌بندی: Vite + electron-builder
 src/components/        کامپوننت‌های اختصاصی: note-card، character-count، theme-toggle
-src/components/ui/     کامپوننت‌های vendored شدهٔ shadcn — هرگز ویرایش دستی نکنید
+src/components/ui/     کامپوننت‌های vendored شدهٔ shadcn — هرگز ویرایش دستی نکنید؛ کامپوننت‌های استفاده‌نشده حذف شده‌اند
 src/pages/             فهرست یادداشت‌ها، ساخت یادداشت جدید، ویرایش یادداشت
 src/font/vazirmatn/    Vazirmatn روی خود سرور (فارسی + ارقام، بدون لاتین)
 ```
