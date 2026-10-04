@@ -1,5 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   ThemeAnimationType,
   useModeAnimation,
@@ -38,6 +38,7 @@ const OPTIONS = [
 export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const intentRef = useRef<Theme | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const { ref, toggleSwitchTheme } = useModeAnimation({
     animationType: ThemeAnimationType.CIRCLE,
@@ -64,7 +65,7 @@ export function ThemeToggle() {
 
   return (
     <DropdownMenu>
-      <Tooltip>
+      <Tooltip open={isHovered}>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
             <Button
@@ -72,6 +73,8 @@ export function ThemeToggle() {
               variant="outline"
               size="icon"
               aria-label="تغییر پوسته"
+              onPointerEnter={() => setIsHovered(true)}
+              onPointerLeave={() => setIsHovered(false)}
             >
               {resolvedTheme === "dark" ? (
                 <Moon className="size-4" />
