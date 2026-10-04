@@ -13,6 +13,29 @@ function payloadKey(data: { title: string; body: string }): string {
   return JSON.stringify([data.title, data.body]);
 }
 
+function syncPlainText(element: HTMLElement): string {
+  const text = element.textContent ?? "";
+  if (text === "" && element.innerHTML !== "") {
+    element.innerHTML = "";
+  }
+  return text;
+}
+
+const FORMATTING_SHORTCUTS = new Set(["b", "i", "u"]);
+
+function focusAtEnd(element: HTMLElement): void {
+  element.focus();
+
+  const selection = window.getSelection();
+  if (selection === null) return;
+
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
 export function NoteEditor({ note }: { note: Note }) {
   const { update, setIsSaving } = useNotesStore();
 
@@ -24,9 +47,10 @@ export function NoteEditor({ note }: { note: Note }) {
   const [message, setMessage] = useState<string | null>(null);
 
   const savedRef = useRef(payloadKey({ title: note.title, body: note.body }));
-  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const initialBodyRef = useRef(note.body);
+  const initialTitleRef = useRef(note.title);
   const latestRef = useRef({ title, body });
 
   useEffect(() => {
@@ -111,20 +135,11 @@ export function NoteEditor({ note }: { note: Note }) {
   }, [body]);
 
   useEffect(() => {
-    const element = titleRef.current;
-    if (element === null) return;
-
-    const scrollContainer = element.closest("main");
-    const scrollTop = scrollContainer?.scrollTop ?? 0;
-    const previousHeight = element.clientHeight;
-
-    element.style.height = "auto";
-    element.style.height = `${element.scrollHeight}px`;
-
-    if (element.clientHeight < previousHeight && scrollContainer) {
-      scrollContainer.scrollTop = scrollTop;
-    }
-  }, [title]);
+    const title = titleRef.current;
+    if (title === null) return;
+    title.textContent = initialTitleRef.current;
+    focusAtEnd(title);
+  }, []);
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -135,15 +150,35 @@ export function NoteEditor({ note }: { note: Note }) {
   return (
     <div className="flex min-h-full flex-col">
       <div className="flex flex-col gap-4 px-6 py-8">
-        <textarea
+        <div
           ref={titleRef}
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="عنوان"
-          autoFocus
+          contentEditable="plaintext-only"
+          suppressContentEditableWarning
+          role="textbox"
+          aria-multiline="false"
           aria-label="عنوان"
-          rows={1}
-          className="w-full resize-none overflow-hidden bg-transparent text-3xl leading-tight font-bold outline-none placeholder:text-muted-foreground/40"
+          data-placeholder="عنوان"
+          onInput={(event) => setTitle(syncPlainText(event.currentTarget))}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              const body = bodyRef.current;
+              if (body !== null) focusAtEnd(body);
+              return;
+            }
+            const isFormatting =
+              (event.ctrlKey || event.metaKey) &&
+              FORMATTING_SHORTCUTS.has(event.key.toLowerCase());
+            if (isFormatting) event.preventDefault();
+          }}
+          onPaste={(event) => {
+            event.preventDefault();
+            const text = event.clipboardData
+              .getData("text/plain")
+              .replace(/\s+/g, " ");
+            document.execCommand("insertText", false, text);
+          }}
+          className="min-h-[1em] w-full cursor-text bg-transparent text-3xl leading-tight font-bold whitespace-pre-wrap outline-none before:text-muted-foreground/40 empty:before:content-[attr(data-placeholder)]"
         />
         <div
           ref={bodyRef}
@@ -153,14 +188,7 @@ export function NoteEditor({ note }: { note: Note }) {
           aria-multiline="true"
           aria-label="متن یادداشت"
           data-placeholder="متن یادداشت را اینجا بنویسید..."
-          onInput={(event) => {
-            const element = event.currentTarget;
-            const text = element.textContent ?? "";
-            if (text === "" && element.innerHTML !== "") {
-              element.innerHTML = "";
-            }
-            setBody(text);
-          }}
+          onInput={(event) => setBody(syncPlainText(event.currentTarget))}
           onPaste={(event) => {
             event.preventDefault();
             const text = event.clipboardData.getData("text/plain");
