@@ -159,7 +159,6 @@ function NoteRow({ note }: { note: Note }) {
             "flex-1 truncate p-2",
             note.title.trim() === "" && "text-muted-foreground",
           )}
-          title={note.title.trim() === "" ? noteTitle : note.title}
         >
           {noteTitle}
         </span>
