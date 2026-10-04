@@ -1,4 +1,4 @@
-import { Inbox, Loader2, Plus, Trash2 } from "lucide-react";
+import { Ellipsis, Inbox, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 
@@ -13,6 +13,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -107,6 +113,8 @@ function NoteRow({ note }: { note: Note }) {
   const location = useLocation();
   const { remove, isSaving } = useNotesStore();
 
+  const [isHovered, setIsHovered] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -156,26 +164,52 @@ function NoteRow({ note }: { note: Note }) {
           {noteTitle}
         </span>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
+        <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          <Tooltip open={isHovered && !isMenuOpen}>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`گزینه‌های یادداشت ${noteTitle}`}
+                  disabled={isSaving}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onPointerEnter={() => setIsHovered(true)}
+                  onPointerLeave={() => setIsHovered(false)}
+                  className={cn(
+                    "me-1 shrink-0 transition-opacity",
+                    isMenuOpen
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                  )}
+                >
+                  <Ellipsis />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="left">گزینه‌ها</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent
+            side="left"
+            align="center"
+            onFocusOutside={(event) => event.preventDefault()}
+          >
+            <DropdownMenuItem
               variant="destructive"
-              size="icon-sm"
-              aria-label={`حذف ${note.title}`}
-              disabled={isSaving}
-              onClick={(event) => {
+              onSelect={(event) => {
                 event.preventDefault();
-                event.stopPropagation();
                 setDeleteError(null);
                 setIsDialogOpen(true);
               }}
-              className="me-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
             >
               <Trash2 />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left">حذف یادداشت</TooltipContent>
-        </Tooltip>
+              حذف
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </NavLink>
 
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
