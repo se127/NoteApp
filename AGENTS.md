@@ -54,6 +54,17 @@ Do **not** run `git commit` when a task is finished. Leave the changes staged or
 - "Done", "that works" or a thumbs-up on the result is not approval to commit — only an explicit instruction to commit is.
 - Never amend, revert or rewrite commits to tidy up unless asked.
 
+## No comments in code
+
+Do not add comments to files you create or modify. Write code that explains itself through naming and structure; if something needs a comment to be understandable, it needs a better name or a smaller function.
+
+| Do                           | Never                        |
+| ---------------------------- | ---------------------------- |
+| Pick a self-documenting name | Add `//` or `/* */` comments |
+| Extract a well-named helper  | Explain a block in prose     |
+
+Comments already in the repo (`electron/db.mjs` JSDoc, the notes in `electron-builder.yml`) are not a licence to add more.
+
 ## Generated code
 
 - `src/components/ui/**` is vendored shadcn/ui code. Do not hand-edit it, and do not format or lint it (both Prettier and oxlint already ignore it via `.prettierignore` and `.oxlintrc.json`).
