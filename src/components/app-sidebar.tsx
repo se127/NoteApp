@@ -33,16 +33,6 @@ export function AppSidebar() {
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  const untitledTotal = notes.filter((note) => note.title.trim() === "").length;
-  const untitledNumberById = new Map<number, number>();
-  let untitledCounter = 0;
-  for (const note of notes) {
-    if (note.title.trim() === "") {
-      untitledCounter += 1;
-      untitledNumberById.set(note.id, untitledCounter);
-    }
-  }
-
   async function handleNewNote() {
     setIsCreating(true);
     setCreateError(null);
@@ -103,12 +93,7 @@ export function AppSidebar() {
         ) : (
           <ul className="flex flex-col gap-1">
             {notes.map((note) => (
-              <NoteRow
-                key={note.id}
-                note={note}
-                untitledNumber={untitledNumberById.get(note.id) ?? null}
-                hasMultipleUntitled={untitledTotal > 1}
-              />
+              <NoteRow key={note.id} note={note} />
             ))}
           </ul>
         )}
@@ -117,15 +102,7 @@ export function AppSidebar() {
   );
 }
 
-function NoteRow({
-  note,
-  untitledNumber,
-  hasMultipleUntitled,
-}: {
-  note: Note;
-  untitledNumber: number | null;
-  hasMultipleUntitled: boolean;
-}) {
+function NoteRow({ note }: { note: Note }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { remove, isSaving } = useNotesStore();
@@ -152,12 +129,7 @@ function NoteRow({
     }
   }
 
-  const noteTitle =
-    note.title.trim() === ""
-      ? hasMultipleUntitled && untitledNumber !== null
-        ? `بدون عنوان ${untitledNumber}`
-        : "بدون عنوان"
-      : note.title;
+  const noteTitle = note.title.trim() === "" ? "بدون عنوان" : note.title;
 
   return (
     <li>
