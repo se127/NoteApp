@@ -2,18 +2,6 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
-const SCHEMA = `
-  CREATE TABLE IF NOT EXISTS notes (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    title      TEXT    NOT NULL DEFAULT '',
-    body       TEXT    NOT NULL DEFAULT '',
-    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
-  );
-
-  CREATE INDEX IF NOT EXISTS notes_updated_at_idx ON notes (updated_at DESC);
-`;
-
 /** @type {DatabaseSync | null} */
 let db = null;
 /** @type {import("node:sqlite").StatementSync | null} */
@@ -25,6 +13,48 @@ let deleteStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
 let updateStatement = null;
 
+const MIGRATIONS = [
+  {
+    version: 1,
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS notes (
+          id         INTEGER PRIMARY KEY AUTOINCREMENT,
+          title      TEXT    NOT NULL DEFAULT '',
+          body       TEXT    NOT NULL DEFAULT '',
+          created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS notes_updated_at_idx ON notes (updated_at DESC);
+      `);
+    },
+  },
+];
+
+export function migrate(db) {
+  const current = readUserVersion(db);
+
+  for (const migration of MIGRATIONS) {
+    if (migration.version <= current) continue;
+
+    db.exec("BEGIN");
+
+    try {
+      migration.up(db);
+      db.exec(`PRAGMA user_version = ${migration.version}`);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+}
+
+function readUserVersion(db) {
+  return db.prepare("PRAGMA user_version").get().user_version;
+}
+
 export function openDatabase(userDataPath) {
   if (db) return db;
 
@@ -33,7 +63,8 @@ export function openDatabase(userDataPath) {
 
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
-  db.exec(SCHEMA);
+
+  migrate(db);
 
   listStatement = db.prepare(
     `SELECT id, title, body, created_at AS createdAt, updated_at AS updatedAt
