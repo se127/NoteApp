@@ -134,6 +134,11 @@ export function NoteEditor({ note }: { note: Note }) {
     }
   }, [body]);
 
+  const moveCaretToBody = () => {
+    const body = bodyRef.current;
+    if (body !== null) focusAtEnd(body);
+  };
+
   useEffect(() => {
     const title = titleRef.current;
     if (title === null) return;
@@ -160,10 +165,13 @@ export function NoteEditor({ note }: { note: Note }) {
           data-placeholder="عنوان"
           onInput={(event) => setTitle(syncPlainText(event.currentTarget))}
           onKeyDown={(event) => {
+            if (event.key === "Tab") {
+              event.preventDefault();
+              return;
+            }
             if (event.key === "Enter") {
               event.preventDefault();
-              const body = bodyRef.current;
-              if (body !== null) focusAtEnd(body);
+              moveCaretToBody();
               return;
             }
             const isFormatting =
