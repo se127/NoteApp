@@ -186,7 +186,7 @@ export function NoteEditor({ note }: { note: Note }) {
               .replace(/\s+/g, " ");
             document.execCommand("insertText", false, text);
           }}
-          className="min-h-[1em] w-full cursor-text bg-transparent text-3xl leading-tight font-bold whitespace-pre-wrap outline-none before:text-muted-foreground/40 empty:before:content-[attr(data-placeholder)]"
+          className="min-h-[1em] w-full cursor-text bg-transparent text-3xl leading-tight font-bold whitespace-pre-wrap outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)]"
         />
         <div
           ref={bodyRef}
@@ -202,7 +202,7 @@ export function NoteEditor({ note }: { note: Note }) {
             const text = event.clipboardData.getData("text/plain");
             document.execCommand("insertText", false, text);
           }}
-          className="min-h-[1em] w-full cursor-text bg-transparent text-base leading-8 outline-none before:text-muted-foreground/40 empty:before:content-[attr(data-placeholder)]"
+          className="min-h-[1em] w-full cursor-text bg-transparent text-base leading-8 outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)]"
         />
       </div>
 
