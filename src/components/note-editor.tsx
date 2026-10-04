@@ -23,6 +23,27 @@ function syncPlainText(element: HTMLElement): string {
 
 const FORMATTING_SHORTCUTS = new Set(["b", "i", "u"]);
 
+function revealCaret(container: Element, element: HTMLElement): void {
+  const selection = window.getSelection();
+  const range =
+    selection !== null && selection.rangeCount > 0
+      ? selection.getRangeAt(0)
+      : null;
+
+  const caret = range?.getBoundingClientRect();
+  const bounds = container.getBoundingClientRect();
+  const rect =
+    caret !== undefined && caret.height > 0
+      ? caret
+      : element.getBoundingClientRect();
+
+  if (rect.top < bounds.top) {
+    container.scrollTop -= bounds.top - rect.top;
+  } else if (rect.bottom > bounds.bottom) {
+    container.scrollTop += rect.bottom - bounds.bottom;
+  }
+}
+
 function focusAtEnd(element: HTMLElement): void {
   element.focus();
 
@@ -34,6 +55,9 @@ function focusAtEnd(element: HTMLElement): void {
   range.collapse(false);
   selection.removeAllRanges();
   selection.addRange(range);
+
+  const container = element.closest("main");
+  if (container !== null) revealCaret(container, element);
 }
 
 export function NoteEditor({ note }: { note: Note }) {
