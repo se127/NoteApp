@@ -136,6 +136,9 @@ function createWindow() {
 }
 
 if (!app.requestSingleInstanceLock()) {
+  console.error(
+    "[main] another instance is already running; quitting without a window",
+  );
   app.quit();
 } else {
   app.on("second-instance", () => {
