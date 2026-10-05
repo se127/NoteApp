@@ -2,6 +2,7 @@ import { Ellipsis, Inbox, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 
+import { OverflowingTitle } from "@/components/overflowing-title";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   AlertDialog,
@@ -154,14 +155,11 @@ function NoteRow({ note }: { note: Note }) {
           )
         }
       >
-        <span
-          className={cn(
-            "flex-1 truncate p-2",
-            note.title.trim() === "" && "text-muted-foreground",
-          )}
+        <OverflowingTitle
+          className={cn(note.title.trim() === "" && "text-muted-foreground")}
         >
           {noteTitle}
-        </span>
+        </OverflowingTitle>
 
         <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <Tooltip open={isHovered && !isMenuOpen}>

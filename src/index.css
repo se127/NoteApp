@@ -50,6 +50,24 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@theme {
+  --animate-note-title-scroll: note-title-scroll 7s linear infinite;
+}
+
+@keyframes note-title-scroll {
+  0%,
+  10% {
+    transform: translateX(0);
+  }
+  45%,
+  80% {
+    transform: translateX(var(--scroll-offset, 0px));
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
