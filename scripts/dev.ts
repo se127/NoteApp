@@ -1,4 +1,6 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
+import os from "node:os";
+import path from "node:path";
 import process from "node:process";
 
 const HOST = "127.0.0.1";
@@ -7,6 +9,11 @@ const URL = `http://${HOST}:${PORT}`;
 const TIMEOUT_MS = 30_000;
 const POLL_MS = 250;
 const GRACE_MS = 1500;
+
+function devUserDataDir(): string {
+  const appData = process.env["APPDATA"] ?? path.join(os.homedir(), ".config");
+  return path.join(appData, `${path.basename(process.cwd())}-dev`);
+}
 
 const children: ChildProcess[] = [];
 
@@ -106,7 +113,10 @@ start("vite", "bunx", [
 try {
   await waitForServer(URL, TIMEOUT_MS);
   console.log("[dev] vite is up, launching electron");
-  start("electron", "bunx", ["electron", "."], { VITE_DEV_SERVER_URL: URL });
+  start("electron", "bunx", ["electron", "."], {
+    VITE_DEV_SERVER_URL: URL,
+    NOTE_APP_USER_DATA: devUserDataDir(),
+  });
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   void shutdown(1);

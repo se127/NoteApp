@@ -46,6 +46,7 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 - A symptom of a stale main process is `No handler registered for 'notes:list'` (or any missing IPC channel) in the renderer console.
 - Never suggest the user reload the renderer to pick up main-process changes; tell them to quit and re-run `bun run dev`.
 - `bun run dev` itself is only a dev-server launcher, so tell the user to stop the previous run with ctrl+c first. Do not kill it for them.
+- Never edit or delete the packaged app's data at `%APPDATA%\note-app`. That is the real user database. Dev runs against `%APPDATA%\note-app-dev`, set by `scripts/dev.ts` through `NOTE_APP_USER_DATA`, so the two are separate by design.
 
 ## Never commit without asking
 
