@@ -24,6 +24,13 @@ function syncPlainText(element: HTMLElement): string {
 
 const FORMATTING_SHORTCUTS = new Set(["b", "i", "u"]);
 
+function pendingPayload(
+  latest: { title: string; body: string },
+  saved: string,
+): { title: string; body: string } | null {
+  return payloadKey(latest) === saved ? null : latest;
+}
+
 function revealCaret(container: Element, element: HTMLElement): void {
   const selection = window.getSelection();
   const range =
@@ -89,10 +96,9 @@ export function NoteEditor({ note }: { note: Note }) {
   const Icon = STATUS_ICONS[status];
 
   const savedRef = useRef(payloadKey({ title: note.title, body: note.body }));
+  const initialRef = useRef({ title: note.title, body: note.body });
   const titleRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const initialBodyRef = useRef(note.body);
-  const initialTitleRef = useRef(note.title);
   const latestRef = useRef({ title, body });
 
   useEffect(() => {
@@ -108,33 +114,28 @@ export function NoteEditor({ note }: { note: Note }) {
   );
 
   useEffect(() => {
-    return () => {
-      const data = latestRef.current;
-      if (payloadKey(data) === savedRef.current) return;
-      void commit(data);
-    };
-  }, [commit]);
-
-  useEffect(() => {
-    const flushOnExit = () => {
-      const data = latestRef.current;
-      if (payloadKey(data) === savedRef.current) return;
+    const flushSync = () => {
+      const data = pendingPayload(latestRef.current, savedRef.current);
+      if (data === null) return;
       getNotesBridge()?.updateSync(note.id, data);
       savedRef.current = payloadKey(data);
     };
 
-    window.addEventListener("beforeunload", flushOnExit);
-    window.addEventListener("pagehide", flushOnExit);
+    window.addEventListener("beforeunload", flushSync);
+    window.addEventListener("pagehide", flushSync);
 
     return () => {
-      window.removeEventListener("beforeunload", flushOnExit);
-      window.removeEventListener("pagehide", flushOnExit);
+      window.removeEventListener("beforeunload", flushSync);
+      window.removeEventListener("pagehide", flushSync);
+
+      const data = pendingPayload(latestRef.current, savedRef.current);
+      if (data !== null) void commit(data);
     };
-  }, [note.id]);
+  }, [commit, note.id]);
 
   useEffect(() => {
-    const data = { title, body };
-    if (payloadKey(data) === savedRef.current) return;
+    const data = pendingPayload({ title, body }, savedRef.current);
+    if (data === null) return;
 
     const timer = setTimeout(() => {
       void (async () => {
@@ -184,15 +185,14 @@ export function NoteEditor({ note }: { note: Note }) {
   };
 
   useEffect(() => {
-    const title = titleRef.current;
-    if (title === null) return;
-    title.textContent = initialTitleRef.current;
-    focusAtEnd(title);
-  }, []);
+    const titleElement = titleRef.current;
+    if (titleElement !== null) {
+      titleElement.textContent = initialRef.current.title;
+      focusAtEnd(titleElement);
+    }
 
-  useEffect(() => {
     if (bodyRef.current) {
-      bodyRef.current.textContent = initialBodyRef.current;
+      bodyRef.current.textContent = initialRef.current.body;
     }
   }, []);
 
