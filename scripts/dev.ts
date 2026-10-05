@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import process from "node:process";
 
 const HOST = "127.0.0.1";
@@ -46,13 +46,29 @@ async function waitForServer(url: string, timeoutMs: number): Promise<void> {
   throw new Error(`[dev] ${url} did not respond within ${timeoutMs / 1000}s`);
 }
 
+function killTree(child: ChildProcess): void {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  if (process.platform === "win32" && child.pid !== undefined) {
+    const killed = spawnSync(
+      "taskkill",
+      ["/pid", String(child.pid), "/T", "/F"],
+      {
+        stdio: "ignore",
+      },
+    );
+
+    if (killed.status === 0) return;
+  }
+
+  child.kill();
+}
+
 function shutdown(code = 0): void {
   if (shuttingDown) return;
   shuttingDown = true;
 
-  for (const child of children) {
-    if (child.exitCode === null && child.signalCode === null) child.kill();
-  }
+  for (const child of children) killTree(child);
   process.exit(code);
 }
 
@@ -60,7 +76,14 @@ process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
 console.log(`[dev] starting vite on ${URL}`);
-start("vite", "bunx", ["vite", "--port", String(PORT), "--strictPort"]);
+start("vite", "bunx", [
+  "vite",
+  "--host",
+  HOST,
+  "--port",
+  String(PORT),
+  "--strictPort",
+]);
 
 try {
   await waitForServer(URL, TIMEOUT_MS);
