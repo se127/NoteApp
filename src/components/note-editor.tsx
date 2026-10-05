@@ -2,11 +2,14 @@ import { Check, CircleAlert, Loader2, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
+import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { getNotesBridge, type Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
 import { cn } from "@/lib/utils";
 
 const SAVE_DELAY = 800;
+
+const TITLE_EMOJI_CLASS = "text-xl leading-none";
 
 const SAVE_FAILED_MESSAGE = "ذخیره یادداشت ناموفق بود";
 
@@ -92,6 +95,7 @@ export function NoteEditor({ note }: { note: Note }) {
   const [body, setBody] = useState(note.body);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
   const Icon = STATUS_ICONS[status];
 
@@ -180,8 +184,20 @@ export function NoteEditor({ note }: { note: Note }) {
   const isStatusVisible = status !== "idle" || message !== null;
 
   const moveCaretToBody = () => {
+    setIsPickerOpen(false);
     const body = bodyRef.current;
     if (body !== null) focusAtEnd(body);
+  };
+
+  const insertEmoji = (emoji: string) => {
+    const element = titleRef.current;
+    if (element === null) return;
+    focusAtEnd(element);
+    document.execCommand(
+      "insertHTML",
+      false,
+      `<span class="${TITLE_EMOJI_CLASS}">${emoji}</span>`,
+    );
   };
 
   useEffect(() => {
@@ -199,35 +215,44 @@ export function NoteEditor({ note }: { note: Note }) {
   return (
     <div className="flex min-h-full flex-col">
       <div className="flex flex-col gap-4 px-6 py-8 pb-14">
-        <div
-          ref={titleRef}
-          contentEditable="plaintext-only"
-          suppressContentEditableWarning
-          role="textbox"
-          aria-multiline="false"
-          aria-label="عنوان"
-          data-placeholder="عنوان"
-          onInput={(event) => setTitle(syncPlainText(event.currentTarget))}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === "Tab") {
+        <div className="flex flex-col gap-2 pb-2">
+          <div
+            ref={titleRef}
+            contentEditable
+            suppressContentEditableWarning
+            role="textbox"
+            aria-multiline="false"
+            aria-label="عنوان"
+            data-placeholder="عنوان"
+            onInput={(event) => setTitle(syncPlainText(event.currentTarget))}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === "Tab") {
+                event.preventDefault();
+                moveCaretToBody();
+                return;
+              }
+              const isFormatting =
+                (event.ctrlKey || event.metaKey) &&
+                FORMATTING_SHORTCUTS.has(event.key.toLowerCase());
+              if (isFormatting) event.preventDefault();
+            }}
+            onPaste={(event) => {
               event.preventDefault();
-              moveCaretToBody();
-              return;
-            }
-            const isFormatting =
-              (event.ctrlKey || event.metaKey) &&
-              FORMATTING_SHORTCUTS.has(event.key.toLowerCase());
-            if (isFormatting) event.preventDefault();
-          }}
-          onPaste={(event) => {
-            event.preventDefault();
-            const text = event.clipboardData
-              .getData("text/plain")
-              .replace(/\s+/g, " ");
-            document.execCommand("insertText", false, text);
-          }}
-          className="min-h-[1em] w-full cursor-text bg-transparent text-3xl leading-tight font-bold whitespace-pre-wrap outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)]"
-        />
+              const text = event.clipboardData
+                .getData("text/plain")
+                .replace(/\s+/g, " ");
+              document.execCommand("insertText", false, text);
+            }}
+            className="min-h-[1em] w-full cursor-text border-b border-border bg-transparent pb-3 text-3xl leading-tight font-bold whitespace-pre-wrap transition-colors duration-300 outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)] focus:border-ring"
+          />
+          <div className="flex justify-start">
+            <TitleEmojiPicker
+              onSelect={insertEmoji}
+              open={isPickerOpen}
+              onOpenChange={setIsPickerOpen}
+            />
+          </div>
+        </div>
         <div
           ref={bodyRef}
           contentEditable
