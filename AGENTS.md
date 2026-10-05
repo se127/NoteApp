@@ -29,15 +29,15 @@ Use `bun run lint` and `bun run format:check` only when you want to check the wh
 |                 | `bun run build:windows:dir`           |
 |                 | `vite build` or `tsc -b` on their own |
 
-The `build:windows` scripts cross-compile a Windows installer through wine. They take minutes and exist to produce a distributable, not to validate a change, so they are never part of the verify loop. Only run one when the user asks for a release artifact.
+The `build:windows` scripts produce a Windows installer. They take minutes and exist to produce a distributable, not to validate a change, so they are never part of the verify loop. Only run one when the user asks for a release artifact. Off Windows they need wine with 32-bit support; on Windows they run natively.
 
 ## Never run the dev server
 
-Do **not** run `bun run dev`, `bun run dev:web`, `scripts/dev.ts`, or start a Vite server on port 5173 for any reason. Do not run it "just to check" or in the background.
+Do **not** run `bun run dev`, `bun run dev:web`, `scripts/dev.ts`, or start a Vite server on port 5173 for any reason. Do not run it "just to check" or in the background. The project may be developed on Windows as well as Linux, so platform-specific commands in these rules are labelled.
 
 - **Ask the user to run it** instead, and say what to look for.
 - A dev server started by an agent keeps holding port 5173 after the work is done, which makes the user's own `bun run dev` fail with `Port 5173 is already in use`, and the leftover process can block the Electron profile lock.
-- Never kill a process on port 5173 without checking first — it is usually the user's own running app. Inspect it (`lsof -ti:5173`, then `ps -o pid,args -p <pid>`) and report what you find rather than killing it.
+- Never kill a process on port 5173 without checking first — it is usually the user's own running app. Inspect it and report what you find rather than killing it. On Windows use `Get-NetTCPConnection -LocalPort 5173 -State Listen`, then `Get-CimInstance Win32_Process -Filter "ProcessId=<pid>"` for the command line. On Linux use `lsof -ti:5173`, then `ps -o pid,args -p <pid>`.
 
 ## Main-process changes need a restart
 
@@ -45,6 +45,7 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 
 - A symptom of a stale main process is `No handler registered for 'notes:list'` (or any missing IPC channel) in the renderer console.
 - Never suggest the user reload the renderer to pick up main-process changes; tell them to quit and re-run `bun run dev`.
+- `bun run dev` itself is only a dev-server launcher, so tell the user to stop the previous run with ctrl+c first. Do not kill it for them.
 
 ## Never commit without asking
 
@@ -63,7 +64,14 @@ Do not add comments to files you create or modify. Write code that explains itse
 | Pick a self-documenting name | Add `//` or `/* */` comments |
 | Extract a well-named helper  | Explain a block in prose     |
 
-Comments already in the repo (`electron/db.mjs` JSDoc, the notes in `electron-builder.yml`) are not a licence to add more.
+Comments already in the repo (`electron/db.mjs` JSDoc, `scripts/build.ts` and `vite.config.ts`, the notes in `electron-builder.yml`) are not a licence to add more.
+
+## node_modules is not portable
+
+Do not copy `node_modules` between Windows and Linux. `bun install` fetches a platform-specific Electron binary into `node_modules/electron/dist`, and the copy carries the wrong one, so `bunx electron` fails with a missing or mismatched binary and no window opens.
+
+- Symptom: `node_modules/electron/path.txt` or `node_modules/electron/dist/electron.exe` is absent. `node_modules/electron/index.js` then tries to download on first run and throws "Electron failed to install correctly".
+- Fix: `Remove-Item -Recurse -Force node_modules\electron` (or `rm -rf` on Linux), then `bun install`. If that still skips it, run `bun node_modules\electron\install.js` directly.
 
 ## Generated code
 

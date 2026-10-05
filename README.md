@@ -29,6 +29,8 @@
 | `bun run format:check` | بررسی قالب‌بندی بدون تغییر فایل‌ها                          |
 | `bun run preview`      | پیش‌نمایش خروجی build روی سرور محلی                         |
 
+با `ctrl+c` متوقف کنید. اسکریپت ابتدا درخواست بستن را به‌صورت عادی به پنجره می‌فرستد تا پایگاه داده درست بسته شود، و تنها پس از یک مهلت کوتاه باقی‌مانده‌ها را به اجبار می‌کشد. به این ترتیب پورت ۵۱۷۳ آزاد و پنجره بسته می‌شود و اجرای بعدی روی همان پورت بالا می‌آید.
+
 پیش از هر commit باید `bun run build` اجرا شود. قلاب pre-commit آن را اجرا نمی‌کند، پس تنها جایی است که خطاهای نوع گرفته می‌شوند.
 
 قالب‌بندی و lint را لازم نیست دستی اجرا کنید: قلاب pre-commit هر دو را روی فایل‌های staged انجام می‌دهد و موارد را خودکار اصلاح می‌کند. این قلاب از دستورهای مستقل سخت‌گیرانه‌تر است، چون `--deny-warnings` دارد؛ یعنی هشداری که `bun run lint` از آن عبور می‌کند، commit را متوقف می‌کند. جزئیات در `lint-staged.config.mjs`.
@@ -79,16 +81,26 @@ electron/preload.cjs   پل contextBridge که به‌صورت window.noteApp د
 electron/db.mjs        دسترسی به SQLite برای جدول یادداشت‌ها
 scripts/dev.ts         هماهنگ‌کنندهٔ توسعه: Vite + Electron
 scripts/build.ts       هماهنگ‌کنندهٔ بسته‌بندی: Vite + electron-builder
-src/components/        کامپوننت‌های اختصاصی: app-sidebar، theme-provider، theme-toggle، note-editor، notes-provider
+src/components/        کامپوننت‌های اختصاصی: app-sidebar، theme-provider، theme-toggle، note-editor، notes-provider، overflowing-title، scroll-to-top-button
 src/components/ui/     کامپوننت‌های vendored شدهٔ shadcn — هرگز ویرایش دستی نکنید؛ کامپوننت‌های استفاده‌نشده حذف شده‌اند
 src/pages/             welcome-page (صفحهٔ خوش‌آمد) و edit-note-page (ویرایش یادداشت)
+src/hooks/use-notes.ts بارگذاری یادداشت‌ها از پل IPC
+src/lib/               notes (تایپ‌های پل و قرارداد پایگاه داده)، theme، notes-store (context)
 src/font/vazirmatn/    Vazirmatn روی خود سرور (فارسی + ارقام، بدون لاتین)
 ```
 
 قلم‌ها بر اساس هر گلیف انتخاب می‌شوند: Vazirmatn برای خط عربی، Inter برای لاتین و در نهایت `sans-serif` به‌عنوان جایگزین.
 
+## نکته دربارهٔ نصب روی سیستم‌عامل تازه
+
+پوشهٔ `node_modules` بین لینوکس و ویندوز قابل انتقال نیست. `bun install` باینری مخصوص هر سیستم‌عامل را داخل `node_modules/electron/dist` می‌گذارد، پس کپی کردن پوشه باعث می‌شود `bunx electron` باینری غلط را پیدا کند و پنجره‌ای باز نشود.
+
+نشانهٔ آن نبودن `node_modules/electron/path.txt` است. در این حالت `node_modules/electron/index.js` هنگام اجرا تلاش می‌کند بینری را دانلود کند و با خطای _Electron failed to install correctly_ متوقف می‌شود. درمان: پوشهٔ `node_modules/electron` را حذف و دوباره `bun install` را اجرا کنید.
+
 ## نکات
 
+- `bun run dev` تنها یک اجراکننده است؛ برای توقف، `ctrl+c` بزنید. کشتن آن با اجبار به درخت فرزند روی ویندوز انجام می‌شود، پس اگر چیزی باقی بماند، دستور خودش خطا می‌دهد.
+- اگر پنجره‌ای باز نشد ولی ترمینال خطا نداد، احتمالاً نمونهٔ دیگری از برنامه هنوز اجراست. `electron/main.mjs` قفل تک‌نمونه‌ای می‌گیرد و نسخهٔ دوم بدون باز کردن پنجره خارج می‌شود.
 - رندرر با `contextIsolation: true`، `nodeIntegration: false` و `sandbox: true` اجرا می‌شود. به‌جای فعال کردن Node در صفحه، پل preload را گسترش دهید.
 - preload باید CommonJS بماند؛ preload به‌صورت ESM و در حالت sandbox بی‌صدا اجرا نمی‌شود.
 - در `vite.config.ts` مقدار `base: "./"` تنظیم شده است. برنامهٔ بسته‌بندی‌شده `dist/index.html` را از طریق `file://` باز می‌کند و مسیرهای مطلق `/assets/...` به ریشهٔ درایو اشاره می‌کنند و پنجره سفید می‌ماند. به همین دلیل در `src/main.tsx` از `HashRouter` استفاده می‌شود، نه `BrowserRouter`.
