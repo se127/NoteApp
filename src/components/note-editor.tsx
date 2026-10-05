@@ -37,11 +37,19 @@ function revealCaret(container: Element, element: HTMLElement): void {
       ? caret
       : element.getBoundingClientRect();
 
+  const maxScrollTop = container.scrollHeight - container.clientHeight;
+  let target = container.scrollTop;
+
   if (rect.top < bounds.top) {
-    container.scrollTop -= bounds.top - rect.top;
+    target -= bounds.top - rect.top;
   } else if (rect.bottom > bounds.bottom) {
-    container.scrollTop += rect.bottom - bounds.bottom;
+    target = maxScrollTop;
   }
+
+  const clamped = Math.min(Math.max(target, 0), maxScrollTop);
+  if (clamped === container.scrollTop) return;
+
+  container.scrollTo({ top: clamped, behavior: "smooth" });
 }
 
 function focusAtEnd(element: HTMLElement): void {
@@ -189,11 +197,7 @@ export function NoteEditor({ note }: { note: Note }) {
           data-placeholder="عنوان"
           onInput={(event) => setTitle(syncPlainText(event.currentTarget))}
           onKeyDown={(event) => {
-            if (event.key === "Tab") {
-              event.preventDefault();
-              return;
-            }
-            if (event.key === "Enter") {
+            if (event.key === "Enter" || event.key === "Tab") {
               event.preventDefault();
               moveCaretToBody();
               return;
@@ -233,7 +237,7 @@ export function NoteEditor({ note }: { note: Note }) {
       {(status === "saving" || status === "saved" || message !== null) && (
         <div
           className={cn(
-            "fixed bottom-4 left-4 z-10 flex items-center gap-2 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-sm",
+            "fixed top-4 left-4 z-10 flex items-center gap-2 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-sm",
             message !== null
               ? "text-destructive"
               : "text-green-800 dark:text-green-400",
