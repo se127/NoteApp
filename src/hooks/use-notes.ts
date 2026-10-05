@@ -32,32 +32,9 @@ export function useNotes() {
   useEffect(() => {
     if (bridge === null) return;
 
-    let active = true;
+    queueMicrotask(() => void refresh());
 
-    bridge.list().then(
-      (result) => {
-        if (!active) return;
-        setNotes(result);
-        setError(null);
-        setIsLoading(false);
-      },
-      (cause: unknown) => {
-        if (!active) return;
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : "خواندن یادداشت‌ها ناموفق بود",
-        );
-        setIsLoading(false);
-      },
-    );
-
-    const unsubscribe = bridge.onChanged(() => void refresh());
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
+    return bridge.onChanged(() => void refresh());
   }, [bridge, refresh]);
 
   const create = useCallback(
