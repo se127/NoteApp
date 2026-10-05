@@ -1,6 +1,7 @@
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { getNotesBridge, type Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
 import { cn } from "@/lib/utils";
@@ -247,6 +248,8 @@ export function NoteEditor({ note }: { note: Note }) {
           {message ?? (status === "saving" ? "در حال ذخیره..." : "ذخیره شد")}
         </div>
       )}
+
+      <ScrollToTopButton anchorRef={bodyRef} />
     </div>
   );
 }
