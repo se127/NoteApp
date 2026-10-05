@@ -51,7 +51,7 @@
 }
 
 @theme {
-  --animate-note-title-scroll: note-title-scroll 7s linear infinite;
+  --animate-note-title-scroll: note-title-scroll 9s linear forwards;
 }
 
 @keyframes note-title-scroll {
@@ -60,11 +60,8 @@
     transform: translateX(0);
   }
   45%,
-  80% {
-    transform: translateX(var(--scroll-offset, 0px));
-  }
   100% {
-    transform: translateX(0);
+    transform: translateX(var(--scroll-offset, 0px));
   }
 }
 
