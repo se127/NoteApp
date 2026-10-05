@@ -196,6 +196,7 @@ function NoteRow({ note }: { note: Note }) {
           >
             <DropdownMenuItem
               variant="destructive"
+              onClick={(event) => event.stopPropagation()}
               onSelect={(event) => {
                 event.preventDefault();
                 setDeleteError(null);
