@@ -36,16 +36,14 @@ export function ScrollToTopButton({
   return (
     <div
       className={cn(
-        "fixed bottom-4 left-6 z-10 transition-all duration-300 ease-out",
-        isScrolledDown
-          ? "translate-y-0 opacity-100"
-          : "pointer-events-none translate-y-3 opacity-0",
+        "fixed bottom-4 left-6 z-10 transition-opacity duration-300",
+        isScrolledDown ? "opacity-100" : "pointer-events-none opacity-0",
       )}
     >
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            variant="outline"
+            className="hover:bg-primary"
             size="icon"
             aria-label="رفتن به بالا"
             tabIndex={isScrolledDown ? 0 : -1}

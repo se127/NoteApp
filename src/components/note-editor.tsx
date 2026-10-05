@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Check, CircleAlert, Loader2, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
@@ -69,15 +69,24 @@ function focusAtEnd(element: HTMLElement): void {
   if (container !== null) revealCaret(container, element);
 }
 
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+const STATUS_ICONS: Record<SaveStatus, LucideIcon> = {
+  idle: Check,
+  saving: Loader2,
+  saved: Check,
+  error: CircleAlert,
+};
+
 export function NoteEditor({ note }: { note: Note }) {
   const { update, setIsSaving } = useNotesStore();
 
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
-    "idle",
-  );
+  const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
+
+  const Icon = STATUS_ICONS[status];
 
   const savedRef = useRef(payloadKey({ title: note.title, body: note.body }));
   const titleRef = useRef<HTMLDivElement>(null);
@@ -167,6 +176,8 @@ export function NoteEditor({ note }: { note: Note }) {
     }
   }, [body]);
 
+  const isStatusVisible = status !== "idle" || message !== null;
+
   const moveCaretToBody = () => {
     const body = bodyRef.current;
     if (body !== null) focusAtEnd(body);
@@ -187,7 +198,7 @@ export function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="flex min-h-full flex-col">
-      <div className="flex flex-col gap-4 px-6 py-8">
+      <div className="flex flex-col gap-4 px-6 py-8 pb-14">
         <div
           ref={titleRef}
           contentEditable="plaintext-only"
@@ -235,19 +246,24 @@ export function NoteEditor({ note }: { note: Note }) {
         />
       </div>
 
-      {(status === "saving" || status === "saved" || message !== null) && (
-        <div
-          className={cn(
-            "fixed top-4 left-4 z-10 flex items-center gap-2 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-sm",
-            message !== null
-              ? "text-destructive"
-              : "text-green-800 dark:text-green-400",
-          )}
-        >
-          {status === "saving" && <Loader2 className="size-4 animate-spin" />}
-          {message ?? (status === "saving" ? "در حال ذخیره..." : "ذخیره شد")}
-        </div>
-      )}
+      <div
+        role="status"
+        aria-live="polite"
+        className={cn(
+          "fixed top-4 left-6 z-10 flex items-center gap-2 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-sm transition-opacity duration-300",
+          isStatusVisible ? "opacity-100" : "pointer-events-none opacity-0",
+          message !== null
+            ? "text-destructive"
+            : "text-green-800 dark:text-green-400",
+        )}
+      >
+        <span className="grid size-4 shrink-0 place-items-center">
+          <Icon
+            className={cn("size-4", status === "saving" && "animate-spin")}
+          />
+        </span>
+        {message ?? (status === "saving" ? "در حال ذخیره..." : "ذخیره شد")}
+      </div>
 
       <ScrollToTopButton anchorRef={bodyRef} />
     </div>
