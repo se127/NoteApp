@@ -4,6 +4,11 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { NoteEditor } from "@/components/note-editor";
 import type { Note } from "@/lib/notes";
 import { createFakeStore } from "./helpers/fake-store";
+import {
+  bodyEditor,
+  setBodyContent,
+  waitForEditorFrame,
+} from "./helpers/note-body";
 import { renderWithProviders } from "./helpers/render";
 
 type UpdateCall = { id: number; title: string; body: string };
@@ -89,11 +94,20 @@ function bodyField(): HTMLElement {
   return screen.getByRole("textbox", { name: "متن یادداشت" });
 }
 
-function typeInto(element: HTMLElement, text: string): void {
-  element.textContent = text;
+function bodyText(): string {
+  return bodyField().textContent ?? "";
+}
+
+function typeIntoTitle(text: string): void {
+  const field = titleField();
+  field.textContent = text;
   act(() => {
-    fireEvent.input(element);
+    fireEvent.input(field);
   });
+}
+
+function typeIntoBody(text: string): void {
+  setBodyContent(`<p>${text}</p>`);
 }
 
 describe("NoteEditor initial render", () => {
@@ -101,7 +115,7 @@ describe("NoteEditor initial render", () => {
     renderEditor();
 
     expect(titleField().textContent).toBe("عنوان اولیه");
-    expect(bodyField().textContent).toBe("متن اولیه");
+    expect(bodyText()).toBe("متن اولیه");
   });
 
   test("does not save on mount", async () => {
@@ -129,20 +143,20 @@ describe("NoteEditor autosave", () => {
   test("saves the body after the debounce delay", async () => {
     renderEditor();
 
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
     await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
     expect(updates[0]).toEqual({
       id: 42,
       title: "عنوان اولیه",
-      body: "متن جدید",
+      body: "<p>متن جدید</p>",
     });
   });
 
   test("does not save before the debounce delay elapses", async () => {
     renderEditor();
 
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
     await Bun.sleep(300);
 
@@ -152,7 +166,7 @@ describe("NoteEditor autosave", () => {
   test("waits close to a second rather than saving straight away", async () => {
     renderEditor();
 
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
     await Bun.sleep(700);
 
@@ -162,18 +176,18 @@ describe("NoteEditor autosave", () => {
   test("saves only once for several rapid edits", async () => {
     renderEditor();
 
-    typeInto(bodyField(), "ی");
-    typeInto(bodyField(), "یو");
-    typeInto(bodyField(), "یک");
+    typeIntoBody("ی");
+    typeIntoBody("یو");
+    typeIntoBody("یک");
 
     await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
-    expect(updates[0]?.body).toBe("یک");
+    expect(updates[0]?.body).toBe("<p>یک</p>");
   });
 
   test("saves the title", async () => {
     renderEditor();
 
-    typeInto(titleField(), "عنوان تازه");
+    typeIntoTitle("عنوان تازه");
 
     await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
     expect(updates[0]?.title).toBe("عنوان تازه");
@@ -182,7 +196,7 @@ describe("NoteEditor autosave", () => {
   test("shows the saving and saved states", async () => {
     renderEditor();
 
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
     await waitFor(
       () =>
@@ -196,10 +210,24 @@ describe("NoteEditor autosave", () => {
   test("flags saving on the shared store", async () => {
     renderEditor();
 
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
     await waitFor(() => expect(savingFlags).toContain(true), { timeout: 2000 });
     expect(savingFlags).toContain(false);
+  });
+
+  test("saves the formatting applied in the body", async () => {
+    renderEditor();
+
+    setBodyContent("<p>متن جدید</p>");
+    const editor = bodyEditor();
+    act(() => {
+      editor.commands.selectAll();
+      editor.chain().focus().toggleBold().run();
+    });
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
+    expect(updates[0]?.body).toBe("<p><strong>متن جدید</strong></p>");
   });
 });
 
@@ -208,7 +236,7 @@ describe("NoteEditor save failures", () => {
     failNextUpdate = new Error("دیتابیس قفل است");
 
     renderEditor();
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
     await waitFor(
       () =>
@@ -223,9 +251,9 @@ describe("NoteEditor save failures", () => {
     renderEditor();
 
     nonErrorFailure = { reason: "not an Error instance" };
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
-    typeInto(bodyField(), "متن جدید");
+    typeIntoBody("متن جدید");
 
     await waitFor(
       () =>
@@ -238,24 +266,30 @@ describe("NoteEditor save failures", () => {
 });
 
 describe("NoteEditor keyboard", () => {
-  test("moves the caret to the body on Enter", () => {
+  test("moves the caret to the body on Enter", async () => {
     renderEditor();
 
     act(() => {
       fireEvent.keyDown(titleField(), { key: "Enter" });
     });
+    await waitForEditorFrame();
 
-    expect(document.activeElement).toBe(bodyField());
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "متن یادداشت",
+    );
   });
 
-  test("moves the caret to the body on Tab", () => {
+  test("moves the caret to the body on Tab", async () => {
     renderEditor();
 
     act(() => {
       fireEvent.keyDown(titleField(), { key: "Tab" });
     });
+    await waitForEditorFrame();
 
-    expect(document.activeElement).toBe(bodyField());
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "متن یادداشت",
+    );
   });
 
   test("prevents default for a bold shortcut", () => {
@@ -319,16 +353,16 @@ describe("NoteEditor paste", () => {
     expect(screen.getByRole("status")).toBeDefined();
   });
 
-  test("keeps the body paste as plain text", () => {
+  test("hands the body paste to the rich text editor", () => {
     renderEditor();
 
     act(() => {
       fireEvent.paste(bodyField(), {
-        clipboardData: { getData: () => "متن چند خطی" },
+        clipboardData: { getData: () => "چسبانده" },
       });
     });
 
-    expect(bodyField()).toBeDefined();
+    expect(bodyText()).toBe("چسباندهمتن اولیه");
   });
 });
 
@@ -337,7 +371,7 @@ describe("NoteEditor unload flush", () => {
     installNotesBridgeForSync();
 
     renderEditor();
-    typeInto(bodyField(), "ذخیره نشده");
+    typeIntoBody("ذخیره نشده");
 
     act(() => {
       window.dispatchEvent(new Event("beforeunload"));
@@ -346,7 +380,7 @@ describe("NoteEditor unload flush", () => {
     expect(syncedUpdates.at(-1)).toEqual({
       id: 42,
       title: "عنوان اولیه",
-      body: "ذخیره نشده",
+      body: "<p>ذخیره نشده</p>",
     });
   });
 

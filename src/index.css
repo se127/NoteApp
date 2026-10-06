@@ -147,3 +147,18 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .note-body .ProseMirror {
+    @apply min-h-[1em] w-full cursor-text bg-transparent text-right text-base leading-8 outline-none;
+  }
+
+  .note-body .ProseMirror p {
+    @apply min-h-[1em] text-right;
+  }
+
+  .note-body .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-right h-0 text-muted-foreground/60;
+  }
+}

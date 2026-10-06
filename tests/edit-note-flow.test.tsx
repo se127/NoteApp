@@ -8,6 +8,7 @@ import {
   makeNote,
   type FakeNotesBridge,
 } from "./helpers/browser-bridge";
+import { setBodyContent } from "./helpers/note-body";
 import { renderWithProviders } from "./helpers/render";
 
 let bridge: FakeNotesBridge;
@@ -17,7 +18,7 @@ function renderAppAt(route: string) {
   return renderWithProviders(<App />, { route });
 }
 
-function typeInto(element: HTMLElement, text: string): void {
+function typeIntoTitle(element: HTMLElement, text: string): void {
   element.textContent = text;
   act(() => {
     fireEvent.input(element);
@@ -157,7 +158,7 @@ describe("editing through the real store", () => {
     renderWithProviders(<App />, { route: "/notes/9/edit" });
 
     const titleField = await screen.findByRole("textbox", { name: "عنوان" });
-    typeInto(titleField, "بعد");
+    typeIntoTitle(titleField, "بعد");
 
     await waitFor(() => expect(bridge.notes[0]?.title).toBe("بعد"), {
       timeout: 2000,
@@ -169,12 +170,10 @@ describe("editing through the real store", () => {
 
     renderWithProviders(<App />, { route: "/notes/9/edit" });
 
-    const bodyField = await screen.findByRole("textbox", {
-      name: "متن یادداشت",
-    });
-    typeInto(bodyField, "متن تازه");
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+    setBodyContent("<p>متن تازه</p>");
 
-    await waitFor(() => expect(bridge.notes[0]?.body).toBe("متن تازه"), {
+    await waitFor(() => expect(bridge.notes[0]?.body).toBe("<p>متن تازه</p>"), {
       timeout: 2000,
     });
   });

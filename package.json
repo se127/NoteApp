@@ -52,6 +52,10 @@
     "vite": "^8.3.0"
   },
   "dependencies": {
+    "@tiptap/extensions": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/react": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
     "lucide-react": "^1.52.0",
     "react-theme-switch-animation": "^1.3.0"
   }

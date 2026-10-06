@@ -1,6 +1,7 @@
 import { Check, CircleAlert, Loader2, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { NoteBodyEditor, type BodyEditor } from "@/components/note-body-editor";
 import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { getNotesBridge, type Note } from "@/lib/notes";
@@ -93,6 +94,7 @@ export function NoteEditor({ note }: { note: Note }) {
 
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
+  const [initialBody] = useState(note.body);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -100,10 +102,15 @@ export function NoteEditor({ note }: { note: Note }) {
   const Icon = STATUS_ICONS[status];
 
   const savedRef = useRef(payloadKey({ title: note.title, body: note.body }));
-  const initialRef = useRef({ title: note.title, body: note.body });
+  const [initialTitle] = useState(note.title);
   const titleRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyAnchorRef = useRef<HTMLDivElement>(null);
+  const bodyEditorRef = useRef<BodyEditor | null>(null);
   const latestRef = useRef({ title, body });
+
+  const handleBodyReady = useCallback((editor: BodyEditor) => {
+    bodyEditorRef.current = editor;
+  }, []);
 
   useEffect(() => {
     latestRef.current = { title, body };
@@ -170,7 +177,7 @@ export function NoteEditor({ note }: { note: Note }) {
   }, [status]);
 
   useEffect(() => {
-    const container = bodyRef.current?.closest("main");
+    const container = bodyAnchorRef.current?.closest("main");
     if (!container) return;
 
     const distanceFromBottom =
@@ -185,8 +192,13 @@ export function NoteEditor({ note }: { note: Note }) {
 
   const moveCaretToBody = () => {
     setIsPickerOpen(false);
-    const body = bodyRef.current;
-    if (body !== null) focusAtEnd(body);
+    const editor = bodyEditorRef.current;
+    if (editor === null) return;
+
+    editor.commands.focus("end");
+    const element = editor.view.dom;
+    const container = element.closest("main");
+    if (container !== null) revealCaret(container, element);
   };
 
   const insertEmoji = (emoji: string) => {
@@ -203,14 +215,10 @@ export function NoteEditor({ note }: { note: Note }) {
   useEffect(() => {
     const titleElement = titleRef.current;
     if (titleElement !== null) {
-      titleElement.textContent = initialRef.current.title;
+      titleElement.textContent = initialTitle;
       focusAtEnd(titleElement);
     }
-
-    if (bodyRef.current) {
-      bodyRef.current.textContent = initialRef.current.body;
-    }
-  }, []);
+  }, [initialTitle]);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -253,22 +261,13 @@ export function NoteEditor({ note }: { note: Note }) {
             />
           </div>
         </div>
-        <div
-          ref={bodyRef}
-          contentEditable
-          suppressContentEditableWarning
-          role="textbox"
-          aria-multiline="true"
-          aria-label="متن یادداشت"
-          data-placeholder="متن یادداشت را اینجا بنویسید..."
-          onInput={(event) => setBody(syncPlainText(event.currentTarget))}
-          onPaste={(event) => {
-            event.preventDefault();
-            const text = event.clipboardData.getData("text/plain");
-            document.execCommand("insertText", false, text);
-          }}
-          className="min-h-[1em] w-full cursor-text bg-transparent text-base leading-8 outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)]"
-        />
+        <div ref={bodyAnchorRef} className="note-body min-h-[1em] w-full">
+          <NoteBodyEditor
+            body={initialBody}
+            onChange={setBody}
+            onReady={handleBodyReady}
+          />
+        </div>
       </div>
 
       <div
@@ -290,7 +289,7 @@ export function NoteEditor({ note }: { note: Note }) {
         {message ?? (status === "saving" ? "در حال ذخیره..." : "ذخیره شد")}
       </div>
 
-      <ScrollToTopButton anchorRef={bodyRef} />
+      <ScrollToTopButton anchorRef={bodyAnchorRef} />
     </div>
   );
 }
