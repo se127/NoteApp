@@ -38,6 +38,14 @@ export async function selectAllBodyText(): Promise<void> {
   await Bun.sleep(BUBBLE_MENU_DELAY);
 }
 
+export async function focusBodyCaret(): Promise<void> {
+  const editor = bodyEditor();
+  act(() => {
+    editor.commands.focus("end");
+  });
+  await Bun.sleep(BUBBLE_MENU_DELAY);
+}
+
 export function pressMark(label: string): void {
   const button = document.querySelector<HTMLElement>(`[aria-label="${label}"]`);
   if (button === null) throw new Error(`no mark button named ${label}`);

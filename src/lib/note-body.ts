@@ -6,7 +6,7 @@ function escapeHtml(text: string): string {
 }
 
 function isStoredHtml(body: string): boolean {
-  return /^<p[ >]/i.test(body);
+  return /^<(p|h[1-6])(\s[^>]*)?>/i.test(body);
 }
 
 export function bodyToHtml(body: string): string {

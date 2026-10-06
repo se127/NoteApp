@@ -202,7 +202,33 @@
     @apply min-h-[1em] text-right;
   }
 
-  .note-body .ProseMirror p.is-editor-empty:first-child::before {
+  .note-body .ProseMirror :is(h2, h3, h4, h5, h6) {
+    @apply min-h-[1em] text-right font-bold;
+  }
+
+  .note-body .ProseMirror h2 {
+    @apply mt-6 mb-2 text-2xl leading-9;
+  }
+
+  .note-body .ProseMirror h3 {
+    @apply mt-5 mb-2 text-xl leading-8;
+  }
+
+  .note-body .ProseMirror h4 {
+    @apply mt-4 mb-1.5 text-lg leading-8;
+  }
+
+  .note-body .ProseMirror h5 {
+    @apply mt-4 mb-1.5 text-base leading-8;
+  }
+
+  .note-body .ProseMirror h6 {
+    @apply mt-4 mb-1.5 text-sm leading-7;
+  }
+
+  .note-body
+    .ProseMirror
+    :is(p, h2, h3, h4, h5, h6).is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     @apply pointer-events-none float-right h-0 text-muted-foreground/60;
   }

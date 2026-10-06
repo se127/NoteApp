@@ -37,6 +37,17 @@ describe("bodyToHtml", () => {
     expect(bodyToHtml("<p>اول</p><p>دوم</p>")).toBe("<p>اول</p><p>دوم</p>");
   });
 
+  test("passes stored heading html through untouched", () => {
+    expect(bodyToHtml("<h2>عنوان</h2>")).toBe("<h2>عنوان</h2>");
+    expect(bodyToHtml("<h3>زیرعنوان</h3><p>متن</p>")).toBe(
+      "<h3>زیرعنوان</h3><p>متن</p>",
+    );
+  });
+
+  test("leaves a plain line that looks like a heading as text", () => {
+    expect(bodyToHtml("<h2 something")).toBe("<p>&lt;h2 something</p>");
+  });
+
   test("keeps a blank line inside plain text as an empty paragraph", () => {
     expect(bodyToHtml("اول\n\nدوم")).toBe("<p>اول</p><p><br></p><p>دوم</p>");
   });
