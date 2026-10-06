@@ -4,10 +4,13 @@ import path from "node:path";
 
 const BODY_BLOCK_SELECTORS = ["p", "h2", "h3", "h4", "h5", "h6"];
 
+const PLACEHOLDER_SELECTOR =
+  ".note-body .ProseMirror :is(p, h2, h3, h4, h5, h6).is-editor-empty:first-child::before";
+
 const css = readFileSync(
   path.join(import.meta.dir, "..", "src", "index.css"),
   "utf8",
-);
+).replace(/\s+/g, " ");
 
 function ruleBody(selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -18,28 +21,23 @@ function ruleBody(selector: string): string {
 
 describe("note body placeholder styling", () => {
   test("covers every block the body editor can hold", () => {
-    expect(
-      ruleBody(
-        ".note-body .ProseMirror :is(p, h2, h3, h4, h5, h6).is-editor-empty:first-child::before",
-      ),
-    ).toContain("content: attr(data-placeholder)");
+    expect(ruleBody(PLACEHOLDER_SELECTOR)).toContain(
+      "content: attr(data-placeholder)",
+    );
   });
 
   test("would not match a heading if the selector were paragraph only", () => {
-    const selector =
-      ".note-body .ProseMirror :is(p, h2, h3, h4, h5, h6).is-editor-empty:first-child::before";
-
     for (const block of BODY_BLOCK_SELECTORS) {
       expect(
-        new RegExp(`(^|[\\s,(:])${block}([\\s,):]|$)`).test(selector),
+        new RegExp(`(^|[\\s,(:])${block}([\\s,):]|$)`).test(
+          PLACEHOLDER_SELECTOR,
+        ),
       ).toBe(true);
     }
   });
 
   test("keeps the placeholder out of the text flow and unfocusable", () => {
-    const body = ruleBody(
-      ".note-body .ProseMirror :is(p, h2, h3, h4, h5, h6).is-editor-empty:first-child::before",
-    );
+    const body = ruleBody(PLACEHOLDER_SELECTOR);
 
     expect(body).toContain("pointer-events-none");
     expect(body).toContain("float-right");
