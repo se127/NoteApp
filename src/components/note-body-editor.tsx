@@ -160,7 +160,7 @@ export function NoteBodyEditor({
           ))}
         </div>
       </BubbleMenu>
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className="prose" />
     </Tiptap>
   );
 }

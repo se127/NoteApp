@@ -84,6 +84,15 @@ describe("NoteBodyEditor", () => {
     expect(changes).toHaveLength(0);
   });
 
+  test("marks the body content for the typography plugin", () => {
+    renderBodyEditor();
+
+    const content = document.querySelector<HTMLElement>(".prose");
+
+    expect(content).not.toBeNull();
+    expect(content?.querySelector(".ProseMirror")).not.toBeNull();
+  });
+
   test("registers a paste handler that keeps pasted text inline", () => {
     renderBodyEditor();
 
