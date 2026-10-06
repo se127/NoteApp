@@ -84,11 +84,11 @@ electron/preload.cjs   پل contextBridge که به‌صورت window.noteApp د
 electron/db.mjs        دسترسی به SQLite برای جدول یادداشت‌ها
 scripts/dev.ts         هماهنگ‌کنندهٔ توسعه: Vite + Electron
 scripts/build.ts       هماهنگ‌کنندهٔ بسته‌بندی: Vite + electron-builder
-src/components/        کامپوننت‌های اختصاصی: app-sidebar، theme-provider، theme-toggle، note-editor، notes-provider، overflowing-title، scroll-to-top-button
+src/components/        کامپوننت‌های اختصاصی: app-sidebar، theme-provider، theme-toggle، note-editor، note-body-editor، notes-provider، overflowing-title، scroll-to-top-button
 src/components/ui/     کامپوننت‌های vendored شدهٔ shadcn — هرگز ویرایش دستی نکنید؛ کامپوننت‌های استفاده‌نشده حذف شده‌اند
 src/pages/             welcome-page (صفحهٔ خوش‌آمد) و edit-note-page (ویرایش یادداشت)
 src/hooks/use-notes.ts بارگذاری یادداشت‌ها از پل IPC
-src/lib/               notes (تایپ‌های پل و قرارداد پایگاه داده)، theme، notes-store (context)
+src/lib/               notes (تایپ‌های پل و قرارداد پایگاه داده)، theme، notes-store (context)، note-body (تبدیل متن به HTML)
 src/font/vazirmatn/    Vazirmatn روی خود سرور (فارسی + ارقام، بدون لاتین)
 tests/                 تست‌ها؛ tests/helpers پایه‌های مشترک، tests/setup راه‌اندازی happy-dom
 bunfig.toml            preload تست‌ها؛ بدون آن تست‌های کامپوننتی document ندارند
@@ -96,22 +96,26 @@ bunfig.toml            preload تست‌ها؛ بدون آن تست‌های ک�
 
 ## تست‌ها
 
-`bun test` با استفاده از runner خود Bun اجرا می‌شود و ۳۰۶ تست را روی لایهٔ پایگاه داده، پروسهٔ اصلی Electron، پل preload، رندرر و هر دو فایل `scripts/` اجرا می‌کند.
+`bun test` با استفاده از runner خود Bun اجرا می‌شود و ۳۹۹ تست را روی لایهٔ پایگاه داده، پروسهٔ اصلی Electron، پل preload، رندرر، هر دو فایل `scripts/` و ویرایشگر متن یادداشت اجرا می‌کند.
 
 تست‌ها یک پایگاه دادهٔ جداگانه و یک‌بارمصرف برای هر تست می‌سازند، پس هرگز به پایگاه دادهٔ حالت توسعه یا نسخهٔ نصب‌شده دست نمی‌زنند:
 
-| مسیر                            | کاربرد                                                          |
-| ------------------------------- | --------------------------------------------------------------- |
-| `tests/db.test.ts`              | عملیات CRUD، ترتیب، اعتبارسنجی شناسه و جدا بودن از دادهٔ واقعی  |
-| `tests/db-migrations.test.ts`   | مهاجرت‌ها، `PRAGMA`ها و باز کردن دوبارهٔ پایگاه داده            |
-| `tests/electron-main.test.ts`   | کانال‌های IPC، محافظت از ناوبری، `theme.json` و چرخهٔ عمر پنجره |
-| `tests/preload.test.ts`         | نام و محتوای هر پیام `ipcRenderer`                              |
-| `tests/use-notes.test.tsx`      | بارگذاری، به‌روزرسانی از رویداد تغییر و مدیریت خطا              |
-| `tests/note-editor.test.tsx`    | ذخیرهٔ خودکار با تأخیر، میان‌بر صفحه‌کلید و ذخیرهٔ هنگام بستن   |
-| `tests/app-sidebar.test.tsx`    | ساخت یادداشت و تأیید دو مرحله‌ای حذف                            |
-| `tests/edit-note-flow.test.tsx` | جریان کامل از ساخت تا ویرایش و حذف از طریق store واقعی          |
-| `tests/build-script.test.ts`    | پیدا کردن wine، پشتیبانی ۳۲ بیتی و پیام راهنما برای هر توزیع    |
-| `tests/dev-script.test.ts`      | مسیر پایگاه دادهٔ توسعه، انتظار برای سرور و توقف درخت پردازه‌ها |
+| مسیر                              | کاربرد                                                          |
+| --------------------------------- | --------------------------------------------------------------- |
+| `tests/db.test.ts`                | عملیات CRUD، ترتیب، اعتبارسنجی شناسه و جدا بودن از دادهٔ واقعی  |
+| `tests/db-migrations.test.ts`     | مهاجرت‌ها، `PRAGMA`ها و باز کردن دوبارهٔ پایگاه داده            |
+| `tests/electron-main.test.ts`     | کانال‌های IPC، محافظت از ناوبری، `theme.json` و چرخهٔ عمر پنجره |
+| `tests/preload.test.ts`           | نام و محتوای هر پیام `ipcRenderer`                              |
+| `tests/use-notes.test.tsx`        | بارگذاری، به‌روزرسانی از رویداد تغییر و مدیریت خطا              |
+| `tests/note-editor.test.tsx`      | ذخیرهٔ خودکار با تأخیر، میان‌بر صفحه‌کلید و ذخیرهٔ هنگام بستن   |
+| `tests/app-sidebar.test.tsx`      | ساخت یادداشت و تأیید دو مرحله‌ای حذف                            |
+| `tests/edit-note-flow.test.tsx`   | جریان کامل از ساخت تا ویرایش و حذف از طریق store واقعی          |
+| `tests/build-script.test.ts`      | پیدا کردن wine، پشتیبانی ۳۲ بیتی و پیام راهنما برای هر توزیع    |
+| `tests/dev-script.test.ts`        | مسیر پایگاه دادهٔ توسعه، انتظار برای سرور و توقف درخت پردازه‌ها |
+| `tests/note-body.test.ts`         | تبدیل متن ساده به پاراگراف و عبور markup ذخیره‌شده از میان      |
+| `tests/note-body-editor.test.tsx` | دو منوی شناور متن، تبدیل بلوک به عنوان و قالب‌بندی متن          |
+| `tests/note-body-css.test.ts`     | استایل عنوان‌ها و جای‌نگهدار متن در `src/index.css`             |
+| `tests/note-body-undo.test.tsx`   | بازگردانی تغییرات ویرایشگر متن                                  |
 
 نکته‌های مهم هنگام نوشتن تست:
 
@@ -120,6 +124,7 @@ bunfig.toml            preload تست‌ها؛ بدون آن تست‌های ک�
 - `main.mjs` کل بدنهٔ خود را هنگام import اجرا می‌کند؛ از `loadMainProcess()` در `tests/helpers/main-process.ts` استفاده کنید.
 - `scripts/dev.ts` و `scripts/build.ts` کنش‌های خود را پشت `isDirectRun` پنهان کرده‌اند، پس import کردنشان امن است. منطق خالص را export کنید و از `spawn` و `process.exit` در آن دور نگه دارید.
 - بعد از نوشتن یک تست زمان‌بندی، ثابتی را که می‌آزماید عوض کنید و مطمئن شوید مجموعه قرمز می‌شود. یک تست زمان‌بندی که مقدار را بی‌درنگ بررسی کند، حتی با نصف شدن تأخیر هم سبز می‌ماند.
+- happy-dom شبه‌عنصر `::before` را اجرا نمی‌کند، پس یک تست DOM نمی‌تواند ثابت کند که یک قاعدهٔ CSS اعمال می‌شود. برای محافظت از قاعده‌های `src/index.css` فایل را بخوانید و انتخابگر را تطبیق دهید، مثل `tests/note-body-css.test.ts`. پیش از تطبیق فاصله‌ها را یکدست کنید، وگرنه `prettier --write` در قلاب pre-commit انتخابگر بلند را در چند خط می‌شکند و جست‌وجوی رشته‌ای خراب می‌شود.
 
 قلم‌ها بر اساس هر گلیف انتخاب می‌شوند: Vazirmatn برای خط عربی، Inter برای لاتین و در نهایت `sans-serif` به‌عنوان جایگزین.
 
@@ -153,6 +158,8 @@ bunfig.toml            preload تست‌ها؛ بدون آن تست‌های ک�
 - preload باید CommonJS بماند؛ preload به‌صورت ESM و در حالت sandbox بی‌صدا اجرا نمی‌شود.
 - در `vite.config.ts` مقدار `base: "./"` تنظیم شده است. برنامهٔ بسته‌بندی‌شده `dist/index.html` را از طریق `file://` باز می‌کند و مسیرهای مطلق `/assets/...` به ریشهٔ درایو اشاره می‌کنند و پنجره سفید می‌ماند. به همین دلیل در `src/main.tsx` از `HashRouter` استفاده می‌شود، نه `BrowserRouter`.
 - فیلدهای فرم یادداشت از `contentEditable` با `data-placeholder` و CSS `empty:before` استفاده می‌کنند، نه `FieldLabel`.
+- متن یادداشت یک ویرایشگر Tiptap در `src/components/note-body-editor.tsx` است و دو منوی شناور دارد: منوی قالب‌بندی (ضخیم، مورب، زیرخط، خط‌خورده) هنگام انتخاب متن، و منوی سبک بلوک هنگام قرار گرفتن مکان‌نما بدون انتخاب. منوی دوم بلوک جاری را به پاراگراف یا عنوان `h2` تا `h6` تبدیل می‌کند؛ `h1` وجود ندارد چون عنوان یادداشت همان نقش را دارد.
+- متن یادداشت به‌صورت HTML ذخیره می‌شود. `isStoredHtml` در `src/lib/note-body.ts` تشخیص می‌دهد متن ذخیره‌شده markup است یا متن ساده؛ اگر نوع بلوک تازه‌ای اضافه کردید، آن را هم به این تابع اضافه کنید وگرنه عنوان‌ها به‌صورت متن escape‌شده باز می‌شوند.
 - عنوان یادداشت همیشه اجباری است و متن اختیاری. هیچ محدودیت طولی اعمال نمی‌شود.
 - `src/components/ui/**` از Prettier و oxlint مستثنا شده تا به‌روزرسانی‌های shadcn با قالب‌بندی محلی تضاد پیدا نکنند. هر تغییری در این پوشه با `bunx shadcn@latest` انجام شود، وگرنه بازنویسی می‌شود.
 - تم سیستم (روشن/تیره/پیروی از سیستم) با `theme-toggle` و `theme-provider` پیاده‌سازی شده و از طریق IPC در `theme.json` ذخیره می‌شود.

@@ -50,13 +50,14 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 
 ## Tests
 
-`bun test` runs the whole suite: 306 tests over the database layer, the Electron main process, the preload bridge, the renderer, and both `scripts/` files.
+`bun test` runs the whole suite: 399 tests over the database layer, the Electron main process, the preload bridge, the renderer, both `scripts/` files, and the body editor.
 
 - `bunfig.toml` holds the happy-dom preload that gives the renderer tests a DOM. Without it every component test fails, so `bunfig.toml` must be committed together with `tests/`.
 - `tests/setup/preload.ts` registers happy-dom and imports `@testing-library/react` with a **dynamic** import inside `afterEach`. A static import there is evaluated before happy-dom installs `document`, which silently breaks `screen` with a "global document has to be available" error. It also sets `RTL_SKIP_AUTO_CLEANUP` because RTL's own auto-cleanup calls `beforeAll` at the wrong time for Bun.
 - Query elements by accessible role and Persian label, the way a user reaches them. `screen.getByRole("textbox", { name: "عنوان" })` survives a class rename; a hard-coded selector does not.
 - Build fake stores with `createFakeStore()` from `tests/helpers/fake-store.ts` and drive the app through `renderWithProviders()` from `tests/helpers/render.tsx`, which mounts the same router, theme and tooltip providers as `main.tsx`.
 - `tests/**` is type-checked by `bun run build` through `tsconfig.test.json`, so a type error in a test fails the build. Keep new test files inside that project.
+- happy-dom does not evaluate `::before`, so a DOM assertion cannot prove a CSS rule matches. To guard a rule in `src/index.css`, read the file and match the selector, as `tests/note-body-css.test.ts` does. Collapse whitespace before matching, or the pre-commit `prettier --write` will wrap a long selector across lines and break a literal lookup.
 
 ### Tests get their own throwaway database
 
@@ -81,6 +82,18 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 ### Verify a test actually fails
 
 A green suite proves nothing on its own. After writing a timing or ordering test, mutate the constant it guards — halve the debounce, flip a `DESC` to `ASC` — confirm the suite goes red, then revert. This caught an autosave test that asserted a flag synchronously and passed even with `SAVE_DELAY` cut to 50ms.
+
+Measure before changing CSS. Guessing at a padding or a wrapper box costs more rounds than reading the computed DOM, and a bubble menu that "looks wrong" is often the wrong box entirely — ask the user to paste it, or add `console.log` and remove it again in the same change.
+
+## The note body editor
+
+`src/components/note-body-editor.tsx` holds a Tiptap editor with two bubble menus, each with its own `pluginKey`. The mark menu holds bold/italic/underline/strike and appears on a selection; the block type menu appears on a bare caret and turns the current block into a paragraph or an h2 to h6 heading.
+
+- Heading levels are enabled through `heading: { levels: [2, 3, 4, 5, 6] }` in `StarterKit.configure`. There is deliberately no h1, because the note title already fills that role.
+- The block menu anchors to the caret's block node through `getReferencedVirtualElement`, not to the selection rect, so it sits above the whole line.
+- `.note-body .ProseMirror` sets `line-height: 2rem`, which an inline-level button inherits as a line box and pads with descender space. Any element wrapping a button inside the body must be `flex`, or a visible gap appears under it.
+- `isStoredHtml` in `src/lib/note-body.ts` decides whether a stored body is markup or plain text. It matches `p` and `h1`–`h6`, so adding a block type means adding it here too, or saved headings reload as escaped text.
+- The placeholder rule in `src/index.css` uses `:is(p, h2, h3, h4, h5, h6)`. Narrow it to `p` and the placeholder disappears as soon as an empty block becomes a heading.
 
 ## Never commit without asking
 
