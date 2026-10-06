@@ -13,6 +13,12 @@ dist-ssr
 release
 *.local
 
+# Test databases must never live in the repo; the harness puts them in the
+# system temp directory. This is a backstop in case one is ever created here.
+notes.db
+notes.db-wal
+notes.db-shm
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

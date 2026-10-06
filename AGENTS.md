@@ -48,6 +48,40 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 - `bun run dev` itself is only a dev-server launcher, so tell the user to stop the previous run with ctrl+c first. Do not kill it for them.
 - Never edit or delete the packaged app's data at `%APPDATA%\note-app`. That is the real user database. Dev runs against `%APPDATA%\note-app-dev`, set by `scripts/dev.ts` through `NOTE_APP_USER_DATA`, so the two are separate by design.
 
+## Tests
+
+`bun test` runs the whole suite: 306 tests over the database layer, the Electron main process, the preload bridge, the renderer, and both `scripts/` files.
+
+- `bunfig.toml` holds the happy-dom preload that gives the renderer tests a DOM. Without it every component test fails, so `bunfig.toml` must be committed together with `tests/`.
+- `tests/setup/preload.ts` registers happy-dom and imports `@testing-library/react` with a **dynamic** import inside `afterEach`. A static import there is evaluated before happy-dom installs `document`, which silently breaks `screen` with a "global document has to be available" error. It also sets `RTL_SKIP_AUTO_CLEANUP` because RTL's own auto-cleanup calls `beforeAll` at the wrong time for Bun.
+- Query elements by accessible role and Persian label, the way a user reaches them. `screen.getByRole("textbox", { name: "عنوان" })` survives a class rename; a hard-coded selector does not.
+- Build fake stores with `createFakeStore()` from `tests/helpers/fake-store.ts` and drive the app through `renderWithProviders()` from `tests/helpers/render.tsx`, which mounts the same router, theme and tooltip providers as `main.tsx`.
+- `tests/**` is type-checked by `bun run build` through `tsconfig.test.json`, so a type error in a test fails the build. Keep new test files inside that project.
+
+### Tests get their own throwaway database
+
+`bun test` runs against a dedicated SQLite database created per test, never against the dev or the packaged one.
+
+- Build every test database with `createTestDatabase()` from `tests/helpers/test-database.ts`. Never call `openDatabase` directly, and never hand it a path. The helper is the only thing that creates a test `userData` directory, so it cannot be pointed at `%APPDATA%\note-app` by accident.
+- It creates the directory with `mkdtempSync` under the system temp directory, named `note-app-test-db-*`, and refuses any path that resolves inside a real `userData` directory. `isRealUserDataPath` is that check, and `tests/db.test.ts` asserts it.
+- A test database lives for one test only. Call `database.dispose()` in `afterEach`; it closes the connection and removes the directory on a best-effort basis.
+- On Bun 1.4.2 a prepared statement keeps its SQLite file locked after `close()`, so the directory often survives until the OS reclaims it at process exit. Leftover `note-app-test-db-*` folders in the temp directory are expected, not a leak.
+- `electron/db.mjs` is a module-level singleton, so tests share one connection and must run sequentially.
+
+### Testing the Electron layers
+
+`electron/preload.cjs` is CommonJS, so `mock.module("electron")` cannot reach it — its `require("electron")` is cached and another suite's mock wins the race. Load it with `loadPreload()` from `tests/helpers/load-preload.ts`, which evaluates the real file with an injected `require`.
+
+`electron/main.mjs` runs its whole body at import, so load it through `loadMainProcess()` from `tests/helpers/main-process.ts` and append a unique `?case=N` to defeat the module cache. `mock.module` factories are evaluated once and cached too, so that helper keeps one module-level `active` stub and re-points it per test; a closure over a per-test stub would keep writing into the first one.
+
+### Testing the scripts
+
+`scripts/dev.ts` and `scripts/build.ts` guard their side effects behind `isDirectRun`, so importing them is safe and the pure logic can be tested. If you add work to either script, export it and keep it free of `spawn`, `process.exit` and console output; only the `isDirectRun` block may do those.
+
+### Verify a test actually fails
+
+A green suite proves nothing on its own. After writing a timing or ordering test, mutate the constant it guards — halve the debounce, flip a `DESC` to `ASC` — confirm the suite goes red, then revert. This caught an autosave test that asserted a flag synchronously and passed even with `SAVE_DELAY` cut to 50ms.
+
 ## Never commit without asking
 
 Do **not** run `git commit` when a task is finished. Leave the changes staged or unstaged and report what changed.

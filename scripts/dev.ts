@@ -2,22 +2,134 @@ import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const HOST = "127.0.0.1";
 const PORT = Number(process.env["PORT"] ?? 5173);
-const URL = `http://${HOST}:${PORT}`;
+const SERVER_URL = `http://${HOST}:${PORT}`;
 const TIMEOUT_MS = 30_000;
 const POLL_MS = 250;
 const GRACE_MS = 1500;
 
-function devUserDataDir(): string {
-  const appData = process.env["APPDATA"] ?? path.join(os.homedir(), ".config");
-  return path.join(appData, `${path.basename(process.cwd())}-dev`);
+export function devUserDataDir(
+  appData: string | undefined,
+  cwd: string,
+  home: string,
+): string {
+  const base = appData ?? path.join(home, ".config");
+  return path.join(base, `${path.basename(cwd)}-dev`);
+}
+
+export function serverUrl(port: number, host: string = HOST): string {
+  return `http://${host}:${port}`;
+}
+
+export function viteArgs(host: string, port: number): string[] {
+  return ["vite", "--host", host, "--port", String(port), "--strictPort"];
+}
+
+export type ServerProbe = () => Promise<{ reachable: boolean; status: number }>;
+
+export function createServerProbe(fetchImpl: typeof fetch): ServerProbe {
+  return async () => {
+    const response = await fetchImpl(SERVER_URL, {
+      signal: AbortSignal.timeout(1000),
+    });
+    return { reachable: true, status: response.status };
+  };
+}
+
+/** Mirrors `Response.ok`: 200-299 counts, and a 404 means vite is up. */
+function isOkStatus(status: number): boolean {
+  return (status >= 200 && status < 300) || status === 404;
+}
+
+export async function waitForServer(
+  probe: ServerProbe,
+  timeoutMs: number,
+  now: () => number,
+  sleep: (ms: number) => Promise<void>,
+): Promise<void> {
+  const deadline = now() + timeoutMs;
+
+  while (now() < deadline) {
+    try {
+      const { reachable, status } = await probe();
+      if (reachable && isOkStatus(status)) return;
+    } catch {}
+    await sleep(POLL_MS);
+  }
+
+  throw new Error(
+    `[dev] ${SERVER_URL} did not respond within ${timeoutMs / 1000}s`,
+  );
+}
+
+export function isRunning(
+  child: Pick<ChildProcess, "exitCode" | "signalCode">,
+): boolean {
+  return child.exitCode === null && child.signalCode === null;
+}
+
+export type StopOptions = {
+  platform: NodeJS.Platform;
+  pid: number | undefined;
+  force: boolean;
+  kill: (pid: number) => void;
+  runTaskkill: (args: string[]) => void;
+};
+
+export function stopTree(
+  child: Pick<ChildProcess, "exitCode" | "signalCode" | "pid">,
+  options: StopOptions,
+): void {
+  if (!isRunning(child)) return;
+
+  if (options.platform === "win32" && child.pid !== undefined) {
+    const args = ["/pid", String(child.pid), "/T"];
+    if (options.force) args.push("/F");
+
+    options.runTaskkill(args);
+    return;
+  }
+
+  options.kill(child.pid ?? 0);
 }
 
 const children: ChildProcess[] = [];
 
 let shuttingDown = false;
+
+async function shutdown(code = 0): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  const stopOptions: StopOptions = {
+    platform: process.platform,
+    pid: undefined,
+    force: false,
+    kill: (pid) => children[0]?.kill(pid),
+    runTaskkill: (args) => {
+      spawnSync("taskkill", args, { stdio: "ignore" });
+    },
+  };
+
+  for (const child of children) stopTree(child, stopOptions);
+
+  await new Promise((resolve) => setTimeout(resolve, GRACE_MS));
+
+  for (const child of children) {
+    if (!isRunning(child)) continue;
+    stopTree(child, { ...stopOptions, force: true });
+    if (isRunning(child)) {
+      console.error(
+        `[dev] could not stop ${child.spawnargs.join(" ")}; port ${PORT} may still be held`,
+      );
+    }
+  }
+
+  process.exit(code);
+}
 
 function start(
   name: string,
@@ -40,84 +152,36 @@ function start(
   return child;
 }
 
-async function waitForServer(url: string, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
+const isDirectRun =
+  process.argv[1] !== undefined &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
-      if (response.ok || response.status === 404) return;
-    } catch {}
-    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+if (isDirectRun) {
+  process.on("SIGINT", () => void shutdown(0));
+  process.on("SIGTERM", () => void shutdown(0));
+
+  console.log(`[dev] starting vite on ${SERVER_URL}`);
+  start("vite", "bunx", viteArgs(HOST, PORT));
+
+  try {
+    await waitForServer(
+      createServerProbe(fetch),
+      TIMEOUT_MS,
+      () => Date.now(),
+      (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    );
+
+    console.log("[dev] vite is up, launching electron");
+    start("electron", "bunx", ["electron", "."], {
+      VITE_DEV_SERVER_URL: SERVER_URL,
+      NOTE_APP_USER_DATA: devUserDataDir(
+        process.env["APPDATA"],
+        process.cwd(),
+        os.homedir(),
+      ),
+    });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    void shutdown(1);
   }
-
-  throw new Error(`[dev] ${url} did not respond within ${timeoutMs / 1000}s`);
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function isRunning(child: ChildProcess): boolean {
-  return child.exitCode === null && child.signalCode === null;
-}
-
-function stopTree(child: ChildProcess, force: boolean): void {
-  if (!isRunning(child)) return;
-
-  if (process.platform === "win32" && child.pid !== undefined) {
-    const args = ["/pid", String(child.pid), "/T"];
-    if (force) args.push("/F");
-
-    spawnSync("taskkill", args, { stdio: "ignore" });
-    return;
-  }
-
-  child.kill();
-}
-
-async function shutdown(code = 0): Promise<void> {
-  if (shuttingDown) return;
-  shuttingDown = true;
-
-  for (const child of children) stopTree(child, false);
-
-  await delay(GRACE_MS);
-
-  for (const child of children) {
-    if (!isRunning(child)) continue;
-    stopTree(child, true);
-    if (isRunning(child)) {
-      console.error(
-        `[dev] could not stop ${child.spawnargs.join(" ")}; port ${PORT} may still be held`,
-      );
-    }
-  }
-
-  process.exit(code);
-}
-
-process.on("SIGINT", () => void shutdown(0));
-process.on("SIGTERM", () => void shutdown(0));
-
-console.log(`[dev] starting vite on ${URL}`);
-start("vite", "bunx", [
-  "vite",
-  "--host",
-  HOST,
-  "--port",
-  String(PORT),
-  "--strictPort",
-]);
-
-try {
-  await waitForServer(URL, TIMEOUT_MS);
-  console.log("[dev] vite is up, launching electron");
-  start("electron", "bunx", ["electron", "."], {
-    VITE_DEV_SERVER_URL: URL,
-    NOTE_APP_USER_DATA: devUserDataDir(),
-  });
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  void shutdown(1);
 }
