@@ -118,6 +118,23 @@ function createWindow() {
     mainWindow.loadFile(indexHtmlPath);
   }
 
+  if (DEV_SERVER_URL) {
+    mainWindow.webContents.on("before-input-event", (event, input) => {
+      const isToggleDevTools =
+        input.type === "keyDown" &&
+        input.key.toLowerCase() === "i" &&
+        input.control &&
+        input.shift &&
+        !input.alt &&
+        !input.meta;
+
+      if (!isToggleDevTools) return;
+
+      event.preventDefault();
+      mainWindow?.webContents.toggleDevTools();
+    });
+  }
+
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url) || url.startsWith("mailto:")) {
       shell.openExternal(url);

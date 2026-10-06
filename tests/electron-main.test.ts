@@ -12,6 +12,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   loadMainProcess,
+  type DevToolsInput,
   type MainProcessHarness,
 } from "./helpers/main-process";
 
@@ -461,6 +462,15 @@ describe("window lifecycle", () => {
     expect(harness.stub.menuRemoved).toBe(true);
   });
 
+  test("does not open dev tools on its own", async () => {
+    process.env["VITE_DEV_SERVER_URL"] = "http://127.0.0.1:5173";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
+  });
+
   test("opens the database at the user data path", async () => {
     harness = await loadMainProcess();
     harness.whenReady();
@@ -517,6 +527,116 @@ describe("window lifecycle", () => {
 
     expect(window.restoreCount).toBe(0);
     expect(window.focusCount).toBe(1);
+  });
+});
+
+describe("dev tools shortcut", () => {
+  function devToolsKey(overrides: Partial<DevToolsInput> = {}): DevToolsInput {
+    return {
+      type: "keyDown",
+      key: "i",
+      control: true,
+      shift: true,
+      alt: false,
+      meta: false,
+      ...overrides,
+    };
+  }
+
+  async function readyWithDevServer(): Promise<MainProcessHarness> {
+    process.env["VITE_DEV_SERVER_URL"] = "http://127.0.0.1:5173";
+    const loaded = await loadMainProcess();
+    loaded.whenReady();
+    return loaded;
+  }
+
+  test("toggles dev tools on ctrl+shift+i", async () => {
+    harness = await readyWithDevServer();
+
+    const prevented = harness
+      .firstWindow()
+      .webContents.beforeInput(devToolsKey());
+
+    expect(prevented).toBe(true);
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(1);
+  });
+
+  test("toggles dev tools on a capital i", async () => {
+    harness = await readyWithDevServer();
+
+    harness.firstWindow().webContents.beforeInput(devToolsKey({ key: "I" }));
+
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(1);
+  });
+
+  test("ignores the meta variant so ctrl+shift+i stays the only chord", async () => {
+    harness = await readyWithDevServer();
+
+    const prevented = harness
+      .firstWindow()
+      .webContents.beforeInput(devToolsKey({ control: false, meta: true }));
+
+    expect(prevented).toBe(false);
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
+  });
+
+  test("ignores the key on key up so one press toggles once", async () => {
+    harness = await readyWithDevServer();
+
+    const prevented = harness
+      .firstWindow()
+      .webContents.beforeInput(devToolsKey({ type: "keyUp" }));
+
+    expect(prevented).toBe(false);
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
+  });
+
+  test("ignores the key without shift", async () => {
+    harness = await readyWithDevServer();
+
+    harness
+      .firstWindow()
+      .webContents.beforeInput(devToolsKey({ shift: false }));
+
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
+  });
+
+  test("ignores the key with alt held", async () => {
+    harness = await readyWithDevServer();
+
+    harness.firstWindow().webContents.beforeInput(devToolsKey({ alt: true }));
+
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
+  });
+
+  test("ignores a bare i", async () => {
+    harness = await readyWithDevServer();
+
+    harness
+      .firstWindow()
+      .webContents.beforeInput(devToolsKey({ control: false, shift: false }));
+
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
+  });
+
+  test("ignores another letter", async () => {
+    harness = await readyWithDevServer();
+
+    harness.firstWindow().webContents.beforeInput(devToolsKey({ key: "j" }));
+
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
+  });
+
+  test("is not wired up outside the dev server", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const prevented = harness
+      .firstWindow()
+      .webContents.beforeInput(devToolsKey());
+
+    expect(prevented).toBe(false);
+    expect(harness.firstWindow().webContents.devToolsToggleCount).toBe(0);
   });
 });
 

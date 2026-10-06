@@ -10,15 +10,27 @@ export type PreventableEvent = {
   defaultPrevented: () => boolean;
 };
 
+export type DevToolsInput = {
+  type: string;
+  key: string;
+  control: boolean;
+  shift: boolean;
+  alt: boolean;
+  meta: boolean;
+};
+
 export type WebContentsStub = {
   listeners: Map<string, Handler>;
   openHandler: ((details: { url: string }) => { action: string }) | null;
   sentChannels: string[];
+  devToolsToggleCount: number;
   send: (channel: string) => void;
   setWindowOpenHandler: (
     handler: (details: { url: string }) => { action: string },
   ) => void;
   on: (event: string, listener: Handler) => void;
+  beforeInput: (input: DevToolsInput) => boolean;
+  toggleDevTools: () => void;
   willNavigate: (url: string) => boolean;
   openExternal: (url: string) => { action: string };
 };
@@ -95,14 +107,23 @@ function createWebContentsStub(): WebContentsStub {
     listeners: new Map(),
     openHandler: null,
     sentChannels: [],
+    devToolsToggleCount: 0,
     send: (channel) => {
       target.sentChannels.push(channel);
+    },
+    toggleDevTools: () => {
+      target.devToolsToggleCount += 1;
     },
     setWindowOpenHandler: (handler) => {
       target.openHandler = handler;
     },
     on: (event, listener) => {
       target.listeners.set(event, listener);
+    },
+    beforeInput: (input: DevToolsInput) => {
+      const event = preventableEvent();
+      target.listeners.get("before-input-event")?.(event, input);
+      return event.defaultPrevented();
     },
     willNavigate: (url) => {
       const event = preventableEvent();
