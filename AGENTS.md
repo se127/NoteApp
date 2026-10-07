@@ -23,6 +23,8 @@ Do **not** run `bun run format` or `bun run lint` first. The husky pre-commit ho
 
 Use `bun run lint` and `bun run format:check` only when you want to check the whole working tree rather than just the staged files.
 
+oxlint also runs `react-hooks(exhaustive-deps)`, and its warning fails the commit under `--deny-warnings`. A `window` keydown effect that calls a component-local handler trips it. Wrap that handler in `useCallback` with its real dependencies and depend on it, instead of listing the handler's own inputs by hand.
+
 | Do              | Never                                 |
 | --------------- | ------------------------------------- |
 | `bun run build` | `bun run build:windows`               |
@@ -50,7 +52,7 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 
 ## Tests
 
-`bun test` runs the whole suite: 476 tests over the database layer, the Electron main process, the preload bridge, the renderer, both `scripts/` files, and the body editor.
+`bun test` runs the whole suite: 545 tests over the database layer, the Electron main process, the preload bridge, the renderer, both `scripts/` files, and the body editor.
 
 - `bunfig.toml` holds the happy-dom preload that gives the renderer tests a DOM. Without it every component test fails, so `bunfig.toml` must be committed together with `tests/`.
 - `tests/setup/preload.ts` registers happy-dom and imports `@testing-library/react` with a **dynamic** import inside `afterEach`. A static import there is evaluated before happy-dom installs `document`, which silently breaks `screen` with a "global document has to be available" error. It also sets `RTL_SKIP_AUTO_CLEANUP` because RTL's own auto-cleanup calls `beforeAll` at the wrong time for Bun.
@@ -101,6 +103,27 @@ Measure before changing CSS. Guessing at a padding or a wrapper box costs more r
 - `isStoredHtml` in `src/lib/note-body.ts` decides whether a stored body is markup or plain text. It matches `p` and `h1`–`h6`, so adding a block type means adding it here too, or saved headings reload as escaped text.
 - The placeholder rule in `src/index.css` uses `:is(p, h2, h3, h4, h5, h6)`. Narrow it to `p` and the placeholder disappears as soon as an empty block becomes a heading.
 - The toolbar paints `bg-black/5` in light mode and `dark:bg-muted/40` in dark mode. Do not swap it for `bg-muted`: `--muted` is `oklch(0.97)`, so a `ghost` button's own `hover:bg-muted` would be invisible against it. The vendored `button.tsx` hardcodes that hover, so equal-specificity Tailwind conflicts resolve by stylesheet order, not `className` order.
+
+## Keyboard shortcuts and the plain note title
+
+Shortcuts are declared once in `src/lib/shortcuts.ts`. The `window` handlers in `app-sidebar.tsx` and `note-editor.tsx` and the `shortcuts-dialog.tsx` list all read from it, so the documented list cannot drift from the bindings.
+
+- `isShortcut` must match `event.code` as well as `event.key`. On a Persian layout the physical S key reports `event.key === "س"`, so a key-only match leaves Ctrl+S and Ctrl+N silently inert — and the autosave then fires 800 ms later and looks like the shortcut worked. Keep the `event.code` branch.
+- Both listeners register with `{ capture: true }`, so a shortcut still lands even if something in the editor tree starts calling `stopPropagation`.
+- Ctrl+S always saves, even when `savedRef` already matches the current payload. It clears `debounceTimerRef` first, otherwise the pending debounce fires a second write afterwards.
+- `isShortcut` rejects `altKey`, because Windows reports AltGr as `ctrlKey: true` plus `altKey: true`, which would otherwise fire a shortcut while the user types a character.
+
+### The title is plain text
+
+The title is a plain `contentEditable` div and must never hold formatting.
+
+- Cancel formatting at `beforeinput`, keyed off `inputType`. That value comes from the editing engine and is identical on every layout, unlike `event.key`.
+- **React's `onBeforeInput` prop never fires for the native `beforeinput` event**, even though React 19 registers it in `registerTwoPhaseEvent`. A probe showed the handler simply not running. Attach a native listener to the title element from a `useEffect` instead.
+- Cancelling `beforeinput` rather than the keydown is also what keeps the caret still: the browser performs no editing operation, so no `<b>` is inserted and the selection stays put. Chromium wrapping text in `<b>` is exactly what made the caret jump and scramble the next characters typed.
+- `unwrapForeignMarkup` strips every element on input. It uses `node.replaceWith(...node.childNodes)`, which _moves_ the existing text nodes so a caret inside one survives; rebuilding `innerHTML` would drop it.
+- The emoji picker inserts with `document.execCommand("insertText", ...)`, never `insertHTML`. A span with a smaller font once made the emoji — and everything typed after it — render smaller, because Chromium carries a typing style at the caret.
+- happy-dom does not implement `document.execCommand` at all. Stub it in the test and assert which command was issued, restoring it in a `finally`.
+- The body toolbar's emoji button shares the label `انتخاب ایموجی` with the title picker, so `getByRole` finds two. Scope the query with `within(...)` around the title's own picker.
 
 ## Never commit without asking
 
