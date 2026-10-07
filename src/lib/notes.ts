@@ -20,11 +20,11 @@ export type NotesBridge = {
   onChanged: (callback: () => void) => () => void;
 };
 
-type WithBridge = { noteApp?: { notes?: NotesBridge } };
+type WithBridge = { NoteApp?: { notes?: NotesBridge } };
 
 export function getNotesBridge(): NotesBridge | null {
   if (typeof window === "undefined") return null;
 
-  const bridge = (window as WithBridge).noteApp?.notes;
+  const bridge = (window as WithBridge).NoteApp?.notes;
   return bridge ?? null;
 }

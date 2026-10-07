@@ -10,7 +10,7 @@ import {
 } from "./helpers/browser-bridge";
 
 afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+  delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
 });
 
 describe("useNotesStore", () => {

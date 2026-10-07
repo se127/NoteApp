@@ -46,7 +46,7 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 - A symptom of a stale main process is `No handler registered for 'notes:list'` (or any missing IPC channel) in the renderer console.
 - Never suggest the user reload the renderer to pick up main-process changes; tell them to quit and re-run `bun run dev`.
 - `bun run dev` itself is only a dev-server launcher, so tell the user to stop the previous run with ctrl+c first. Do not kill it for them.
-- Never edit or delete the packaged app's data at `%APPDATA%\note-app`. That is the real user database. Dev runs against `%APPDATA%\note-app-dev`, set by `scripts/dev.ts` through `NOTE_APP_USER_DATA`, so the two are separate by design.
+- Never edit or delete the packaged app's data at `%APPDATA%\NoteApp`. That is the real user database. Dev runs against `%APPDATA%\NoteApp-dev`, set by `scripts/dev.ts` through `NoteApp_USER_DATA`, so the two are separate by design.
 
 ## Tests
 
@@ -64,10 +64,10 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 
 `bun test` runs against a dedicated SQLite database created per test, never against the dev or the packaged one.
 
-- Build every test database with `createTestDatabase()` from `tests/helpers/test-database.ts`. Never call `openDatabase` directly, and never hand it a path. The helper is the only thing that creates a test `userData` directory, so it cannot be pointed at `%APPDATA%\note-app` by accident.
-- It creates the directory with `mkdtempSync` under the system temp directory, named `note-app-test-db-*`, and refuses any path that resolves inside a real `userData` directory. `isRealUserDataPath` is that check, and `tests/db.test.ts` asserts it.
+- Build every test database with `createTestDatabase()` from `tests/helpers/test-database.ts`. Never call `openDatabase` directly, and never hand it a path. The helper is the only thing that creates a test `userData` directory, so it cannot be pointed at `%APPDATA%\NoteApp` by accident.
+- It creates the directory with `mkdtempSync` under the system temp directory, named `NoteApp-test-db-*`, and refuses any path that resolves inside a real `userData` directory. `isRealUserDataPath` is that check, and `tests/db.test.ts` asserts it.
 - A test database lives for one test only. Call `database.dispose()` in `afterEach`; it closes the connection and removes the directory on a best-effort basis.
-- On Bun 1.4.2 a prepared statement keeps its SQLite file locked after `close()`, so the directory often survives until the OS reclaims it at process exit. Leftover `note-app-test-db-*` folders in the temp directory are expected, not a leak.
+- On Bun 1.4.2 a prepared statement keeps its SQLite file locked after `close()`, so the directory often survives until the OS reclaims it at process exit. Leftover `NoteApp-test-db-*` folders in the temp directory are expected, not a leak.
 - `electron/db.mjs` is a module-level singleton, so tests share one connection and must run sequentially.
 
 ### Testing the Electron layers

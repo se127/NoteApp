@@ -20,7 +20,7 @@ const indexHtmlPath = path.join(projectRoot, "dist", "index.html");
 
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
-const OVERRIDE_USER_DATA = process.env["NOTE_APP_USER_DATA"];
+const OVERRIDE_USER_DATA = process.env["NoteApp_USER_DATA"];
 
 if (OVERRIDE_USER_DATA !== undefined) {
   app.setPath("userData", OVERRIDE_USER_DATA);

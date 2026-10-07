@@ -19,7 +19,7 @@ function useSystemTheme(matches: boolean): void {
 afterEach(() => {
   media?.restore();
   media = null;
-  delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+  delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
   window.localStorage.clear();
 });
 

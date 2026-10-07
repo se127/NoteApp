@@ -101,7 +101,7 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
 }
 
 export function installNotesBridge(bridge: FakeNotesBridge): FakeNotesBridge {
-  (globalThis as unknown as Record<string, unknown>)["noteApp"] = {
+  (globalThis as unknown as Record<string, unknown>)["NoteApp"] = {
     notes: bridge,
   };
   return bridge;
@@ -119,7 +119,7 @@ export function installThemeBridge(initial: Theme = "system"): {
     },
   };
 
-  (globalThis as unknown as Record<string, unknown>)["noteApp"] = { theme };
+  (globalThis as unknown as Record<string, unknown>)["NoteApp"] = { theme };
 
   return theme;
 }

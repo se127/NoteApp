@@ -290,7 +290,7 @@ export function createMainProcessHarness(
   if (options.userDataPath !== undefined) {
     userDataDir = null;
   } else {
-    userDataDir = mkdtempSync(path.join(tmpdir(), "note-app-main-"));
+    userDataDir = mkdtempSync(path.join(tmpdir(), "NoteApp-main-"));
   }
 
   const stub: MainProcessStub = {

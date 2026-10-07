@@ -73,13 +73,13 @@
       type="font/woff2"
       crossorigin
     />
-    <title>note-app</title>
+    <title>NoteApp</title>
     <script>
       (() => {
         try {
           const stored =
-            window.noteApp?.theme?.get() ??
-            localStorage.getItem("note-app-theme") ??
+            window.NoteApp?.theme?.get() ??
+            localStorage.getItem("NoteApp-theme") ??
             "system";
           const dark =
             stored === "dark" ||

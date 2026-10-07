@@ -20,4 +20,4 @@ const api = {
   },
 };
 
-contextBridge.exposeInMainWorld("noteApp", api);
+contextBridge.exposeInMainWorld("NoteApp", api);

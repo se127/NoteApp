@@ -25,7 +25,7 @@ function useMedia(matches: boolean): FakeMediaQuery {
 afterEach(() => {
   media?.restore();
   media = null;
-  delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+  delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
   window.localStorage.clear();
 });
 
@@ -62,7 +62,7 @@ describe("readSystemTheme", () => {
 describe("readStoredTheme", () => {
   test("prefers the electron bridge over local storage", () => {
     installThemeBridge("dark");
-    window.localStorage.setItem("note-app-theme", "light");
+    window.localStorage.setItem("NoteApp-theme", "light");
 
     expect(readStoredTheme()).toBe("dark");
   });
@@ -76,13 +76,13 @@ describe("readStoredTheme", () => {
   });
 
   test("falls back to local storage when there is no bridge", () => {
-    window.localStorage.setItem("note-app-theme", "dark");
+    window.localStorage.setItem("NoteApp-theme", "dark");
 
     expect(readStoredTheme()).toBe("dark");
   });
 
   test("returns null when local storage holds an unknown theme", () => {
-    window.localStorage.setItem("note-app-theme", "neon");
+    window.localStorage.setItem("NoteApp-theme", "neon");
 
     expect(readStoredTheme()).toBeNull();
   });
@@ -99,13 +99,13 @@ describe("persistTheme", () => {
     persistTheme("dark");
 
     expect(bridge.get()).toBe("dark");
-    expect(window.localStorage.getItem("note-app-theme")).toBeNull();
+    expect(window.localStorage.getItem("NoteApp-theme")).toBeNull();
   });
 
   test("writes to local storage when there is no bridge", () => {
     persistTheme("light");
 
-    expect(window.localStorage.getItem("note-app-theme")).toBe("light");
+    expect(window.localStorage.getItem("NoteApp-theme")).toBe("light");
   });
 
   test("does not throw when local storage is unavailable", () => {

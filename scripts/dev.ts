@@ -13,11 +13,10 @@ const GRACE_MS = 1500;
 
 export function devUserDataDir(
   appData: string | undefined,
-  cwd: string,
   home: string,
 ): string {
   const base = appData ?? path.join(home, ".config");
-  return path.join(base, `${path.basename(cwd)}-dev`);
+  return path.join(base, "NoteApp-dev");
 }
 
 export function serverUrl(port: number, host: string = HOST): string {
@@ -174,11 +173,7 @@ if (isDirectRun) {
     console.log("[dev] vite is up, launching electron");
     start("electron", "bunx", ["electron", "."], {
       VITE_DEV_SERVER_URL: SERVER_URL,
-      NOTE_APP_USER_DATA: devUserDataDir(
-        process.env["APPDATA"],
-        process.cwd(),
-        os.homedir(),
-      ),
+      NoteApp_USER_DATA: devUserDataDir(process.env["APPDATA"], os.homedir()),
     });
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);

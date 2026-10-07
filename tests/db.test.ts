@@ -40,7 +40,7 @@ describe("test database isolation", () => {
     const appData = process.env["APPDATA"];
     if (appData === undefined) return;
 
-    for (const name of ["note-app", "note-app-dev"]) {
+    for (const name of ["NoteApp", "NoteApp-dev"]) {
       expect(existsSync(path.join(appData, name, "case-"))).toBe(false);
     }
   });

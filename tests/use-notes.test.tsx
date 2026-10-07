@@ -11,7 +11,7 @@ import {
 } from "./helpers/browser-bridge";
 
 function removeBridge(): void {
-  delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+  delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
 }
 
 describe("useNotes without the electron bridge", () => {

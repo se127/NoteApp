@@ -21,7 +21,7 @@ let harness: MainProcessHarness | null = null;
 afterEach(() => {
   harness?.teardown();
   harness = null;
-  delete process.env["NOTE_APP_USER_DATA"];
+  delete process.env["NoteApp_USER_DATA"];
   delete process.env["VITE_DEV_SERVER_URL"];
 });
 
@@ -73,7 +73,7 @@ describe("theme persistence", () => {
   });
 
   test("falls back to system for a corrupt theme file", async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "note-app-theme-"));
+    const dir = mkdtempSync(path.join(tmpdir(), "NoteApp-theme-"));
     writeFileSync(themeFile(dir), "not json at all");
 
     harness = await loadMainProcess({ userDataPath: dir });
@@ -86,7 +86,7 @@ describe("theme persistence", () => {
   });
 
   test("falls back to system for an unknown stored theme", async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "note-app-theme-"));
+    const dir = mkdtempSync(path.join(tmpdir(), "NoteApp-theme-"));
     writeFileSync(themeFile(dir), JSON.stringify({ theme: "neon" }));
 
     harness = await loadMainProcess({ userDataPath: dir });
@@ -99,10 +99,10 @@ describe("theme persistence", () => {
   });
 });
 
-describe("NOTE_APP_USER_DATA override", () => {
+describe("NoteApp_USER_DATA override", () => {
   test("points the app at the overridden directory", async () => {
-    const override = mkdtempSync(path.join(tmpdir(), "note-app-override-"));
-    process.env["NOTE_APP_USER_DATA"] = override;
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = override;
 
     harness = await loadMainProcess();
     harness.whenReady();
@@ -114,9 +114,9 @@ describe("NOTE_APP_USER_DATA override", () => {
   });
 
   test("keeps the theme file inside the overridden directory", async () => {
-    const override = mkdtempSync(path.join(tmpdir(), "note-app-override-"));
-    const defaultDir = mkdtempSync(path.join(tmpdir(), "note-app-default-"));
-    process.env["NOTE_APP_USER_DATA"] = override;
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    const defaultDir = mkdtempSync(path.join(tmpdir(), "NoteApp-default-"));
+    process.env["NoteApp_USER_DATA"] = override;
 
     harness = await loadMainProcess({ userDataPath: defaultDir });
     harness.getIpcListener("theme:set")?.({}, "dark");

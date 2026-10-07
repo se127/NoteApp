@@ -3,10 +3,10 @@ import { describe, expect, test } from "bun:test";
 import { loadPreload } from "./helpers/load-preload";
 
 describe("preload bridge", () => {
-  test("exposes the bridge under the noteApp key", () => {
+  test("exposes the bridge under the NoteApp key", () => {
     const preload = loadPreload();
 
-    expect(preload.exposedKey).toBe("noteApp");
+    expect(preload.exposedKey).toBe("NoteApp");
     expect(preload.bridge).toBeDefined();
   });
 
@@ -146,6 +146,6 @@ describe("preload bridge", () => {
   test("does not require anything but electron", () => {
     const preload = loadPreload();
 
-    expect(preload.exposedKey).toBe("noteApp");
+    expect(preload.exposedKey).toBe("NoteApp");
   });
 });

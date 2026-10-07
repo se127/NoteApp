@@ -12,9 +12,9 @@ import {
 } from "../../electron/db.mjs";
 import type { Note } from "../../src/lib/notes";
 
-const REAL_USER_DATA_NAMES = ["note-app", "note-app-dev", "Note App"];
+const REAL_USER_DATA_NAMES = ["NoteApp", "NoteApp-dev"];
 
-const TEST_ROOT_PREFIX = "note-app-test-db-";
+const TEST_ROOT_PREFIX = "NoteApp-test-db-";
 
 let testRoot: string | null = null;
 

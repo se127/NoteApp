@@ -11,10 +11,10 @@ const NO_BRIDGE = Symbol("no bridge");
 
 function stubBridge(value: unknown): void {
   if (value === NO_BRIDGE) {
-    delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+    delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
     return;
   }
-  (globalThis as unknown as Record<string, unknown>)["noteApp"] = value;
+  (globalThis as unknown as Record<string, unknown>)["NoteApp"] = value;
 }
 
 afterEach(() => {

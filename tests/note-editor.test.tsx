@@ -83,7 +83,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+  delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
 });
 
 function titleField(): HTMLElement {
@@ -401,7 +401,7 @@ let syncedUpdates: Array<{ id: number; title: string; body: string }> = [];
 
 function installNotesBridgeForSync(): void {
   syncedUpdates = [];
-  (globalThis as unknown as Record<string, unknown>)["noteApp"] = {
+  (globalThis as unknown as Record<string, unknown>)["NoteApp"] = {
     notes: {
       list: async () => [],
       create: async () => NOTE,

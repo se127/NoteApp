@@ -6,8 +6,8 @@
 #
 # See https://www.electron.build/configuration/configuration
 
-appId: dev.saeid.note-app
-productName: Note App
+appId: dev.saeid.NoteApp
+productName: NoteApp
 
 directories:
   output: release
@@ -41,7 +41,7 @@ electronLanguages:
 # 7z pass. Leave it at the `normal` default unless you are chasing size.
 # compression: store   # uncommitted, for a quick smoke test
 
-# Applies to every artifact, so the installer lands as Note App-0.0.0.exe.
+# Applies to every artifact, so the installer lands as NoteApp-0.0.0.exe.
 # The dot before ${ext} is required: without it the file has no extension at all
 # and Windows will not treat it as an executable.
 artifactName: ${productName}-${version}.${ext}
@@ -56,7 +56,7 @@ nsis:
   # Double-click, next, install. No wizard pages and no directory picker.
   oneClick: true
 
-  # Per-user install into %LOCALAPPDATA%\Programs\Note App. This is what keeps
+  # Per-user install into %LOCALAPPDATA%\Programs\NoteApp. This is what keeps
   # the installer from demanding admin rights (a UAC prompt), which matters a
   # lot for an unsigned build.
   perMachine: false
@@ -65,7 +65,7 @@ nsis:
   # the assisted installer. Flip oneClick to false to get it.
   allowToChangeInstallationDirectory: false
 
-  shortcutName: Note App
+  shortcutName: NoteApp
   createDesktopShortcut: true
   createStartMenuShortcut: true
 

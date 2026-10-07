@@ -7,7 +7,7 @@ import "./dom";
 afterEach(async () => {
   const { cleanup } = await import("@testing-library/react");
   cleanup();
-  delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+  delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
   window.localStorage.clear();
   document.documentElement.className = "";
   document.documentElement.style.colorScheme = "";

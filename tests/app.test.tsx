@@ -16,7 +16,7 @@ function renderApp(notes: Note[] = [], route = "/") {
 }
 
 afterEach(() => {
-  delete (globalThis as unknown as Record<string, unknown>)["noteApp"];
+  delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
 });
 
 describe("App routing", () => {

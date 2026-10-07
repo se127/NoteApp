@@ -26,47 +26,37 @@ describe("devUserDataDir", () => {
   test("uses APPDATA when it is set", () => {
     const result = devUserDataDir(
       path.join(path.sep, "Users", "dev", "AppData", "Roaming"),
-      path.join(path.sep, "work", "note-app"),
       path.join(path.sep, "home", "dev"),
     );
 
     expect(result).toBe(
-      path.join(path.sep, "Users", "dev", "AppData", "Roaming", "note-app-dev"),
+      path.join(path.sep, "Users", "dev", "AppData", "Roaming", "NoteApp-dev"),
     );
   });
 
   test("falls back to the home config directory", () => {
     const result = devUserDataDir(
       undefined,
-      path.join(path.sep, "work", "note-app"),
       path.join(path.sep, "home", "dev"),
     );
 
     expect(result).toBe(
-      path.join(path.sep, "home", "dev", ".config", "note-app-dev"),
+      path.join(path.sep, "home", "dev", ".config", "NoteApp-dev"),
     );
   });
 
   test("keeps the dev database separate from the installed one", () => {
     const appData = path.join(path.sep, "Users", "dev", "AppData", "Roaming");
-    const result = devUserDataDir(
-      appData,
-      path.join(path.sep, "work", "note-app"),
-      path.join(path.sep, "home", "dev"),
-    );
+    const result = devUserDataDir(appData, path.join(path.sep, "home", "dev"));
 
-    expect(result).not.toBe(path.join(appData, "note-app"));
-    expect(path.basename(result)).toBe("note-app-dev");
+    expect(result).not.toBe(path.join(appData, "NoteApp"));
+    expect(path.basename(result)).toBe("NoteApp-dev");
   });
 
-  test("derives the name from the working directory", () => {
-    const result = devUserDataDir(
-      path.sep,
-      path.join(path.sep, "work", "other-app"),
-      path.sep,
-    );
+  test("names the dev folder after the app, not the working directory", () => {
+    const result = devUserDataDir(path.sep, path.sep);
 
-    expect(path.basename(result)).toBe("other-app-dev");
+    expect(path.basename(result)).toBe("NoteApp-dev");
   });
 });
 
