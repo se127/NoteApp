@@ -79,6 +79,26 @@ describe("creating a note end to end", () => {
 
     expect(await screen.findByText("بدون عنوان")).toBeDefined();
   });
+
+  test("the Ctrl+N shortcut creates a note and lands in the editor", async () => {
+    renderWithProviders(<App />, { route: "/" });
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "n",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(bridge.notes).toHaveLength(1));
+    expect(
+      await screen.findByRole("textbox", { name: "متن یادداشت" }),
+    ).toBeDefined();
+  });
 });
 
 describe("deleting a note end to end", () => {
@@ -176,5 +196,99 @@ describe("editing through the real store", () => {
     await waitFor(() => expect(bridge.notes[0]?.body).toBe("<p>متن تازه</p>"), {
       timeout: 2000,
     });
+  });
+
+  test("Ctrl+S persists the body before the debounce elapses", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "عنوان", body: "قدیمی" }));
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+    setBodyContent("<p>متن تازه</p>");
+
+    await Bun.sleep(300);
+    expect(bridge.notes[0]?.body).toBe("قدیمی");
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "s",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(bridge.notes[0]?.body).toBe("<p>متن تازه</p>"), {
+      timeout: 2000,
+    });
+  });
+
+  test("Ctrl+S writes again after the debounce already saved", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "عنوان", body: "قدیمی" }));
+
+    let updateCalls = 0;
+    const bridgeUpdate = bridge.update;
+    bridge.update = async (id, note) => {
+      updateCalls += 1;
+      return bridgeUpdate(id, note);
+    };
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+    setBodyContent("<p>متن تازه</p>");
+
+    await waitFor(() => expect(bridge.notes[0]?.body).toBe("<p>متن تازه</p>"), {
+      timeout: 2000,
+    });
+    expect(updateCalls).toBe(1);
+
+    await Bun.sleep(300);
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "s",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(updateCalls).toBe(2), { timeout: 2000 });
+  });
+
+  test("Ctrl+S writes a note that is already saved", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "عنوان", body: "متن" }));
+
+    let updateCalls = 0;
+    const bridgeUpdate = bridge.update;
+    bridge.update = async (id, note) => {
+      updateCalls += 1;
+      return bridgeUpdate(id, note);
+    };
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    await Bun.sleep(900);
+    expect(updateCalls).toBe(0);
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "s",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
   });
 });

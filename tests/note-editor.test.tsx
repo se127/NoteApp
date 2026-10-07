@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 
+import { EMOJI_LABEL } from "@/components/emoji-grid";
 import { NoteEditor } from "@/components/note-editor";
+import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
 import type { Note } from "@/lib/notes";
 import { createFakeStore } from "./helpers/fake-store";
 import {
@@ -337,6 +345,356 @@ describe("NoteEditor keyboard", () => {
     });
 
     expect(event.defaultPrevented).toBe(false);
+  });
+
+  test("cancels a bold command on the title", () => {
+    renderEditor();
+
+    const event = new InputEvent("beforeinput", {
+      inputType: "formatBold",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      titleField().dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test("cancels an italic command on the title", () => {
+    renderEditor();
+
+    const event = new InputEvent("beforeinput", {
+      inputType: "formatItalic",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      titleField().dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test("cancels an underline command on the title", () => {
+    renderEditor();
+
+    const event = new InputEvent("beforeinput", {
+      inputType: "formatUnderline",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      titleField().dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test("lets a plain insertion through", () => {
+    renderEditor();
+
+    const event = new InputEvent("beforeinput", {
+      inputType: "insertText",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      titleField().dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  test("cancels a bold shortcut on a persian keyboard layout", () => {
+    renderEditor();
+
+    const event = new KeyboardEvent("keydown", {
+      key: "ب",
+      code: "KeyB",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      titleField().dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test("cancels an italic shortcut on a persian keyboard layout", () => {
+    renderEditor();
+
+    const event = new KeyboardEvent("keydown", {
+      key: "د",
+      code: "KeyI",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      titleField().dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test("unwraps markup that reaches the title", () => {
+    renderEditor();
+
+    const field = titleField();
+    field.innerHTML = "<b>پررنگ</b>";
+    act(() => {
+      fireEvent.input(field);
+    });
+
+    expect(field.innerHTML).toBe("پررنگ");
+  });
+
+  test("strips every element from the title", () => {
+    renderEditor();
+
+    const field = titleField();
+    field.innerHTML = `<span class="text-xl leading-none">😀</span><i>کج</i>`;
+    act(() => {
+      fireEvent.input(field);
+    });
+
+    expect(field.innerHTML).toBe("😀کج");
+  });
+
+  test("inserts a chosen emoji as plain text", async () => {
+    const commands: string[] = [];
+    const original = document.execCommand;
+    document.execCommand = ((command: string) => {
+      commands.push(command);
+      return true;
+    }) as typeof document.execCommand;
+
+    try {
+      renderEditor();
+
+      const picker = titleField().parentElement as HTMLElement;
+      fireEvent.click(
+        within(picker).getByRole("button", { name: EMOJI_LABEL }),
+      );
+      fireEvent.click(
+        await screen.findByRole("gridcell", {
+          name: FREQUENT_EMOJI[0] as string,
+        }),
+      );
+
+      expect(commands).toEqual(["insertText"]);
+    } finally {
+      document.execCommand = original;
+    }
+  });
+
+  test("leaves the caret where it was when a formatting command is cancelled", () => {
+    renderEditor();
+
+    const field = titleField();
+    field.textContent = "عنوان اولیه";
+
+    const range = document.createRange();
+    const textNode = field.firstChild as Text;
+    range.setStart(textNode, 5);
+    range.collapse(true);
+
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    const event = new InputEvent("beforeinput", {
+      inputType: "formatBold",
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      field.dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(selection?.anchorNode === textNode).toBe(true);
+    expect(selection?.anchorOffset).toBe(5);
+  });
+
+  test("keeps the caret attached to its text when markup is unwrapped", () => {
+    renderEditor();
+
+    const field = titleField();
+    field.innerHTML = "عنوان <b>پررنگ</b>";
+
+    const bold = field.querySelector("b") as HTMLElement;
+    const textNode = bold.firstChild as Text;
+
+    const range = document.createRange();
+    range.setStart(textNode, 3);
+    range.collapse(true);
+
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    act(() => {
+      fireEvent.input(field);
+    });
+
+    expect(field.innerHTML).toBe("عنوان پررنگ");
+    expect(selection?.anchorNode === textNode).toBe(true);
+    expect(selection?.anchorOffset).toBe(3);
+  });
+});
+
+function pressCtrl(key: string): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", {
+    key,
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true,
+  });
+  act(() => {
+    window.dispatchEvent(event);
+  });
+  return event;
+}
+
+describe("NoteEditor Ctrl+S save", () => {
+  test("saves right away and drops the pending debounce", async () => {
+    renderEditor();
+
+    typeIntoBody("متن جدید");
+
+    await Bun.sleep(300);
+    expect(updateCalls).toBe(0);
+
+    pressCtrl("s");
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
+    expect(updates[0]).toEqual({
+      id: 42,
+      title: "عنوان اولیه",
+      body: "<p>متن جدید</p>",
+    });
+
+    await Bun.sleep(1000);
+    expect(updateCalls).toBe(1);
+  });
+
+  test("saves a note that is already saved", async () => {
+    renderEditor();
+
+    await Bun.sleep(900);
+    expect(updateCalls).toBe(0);
+
+    pressCtrl("s");
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
+    expect(updates[0]).toEqual({
+      id: 42,
+      title: "عنوان اولیه",
+      body: "متن اولیه",
+    });
+  });
+
+  test("saves again after the debounce saved and the indicator faded", async () => {
+    renderEditor();
+
+    typeIntoTitle("عنوان تازه");
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
+    await Bun.sleep(2200);
+
+    pressCtrl("s");
+
+    await waitFor(() => expect(updateCalls).toBe(2), { timeout: 2000 });
+  });
+
+  test("saves on a persian keyboard layout", async () => {
+    renderEditor();
+
+    typeIntoBody("متن جدید");
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "س",
+          code: "KeyS",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(updateCalls).toBe(2), { timeout: 2000 });
+  });
+
+  test("saves even when the editor swallows the keydown", async () => {
+    renderEditor();
+
+    const swallow = (event: KeyboardEvent) => event.stopPropagation();
+    bodyField().addEventListener("keydown", swallow);
+
+    act(() => {
+      bodyField().dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "s",
+          code: "KeyS",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    bodyField().removeEventListener("keydown", swallow);
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
+  });
+
+  test("prevents the default browser save", () => {
+    renderEditor();
+
+    expect(pressCtrl("s").defaultPrevented).toBe(true);
+  });
+
+  test("leaves the save to the debounce without a modifier", async () => {
+    renderEditor();
+
+    typeIntoBody("متن جدید");
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "s",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await Bun.sleep(300);
+    expect(updateCalls).toBe(0);
+  });
+
+  test("reports a rejected manual save", async () => {
+    failNextUpdate = new Error("دیتابیس قفل است");
+
+    renderEditor();
+    pressCtrl("s");
+
+    await waitFor(
+      () =>
+        expect(screen.getByRole("status").textContent).toContain(
+          "دیتابیس قفل است",
+        ),
+      { timeout: 2000 },
+    );
   });
 });
 

@@ -1,8 +1,9 @@
 import { Ellipsis, Inbox, Loader2, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 
 import { OverflowingTitle } from "@/components/overflowing-title";
+import { ShortcutsDialog } from "@/components/shortcuts-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   AlertDialog,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
+import { isShortcut, NEW_NOTE_SHORTCUT } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
 const EMPTY_MESSAGE = "هیچ یادداشتی نیست";
@@ -40,7 +42,9 @@ export function AppSidebar() {
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  async function handleNewNote() {
+  const handleNewNote = useCallback(async () => {
+    if (isCreating || isSaving) return;
+
     setIsCreating(true);
     setCreateError(null);
     try {
@@ -53,11 +57,25 @@ export function AppSidebar() {
     } finally {
       setIsCreating(false);
     }
-  }
+  }, [create, isCreating, isSaving, navigate]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, NEW_NOTE_SHORTCUT.key)) return;
+
+      event.preventDefault();
+      void handleNewNote();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [handleNewNote]);
 
   return (
     <aside className="flex h-dvh w-60 shrink-0 flex-col border-e border-border bg-sidebar text-sidebar-foreground">
-      <div className="flex justify-end px-3 pt-3 pb-2">
+      <div className="flex items-center justify-between px-3 pt-3 pb-2">
+        <ShortcutsDialog />
         <ThemeToggle />
       </div>
 

@@ -363,7 +363,9 @@ describe("outputDirectory", () => {
   });
 
   test("lives at the project root, beside the scripts folder", () => {
-    expect(path.basename(path.dirname(outputDirectory()))).toBe("note-app");
+    expect(path.dirname(outputDirectory())).toBe(
+      path.resolve(import.meta.dir, ".."),
+    );
   });
 });
 

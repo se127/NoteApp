@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import type { Note } from "@/lib/notes";
@@ -140,6 +140,128 @@ describe("AppSidebar creating a note", () => {
 
     const button = screen.getByRole("button", { name: "یادداشت جدید" });
     expect(button.hasAttribute("disabled")).toBe(true);
+  });
+});
+
+function pressCtrl(key: string): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", {
+    key,
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true,
+  });
+  act(() => {
+    window.dispatchEvent(event);
+  });
+  return event;
+}
+
+describe("AppSidebar Ctrl+N new note", () => {
+  test("creates an empty note", async () => {
+    renderSidebar();
+
+    pressCtrl("n");
+
+    await waitFor(() => expect(created).toHaveLength(1));
+    expect(created[0]).toEqual({ title: "", body: "" });
+  });
+
+  test("prevents the default window behavior", () => {
+    renderSidebar();
+
+    expect(pressCtrl("n").defaultPrevented).toBe(true);
+  });
+
+  test("reports a create failure", async () => {
+    createFailure = new Error("ساخت ناموفق بود");
+
+    renderSidebar();
+    pressCtrl("n");
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toBe("ساخت ناموفق بود"),
+    );
+  });
+
+  test("ignores a repeated shortcut while a note is being created", async () => {
+    let attempts = 0;
+    let release = (): void => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const store = buildStore({
+      create: async (note) => {
+        attempts += 1;
+        await gate;
+        return {
+          id: 99,
+          title: note.title,
+          body: note.body,
+          createdAt: "2026-01-01 10:00:00",
+          updatedAt: "2026-01-01 10:00:00",
+        };
+      },
+    });
+
+    renderSidebar(store);
+
+    pressCtrl("n");
+    await screen.findByRole("button", { name: "در حال ساخت..." });
+    pressCtrl("n");
+
+    expect(attempts).toBe(1);
+
+    await act(async () => {
+      release();
+    });
+
+    await waitFor(() => expect(attempts).toBe(1));
+    expect(screen.getByRole("button", { name: "یادداشت جدید" })).toBeDefined();
+  });
+
+  test("ignores the shortcut while another note is saving", async () => {
+    renderSidebar(buildStore({ isSaving: true }));
+
+    pressCtrl("n");
+
+    await Bun.sleep(200);
+    expect(created).toHaveLength(0);
+  });
+
+  test("leaves a bare key to the editor", async () => {
+    renderSidebar();
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "n",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await Bun.sleep(200);
+    expect(created).toHaveLength(0);
+  });
+
+  test("creates a note on a persian keyboard layout", async () => {
+    renderSidebar();
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "ن",
+          code: "KeyN",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(created).toHaveLength(1));
   });
 });
 

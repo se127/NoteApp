@@ -5,15 +5,20 @@ import { NoteBodyEditor, type BodyEditor } from "@/components/note-body-editor";
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { getNotesBridge, type Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
+import {
+  isShortcut,
+  SAVE_NOTE_SHORTCUT,
+  type ShortcutKeys,
+} from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
 const SAVE_DELAY = 800;
 
-const TITLE_EMOJI_CLASS = "text-xl leading-none";
-
 const SAVE_FAILED_MESSAGE = "ذخیره یادداشت ناموفق بود";
 
-function payloadKey(data: { title: string; body: string }): string {
+type NotePayload = { title: string; body: string };
+
+function payloadKey(data: NotePayload): string {
   return JSON.stringify([data.title, data.body]);
 }
 
@@ -25,12 +30,28 @@ function syncPlainText(element: HTMLElement): string {
   return text;
 }
 
-const FORMATTING_SHORTCUTS = new Set(["b", "i", "u"]);
+const FORMATTING_SHORTCUTS = ["b", "i", "u"];
+
+const FORMATTING_INPUT_PREFIX = "format";
+
+function isFormattingShortcut(event: ShortcutKeys): boolean {
+  return FORMATTING_SHORTCUTS.some((key) => isShortcut(event, key));
+}
+
+function isFormattingInputType(inputType: string): boolean {
+  return inputType.startsWith(FORMATTING_INPUT_PREFIX);
+}
+
+function unwrapForeignMarkup(element: HTMLElement): void {
+  for (const node of [...element.querySelectorAll("*")]) {
+    node.replaceWith(...node.childNodes);
+  }
+}
 
 function pendingPayload(
-  latest: { title: string; body: string },
+  latest: NotePayload,
   saved: string,
-): { title: string; body: string } | null {
+): NotePayload | null {
   return payloadKey(latest) === saved ? null : latest;
 }
 
@@ -102,6 +123,7 @@ export function NoteEditor({ note }: { note: Note }) {
   const bodyAnchorRef = useRef<HTMLDivElement>(null);
   const bodyEditorRef = useRef<BodyEditor | null>(null);
   const latestRef = useRef({ title, body });
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleBodyReady = useCallback((editor: BodyEditor) => {
     bodyEditorRef.current = editor;
@@ -112,11 +134,31 @@ export function NoteEditor({ note }: { note: Note }) {
   }, [title, body]);
 
   const commit = useCallback(
-    async (data: { title: string; body: string }) => {
+    async (data: NotePayload) => {
       await update(note.id, data);
       savedRef.current = payloadKey(data);
     },
     [note.id, update],
+  );
+
+  const saveNow = useCallback(
+    async (data: NotePayload) => {
+      setIsSaving(true);
+      setStatus("saving");
+      try {
+        await commit(data);
+        setMessage(null);
+        setStatus("saved");
+      } catch (cause) {
+        setStatus("error");
+        setMessage(
+          cause instanceof Error ? cause.message : SAVE_FAILED_MESSAGE,
+        );
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [commit, setIsSaving],
   );
 
   useEffect(() => {
@@ -144,26 +186,38 @@ export function NoteEditor({ note }: { note: Note }) {
     if (data === null) return;
 
     const timer = setTimeout(() => {
-      void (async () => {
-        setIsSaving(true);
-        setStatus("saving");
-        try {
-          await commit(data);
-          setMessage(null);
-          setStatus("saved");
-        } catch (cause) {
-          setStatus("error");
-          setMessage(
-            cause instanceof Error ? cause.message : SAVE_FAILED_MESSAGE,
-          );
-        } finally {
-          setIsSaving(false);
-        }
-      })();
+      debounceTimerRef.current = null;
+      void saveNow(data);
     }, SAVE_DELAY);
 
-    return () => clearTimeout(timer);
-  }, [title, body, commit, setIsSaving]);
+    debounceTimerRef.current = timer;
+
+    return () => {
+      clearTimeout(timer);
+      if (debounceTimerRef.current === timer) {
+        debounceTimerRef.current = null;
+      }
+    };
+  }, [title, body, saveNow]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, SAVE_NOTE_SHORTCUT.key)) return;
+
+      event.preventDefault();
+
+      if (debounceTimerRef.current !== null) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+
+      void saveNow(latestRef.current);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [saveNow]);
 
   useEffect(() => {
     if (status !== "saved") return;
@@ -197,12 +251,21 @@ export function NoteEditor({ note }: { note: Note }) {
     const element = titleRef.current;
     if (element === null) return;
     restoreCaret(element, focusAtEnd);
-    document.execCommand(
-      "insertHTML",
-      false,
-      `<span class="${TITLE_EMOJI_CLASS}">${emoji}</span>`,
-    );
+    document.execCommand("insertText", false, emoji);
   };
+
+  useEffect(() => {
+    const element = titleRef.current;
+    if (element === null) return;
+
+    const handleBeforeInput = (event: Event) => {
+      const inputType = (event as InputEvent).inputType ?? "";
+      if (isFormattingInputType(inputType)) event.preventDefault();
+    };
+
+    element.addEventListener("beforeinput", handleBeforeInput);
+    return () => element.removeEventListener("beforeinput", handleBeforeInput);
+  }, []);
 
   useEffect(() => {
     const titleElement = titleRef.current;
@@ -224,17 +287,17 @@ export function NoteEditor({ note }: { note: Note }) {
             aria-multiline="false"
             aria-label="عنوان"
             data-placeholder="عنوان"
-            onInput={(event) => setTitle(syncPlainText(event.currentTarget))}
+            onInput={(event) => {
+              unwrapForeignMarkup(event.currentTarget);
+              setTitle(syncPlainText(event.currentTarget));
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
                 moveCaretToBody();
                 return;
               }
-              const isFormatting =
-                (event.ctrlKey || event.metaKey) &&
-                FORMATTING_SHORTCUTS.has(event.key.toLowerCase());
-              if (isFormatting) event.preventDefault();
+              if (isFormattingShortcut(event)) event.preventDefault();
             }}
             onPaste={(event) => {
               event.preventDefault();
