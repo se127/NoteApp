@@ -161,6 +161,10 @@ describe("note body theme colours", () => {
     expect(ruleBody(".prose li::marker")).toContain("color: inherit");
   });
 
+  test("draws the rule with the theme border rather than the prose text", () => {
+    expect(ruleBody(".prose")).toContain("--tw-prose-hr: var(--color-border)");
+  });
+
   test("lets every heading and mark inherit the prose colour", () => {
     const body = ruleBody(
       ".prose :is(p, h2, h3, h4, h5, h6), .prose li, .prose strong, .prose em, .prose u, .prose s, .prose sub, .prose sup",

@@ -24,6 +24,7 @@ import {
   Italic,
   List,
   ListOrdered,
+  Minus,
   PilcrowLeft,
   PilcrowRight,
   Redo2,
@@ -107,7 +108,6 @@ const EXTENSIONS = [
     code: false,
     codeBlock: false,
     heading: { levels: [...HEADING_LEVELS] },
-    horizontalRule: false,
     link: false,
     trailingNode: false,
   }),
@@ -704,6 +704,26 @@ function BodyEmojiPicker({ editor }: { editor: BodyEditor }) {
   );
 }
 
+function HorizontalRuleButton({ editor }: { editor: BodyEditor }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="خط افقی"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <Minus className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top">خط افقی</TooltipContent>
+    </Tooltip>
+  );
+}
+
 type ListKind = "bulletList" | "orderedList";
 
 function toggleList(editor: BodyEditor, kind: ListKind): void {
@@ -955,6 +975,8 @@ export function NoteBodyEditor({
         <Separator orientation="vertical" className="mx-0.5" />
         <TextAlignMenu editor={editor} />
         <TextPositionMenu editor={editor} />
+        <Separator orientation="vertical" className="mx-0.5" />
+        <HorizontalRuleButton editor={editor} />
         <Separator orientation="vertical" className="mx-0.5" />
         <BodyEmojiPicker editor={editor} />
       </div>

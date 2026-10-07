@@ -3,6 +3,7 @@
   color: black;
   --tw-prose-bullets: black;
   --tw-prose-counters: black;
+  --tw-prose-hr: var(--color-border);
   --tw-prose-quote-borders: var(--color-primary);
 }
 

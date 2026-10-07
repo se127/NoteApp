@@ -275,7 +275,7 @@ describe("NoteBodyEditor toolbar", () => {
     );
   });
 
-  test("orders history, direction, block style, font size, marks, colors, lists, align and position", () => {
+  test("orders history, direction, block style, font size, marks, colors, lists, align, position, rule and emoji", () => {
     renderBodyEditor();
 
     expect(toolbarButtonLabels()).toEqual([
@@ -288,6 +288,7 @@ describe("NoteBodyEditor toolbar", () => {
       ...LIST_LABELS,
       "تراز متن",
       "موقعیت متن",
+      "خط افقی",
       "انتخاب ایموجی",
     ]);
   });
@@ -335,7 +336,7 @@ describe("NoteBodyEditor toolbar", () => {
   test("groups the controls with full height vertical separators", () => {
     renderBodyEditor();
 
-    expect(separators()).toHaveLength(5);
+    expect(separators()).toHaveLength(6);
     for (const separator of separators()) {
       expect(separator.getAttribute("data-orientation")).toBe("vertical");
       expect(separator.className).toContain("self-stretch");
@@ -1298,6 +1299,53 @@ describe("NoteBodyEditor colors", () => {
     expect(bodyEditor().getHTML()).toBe(
       `<p><span style="color: ${TEXT_RED};">متن</span></p>`,
     );
+  });
+});
+
+describe("NoteBodyEditor horizontal rule", () => {
+  test("inserts a rule below the current block", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    pressButton("خط افقی");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p><hr><p></p>");
+  });
+
+  test("undoes the rule it inserted", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    pressButton("خط افقی");
+    pressButton("برگرداندن");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+  });
+
+  test("reads a stored rule back as markup", () => {
+    renderBodyEditor("<p>متن</p><hr>");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p><hr>");
+  });
+
+  test("reads a body that is only a rule as markup", () => {
+    renderBodyEditor("<hr>");
+
+    expect(bodyEditor().getHTML()).toBe("<hr>");
+  });
+
+  test("keeps the caret in the text rather than on the toolbar", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    const rule = button("خط افقی");
+    act(() => {
+      rule.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+      );
+    });
+
+    expectFocusNotIn(rule);
   });
 });
 
