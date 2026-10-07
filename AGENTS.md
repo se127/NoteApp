@@ -90,7 +90,7 @@ Measure before changing CSS. Guessing at a padding or a wrapper box costs more r
 
 ## The note body editor
 
-`src/components/note-body-editor.tsx` holds a Tiptap editor with **one always-visible toolbar** above the body, not bubble menus. The toolbar order is: direction, block style, font size, the four marks, the two lists, alignment, text position, emoji.
+`src/components/note-body-editor.tsx` holds a Tiptap editor with **one always-visible toolbar** above the body, not bubble menus. The toolbar order is: undo and redo, direction, block style, font size, the four marks, the two colour controls, the two lists, alignment, text position, horizontal rule, emoji.
 
 - Heading levels are enabled through `heading: { levels: [2, 3, 4, 5, 6] }` in `StarterKit.configure`. There is deliberately no h1, because the note title already fills that role.
 - The block style and font size controls are Radix `Select`s. Its `listbox` **cannot open under happy-dom**, so a test must never try to click an option. Drive the block type through `setBlockType(editor, BLOCK_TYPES.find(...))` and the font size through the `editor.chain().focus().setFontSize(...).setLineHeight(...).run()` chain.
