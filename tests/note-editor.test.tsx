@@ -279,7 +279,7 @@ describe("NoteEditor keyboard", () => {
     );
   });
 
-  test("moves the caret to the body on Tab", async () => {
+  test("leaves Tab to move focus out of the title", async () => {
     renderEditor();
 
     act(() => {
@@ -287,7 +287,7 @@ describe("NoteEditor keyboard", () => {
     });
     await waitForEditorFrame();
 
-    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+    expect(document.activeElement?.getAttribute("aria-label")).not.toBe(
       "متن یادداشت",
     );
   });

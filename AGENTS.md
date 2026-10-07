@@ -50,13 +50,14 @@ Vite HMR only reloads the renderer. Anything under `electron/` (main process, pr
 
 ## Tests
 
-`bun test` runs the whole suite: 399 tests over the database layer, the Electron main process, the preload bridge, the renderer, both `scripts/` files, and the body editor.
+`bun test` runs the whole suite: 476 tests over the database layer, the Electron main process, the preload bridge, the renderer, both `scripts/` files, and the body editor.
 
 - `bunfig.toml` holds the happy-dom preload that gives the renderer tests a DOM. Without it every component test fails, so `bunfig.toml` must be committed together with `tests/`.
 - `tests/setup/preload.ts` registers happy-dom and imports `@testing-library/react` with a **dynamic** import inside `afterEach`. A static import there is evaluated before happy-dom installs `document`, which silently breaks `screen` with a "global document has to be available" error. It also sets `RTL_SKIP_AUTO_CLEANUP` because RTL's own auto-cleanup calls `beforeAll` at the wrong time for Bun.
 - Query elements by accessible role and Persian label, the way a user reaches them. `screen.getByRole("textbox", { name: "عنوان" })` survives a class rename; a hard-coded selector does not.
 - Build fake stores with `createFakeStore()` from `tests/helpers/fake-store.ts` and drive the app through `renderWithProviders()` from `tests/helpers/render.tsx`, which mounts the same router, theme and tooltip providers as `main.tsx`.
 - `tests/**` is type-checked by `bun run build` through `tsconfig.test.json`, so a type error in a test fails the build. Keep new test files inside that project.
+- Always pass `--parallel`, whether running the whole suite or a single file. `bun test --parallel`, `bun test --parallel tests/note-body-editor.test.tsx`. Bun runs test files concurrently and is markedly faster; the per-file suites already isolate their own state, so it stays green. Never reach for a bare `bun test` without the flag.
 - happy-dom does not evaluate `::before`, so a DOM assertion cannot prove a CSS rule matches. To guard a rule in `src/index.css`, read the file and match the selector, as `tests/note-body-css.test.ts` does. Collapse whitespace before matching, or the pre-commit `prettier --write` will wrap a long selector across lines and break a literal lookup.
 
 ### Tests get their own throwaway database
@@ -87,13 +88,19 @@ Measure before changing CSS. Guessing at a padding or a wrapper box costs more r
 
 ## The note body editor
 
-`src/components/note-body-editor.tsx` holds a Tiptap editor with two bubble menus, each with its own `pluginKey`. The mark menu holds bold/italic/underline/strike and appears on a selection; the block type menu appears on a bare caret and turns the current block into a paragraph or an h2 to h6 heading.
+`src/components/note-body-editor.tsx` holds a Tiptap editor with **one always-visible toolbar** above the body, not bubble menus. The toolbar order is: direction, block style, font size, the four marks, the two lists, alignment, text position, emoji.
 
 - Heading levels are enabled through `heading: { levels: [2, 3, 4, 5, 6] }` in `StarterKit.configure`. There is deliberately no h1, because the note title already fills that role.
-- The block menu anchors to the caret's block node through `getReferencedVirtualElement`, not to the selection rect, so it sits above the whole line.
+- The block style and font size controls are Radix `Select`s. Its `listbox` **cannot open under happy-dom**, so a test must never try to click an option. Drive the block type through `setBlockType(editor, BLOCK_TYPES.find(...))` and the font size through the `editor.chain().focus().setFontSize(...).setLineHeight(...).run()` chain.
+- `BLOCK_TYPES`, `setBlockType` and `isHeadingBlock` live in `src/lib/block-type.ts`, not in the component. `oxlint --deny-warnings` rejects a file that exports both components and plain constants (`react(only-export-components)`), so moving them back into `note-body-editor.tsx` fails the pre-commit hook.
+- Never compare two DOM elements with `toBe`. When it fails, Bun's diff serializer walks the whole happy-dom element graph and prints tens of thousands of lines that never finish, which reads as a hang. Compare a boolean (`document.activeElement === control`) or a primitive instead.
+- `useSavedSelection` saves the selection on pointer-down and restores it in `SelectContent`'s `onCloseAutoFocus`, so focus returns to the editor with the caret back where it was. The restore must carry `editor.state.storedMarks` across, or a pending font size is wiped and the trigger falls back to 14px.
+- Headings disable the font size, bold, and both list buttons, and their tooltips with them. `isHeadingBlock(editor)` is the shared check; `MarkAction.disablesOnHeading` opts a single mark in.
+- `setFontSize` and `setLineHeight` are not chainable — each builds its own chain from `editor.state` and calls `.run()`. Chaining them after `setTextSelection` silently drops that selection.
 - `.note-body .ProseMirror` sets `line-height: 2rem`, which an inline-level button inherits as a line box and pads with descender space. Any element wrapping a button inside the body must be `flex`, or a visible gap appears under it.
 - `isStoredHtml` in `src/lib/note-body.ts` decides whether a stored body is markup or plain text. It matches `p` and `h1`–`h6`, so adding a block type means adding it here too, or saved headings reload as escaped text.
 - The placeholder rule in `src/index.css` uses `:is(p, h2, h3, h4, h5, h6)`. Narrow it to `p` and the placeholder disappears as soon as an empty block becomes a heading.
+- The toolbar paints `bg-black/5` in light mode and `dark:bg-muted/40` in dark mode. Do not swap it for `bg-muted`: `--muted` is `oklch(0.97)`, so a `ghost` button's own `hover:bg-muted` would be invisible against it. The vendored `button.tsx` hardcodes that hover, so equal-specificity Tailwind conflicts resolve by stylesheet order, not `className` order.
 
 ## Never commit without asking
 

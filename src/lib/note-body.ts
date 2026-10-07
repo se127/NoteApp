@@ -5,8 +5,10 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
+const STORED_BLOCK = /^<(p|h[1-6]|ul|ol)(\s[^>]*)?>/i;
+
 function isStoredHtml(body: string): boolean {
-  return /^<(p|h[1-6])(\s[^>]*)?>/i.test(body);
+  return STORED_BLOCK.test(body);
 }
 
 export function bodyToHtml(body: string): string {

@@ -54,6 +54,12 @@ afterEach(() => {
 });
 
 describe("AppSidebar states", () => {
+  test("renders at the narrower width", () => {
+    const { container } = renderSidebar();
+
+    expect(container.querySelector("aside")?.className).toContain("w-60");
+  });
+
   test("shows a loading message while notes are read", () => {
     renderSidebar(buildStore({ isLoading: true }));
 

@@ -56,7 +56,7 @@ export function AppSidebar() {
   }
 
   return (
-    <aside className="flex h-dvh w-72 shrink-0 flex-col border-e border-border bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-dvh w-60 shrink-0 flex-col border-e border-border bg-sidebar text-sidebar-foreground">
       <div className="flex justify-end px-3 pt-3 pb-2">
         <ThemeToggle />
       </div>
@@ -79,7 +79,7 @@ export function AppSidebar() {
 
       <nav
         aria-label={LIST_LABEL}
-        className="min-h-0 flex-1 scrollbar-thin overflow-y-auto px-3 pb-3"
+        className="min-h-0 flex-1 overflow-y-auto px-3 pb-3"
       >
         {error !== null && (
           <p role="alert" className="text-sm text-destructive">

@@ -2,7 +2,6 @@ import { Check, CircleAlert, Loader2, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { NoteBodyEditor, type BodyEditor } from "@/components/note-body-editor";
-import { ScrollToTopButton } from "@/components/scroll-to-top-button";
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { getNotesBridge, type Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
@@ -35,35 +34,6 @@ function pendingPayload(
   return payloadKey(latest) === saved ? null : latest;
 }
 
-function revealCaret(container: Element, element: HTMLElement): void {
-  const selection = window.getSelection();
-  const range =
-    selection !== null && selection.rangeCount > 0
-      ? selection.getRangeAt(0)
-      : null;
-
-  const caret = range?.getBoundingClientRect();
-  const bounds = container.getBoundingClientRect();
-  const rect =
-    caret !== undefined && caret.height > 0
-      ? caret
-      : element.getBoundingClientRect();
-
-  const maxScrollTop = container.scrollHeight - container.clientHeight;
-  let target = container.scrollTop;
-
-  if (rect.top < bounds.top) {
-    target -= bounds.top - rect.top;
-  } else if (rect.bottom > bounds.bottom) {
-    target = maxScrollTop;
-  }
-
-  const clamped = Math.min(Math.max(target, 0), maxScrollTop);
-  if (clamped === container.scrollTop) return;
-
-  container.scrollTo({ top: clamped, behavior: "smooth" });
-}
-
 function focusAtEnd(element: HTMLElement): void {
   element.focus();
 
@@ -75,9 +45,34 @@ function focusAtEnd(element: HTMLElement): void {
   range.collapse(false);
   selection.removeAllRanges();
   selection.addRange(range);
+}
 
-  const container = element.closest("main");
-  if (container !== null) revealCaret(container, element);
+function caretRangeIn(element: HTMLElement): Range | null {
+  const selection = window.getSelection();
+  if (selection === null || selection.rangeCount === 0) return null;
+
+  const range = selection.getRangeAt(0);
+  return element.contains(range.startContainer) ? range.cloneRange() : null;
+}
+
+function restoreCaret(
+  element: HTMLElement,
+  fallback: (element: HTMLElement) => void,
+): void {
+  const saved = caretRangeIn(element);
+
+  if (saved === null) {
+    fallback(element);
+    return;
+  }
+
+  element.focus();
+
+  const selection = window.getSelection();
+  if (selection === null) return;
+
+  selection.removeAllRanges();
+  selection.addRange(saved);
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -177,7 +172,7 @@ export function NoteEditor({ note }: { note: Note }) {
   }, [status]);
 
   useEffect(() => {
-    const container = bodyAnchorRef.current?.closest("main");
+    const container = bodyAnchorRef.current?.closest("[data-note-scroll]");
     if (!container) return;
 
     const distanceFromBottom =
@@ -196,15 +191,12 @@ export function NoteEditor({ note }: { note: Note }) {
     if (editor === null) return;
 
     editor.commands.focus("end");
-    const element = editor.view.dom;
-    const container = element.closest("main");
-    if (container !== null) revealCaret(container, element);
   };
 
   const insertEmoji = (emoji: string) => {
     const element = titleRef.current;
     if (element === null) return;
-    focusAtEnd(element);
+    restoreCaret(element, focusAtEnd);
     document.execCommand(
       "insertHTML",
       false,
@@ -221,8 +213,8 @@ export function NoteEditor({ note }: { note: Note }) {
   }, [initialTitle]);
 
   return (
-    <div className="flex min-h-full flex-col">
-      <div className="flex flex-col gap-4 px-6 py-8 pb-14">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-6 py-8 pb-14">
         <div className="flex flex-col gap-2 pb-2">
           <div
             ref={titleRef}
@@ -234,7 +226,7 @@ export function NoteEditor({ note }: { note: Note }) {
             data-placeholder="عنوان"
             onInput={(event) => setTitle(syncPlainText(event.currentTarget))}
             onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === "Tab") {
+              if (event.key === "Enter") {
                 event.preventDefault();
                 moveCaretToBody();
                 return;
@@ -261,7 +253,10 @@ export function NoteEditor({ note }: { note: Note }) {
             />
           </div>
         </div>
-        <div ref={bodyAnchorRef} className="note-body min-h-[1em] w-full">
+        <div
+          ref={bodyAnchorRef}
+          className="note-body flex min-h-0 w-full flex-1 flex-col"
+        >
           <NoteBodyEditor
             body={initialBody}
             onChange={setBody}
@@ -288,8 +283,6 @@ export function NoteEditor({ note }: { note: Note }) {
         </span>
         {message ?? (status === "saving" ? "در حال ذخیره..." : "ذخیره شد")}
       </div>
-
-      <ScrollToTopButton anchorRef={bodyAnchorRef} />
     </div>
   );
 }

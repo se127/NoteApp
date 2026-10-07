@@ -1,4 +1,4 @@
-import { act } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 
 import type { BodyEditor } from "@/components/note-body-editor";
 
@@ -23,33 +23,61 @@ export function setBodyContent(html: string): void {
   });
 }
 
-const BUBBLE_MENU_DELAY = 300;
-
-export async function waitForEditorFrame(): Promise<void> {
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-}
-
-export async function selectAllBodyText(): Promise<void> {
+export function selectAllBodyText(): void {
   const editor = bodyEditor();
   act(() => {
     editor.commands.focus();
     editor.commands.selectAll();
   });
-  await Bun.sleep(BUBBLE_MENU_DELAY);
 }
 
-export async function focusBodyCaret(): Promise<void> {
+export function focusBodyCaret(): void {
   const editor = bodyEditor();
   act(() => {
     editor.commands.focus("end");
   });
-  await Bun.sleep(BUBBLE_MENU_DELAY);
+}
+
+export function toolbarButton(label: string): HTMLElement {
+  return screen.getByRole("button", { name: label });
+}
+
+export function toolbarSelect(label: string): HTMLElement {
+  return screen.getByRole("combobox", { name: label });
 }
 
 export function pressMark(label: string): void {
-  const button = document.querySelector<HTMLElement>(`[aria-label="${label}"]`);
-  if (button === null) throw new Error(`no mark button named ${label}`);
+  const button = toolbarButton(label);
   act(() => {
     button.click();
   });
+}
+
+export function openToolbarMenu(triggerLabel: string): void {
+  const button = toolbarButton(triggerLabel);
+  act(() => {
+    button.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+    );
+    button.click();
+  });
+}
+
+export function chooseMenuItem(itemLabel: string): void {
+  const item = screen.getByRole("menuitemradio", { name: itemLabel });
+  act(() => {
+    item.click();
+  });
+}
+
+export function menuItemLabels(menuLabel: string): (string | null)[] {
+  return [
+    ...screen
+      .getByRole("menu", { name: menuLabel })
+      .querySelectorAll("[role='menuitemradio']"),
+  ].map((item) => item.getAttribute("aria-label"));
+}
+
+export async function waitForEditorFrame(): Promise<void> {
+  await new Promise((resolve) => requestAnimationFrame(resolve));
 }

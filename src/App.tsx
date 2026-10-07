@@ -17,7 +17,7 @@ function AppShell() {
   return (
     <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       <AppSidebar />
-      <main className="min-w-0 flex-1 scrollbar-thin overflow-y-auto">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Routes>
           <Route path="/" element={<WelcomePage />} />
           <Route path="/notes/:id/edit" element={<EditNotePage />} />

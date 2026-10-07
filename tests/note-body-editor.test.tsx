@@ -2,13 +2,21 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, screen, waitFor } from "@testing-library/react";
 
 import { NoteBodyEditor } from "@/components/note-body-editor";
+import { BLOCK_TYPES, setBlockType, type BlockType } from "@/lib/block-type";
+import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
+import { FONT_SIZES, FONT_SIZE_LABEL } from "@/lib/font-size";
 import {
   bodyEditor,
   focusBodyCaret,
-  pressMark,
   selectAllBodyText,
+  toolbarSelect,
 } from "./helpers/note-body";
 import { renderWithProviders } from "./helpers/render";
+
+const TOOLBAR_LABEL = "قالب‌بندی متن";
+const BLOCK_TYPE_LABEL = "سبک متن";
+const MARK_LABELS = ["ضخیم", "مورب", "زیرخط", "خط خورده"];
+const LIST_LABELS = ["لیست نقطه ای", "لیست شماره دار"];
 
 let changes: string[] = [];
 
@@ -23,42 +31,103 @@ function bodyField(): HTMLElement {
 }
 
 function toolbar(): HTMLElement {
-  return screen.getByRole("toolbar", { name: "قالب‌بندی متن" });
+  return screen.getByRole("toolbar", { name: TOOLBAR_LABEL });
 }
 
-function markButton(label: string): HTMLElement {
+function button(label: string): HTMLElement {
   return screen.getByRole("button", { name: label });
 }
 
-function blockTypeToolbar(): HTMLElement {
-  return screen.getByRole("toolbar", { name: "نوع بلوک متن" });
+function blockTypeSelect(): HTMLElement {
+  return toolbarSelect(BLOCK_TYPE_LABEL);
 }
 
-function buttonWrapper(button: HTMLElement): HTMLElement {
-  const wrapper = button.parentElement;
-  if (wrapper === null) throw new Error("the button has no wrapper");
-  return wrapper;
+function separators(): Element[] {
+  return [...toolbar().querySelectorAll("[data-slot='separator']")];
 }
 
-function blockTypeButton(): HTMLElement {
-  return screen.getByRole("button", { name: "نوع بلوک" });
+function toolbarButtonLabels(): (string | null)[] {
+  return [...toolbar().querySelectorAll("button")].map((element) =>
+    element.getAttribute("aria-label"),
+  );
 }
 
-function openBlockTypeMenu(): void {
-  const button = blockTypeButton();
+function openMenu(triggerLabel: string): void {
+  const trigger = button(triggerLabel);
   act(() => {
-    button.dispatchEvent(
+    trigger.dispatchEvent(
       new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
     );
-    button.click();
+    trigger.click();
   });
 }
 
-function chooseBlockType(label: string): void {
-  openBlockTypeMenu();
-  const item = screen.getByRole("menuitemradio", { name: label });
+function menuItemLabels(menuLabel: string): (string | null)[] {
+  return [
+    ...screen
+      .getByRole("menu", { name: menuLabel })
+      .querySelectorAll("[role='menuitemradio']"),
+  ].map((item) => item.getAttribute("aria-label"));
+}
+
+function chooseMenuItem(itemLabel: string): void {
+  const item = screen.getByRole("menuitemradio", { name: itemLabel });
   act(() => {
     item.click();
+  });
+}
+
+function blockTypeNamed(label: string): BlockType {
+  const blockType = BLOCK_TYPES.find((candidate) => candidate.label === label);
+  if (blockType === undefined) throw new Error(`no block type named ${label}`);
+  return blockType;
+}
+
+function chooseBlockType(label: string): void {
+  act(() => {
+    setBlockType(bodyEditor(), blockTypeNamed(label));
+  });
+}
+
+function pressButton(label: string): void {
+  act(() => {
+    button(label).click();
+  });
+}
+
+function chooseFontSize(index: number): void {
+  const size = FONT_SIZES[index];
+  act(() => {
+    bodyEditor()
+      .chain()
+      .focus()
+      .setFontSize(size.fontSize)
+      .setLineHeight(size.lineHeight)
+      .run();
+  });
+}
+
+function expectFocusNotIn(control: HTMLElement): void {
+  expect(document.activeElement === control).toBe(false);
+}
+
+function fireHover(element: HTMLElement): void {
+  act(() => {
+    element.dispatchEvent(
+      new MouseEvent("mouseenter", { bubbles: false, cancelable: true }),
+    );
+    element.dispatchEvent(
+      new PointerEvent("pointerenter", { bubbles: false, cancelable: true }),
+    );
+    element.dispatchEvent(
+      new MouseEvent("mouseover", { bubbles: true, cancelable: true }),
+    );
+    element.dispatchEvent(
+      new PointerEvent("pointerover", { bubbles: true, cancelable: true }),
+    );
+    element.dispatchEvent(
+      new PointerEvent("pointermove", { bubbles: true, cancelable: true }),
+    );
   });
 }
 
@@ -67,6 +136,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  if (document.querySelector(".ProseMirror") === null) return;
   act(() => {
     bodyEditor().destroy();
   });
@@ -133,9 +203,9 @@ describe("NoteBodyEditor", () => {
   test("registers a paste handler that keeps pasted text inline", () => {
     renderBodyEditor();
 
-    const handler = bodyEditor().view.someProp("transformPasted");
-
-    expect(typeof handler).toBe("function");
+    expect(typeof bodyEditor().view.someProp("transformPasted")).toBe(
+      "function",
+    );
   });
 
   test("marks the empty body so the placeholder shows on the right", () => {
@@ -149,10 +219,10 @@ describe("NoteBodyEditor", () => {
     );
   });
 
-  test("marks an empty heading block as empty so the placeholder rule can match it", async () => {
+  test("marks an empty heading block as empty so the placeholder rule can match it", () => {
     renderBodyEditor("");
 
-    await focusBodyCaret();
+    focusBodyCaret();
     chooseBlockType("عنوان ۲");
 
     const heading = bodyEditor().view.dom.querySelector("h2");
@@ -164,227 +234,112 @@ describe("NoteBodyEditor", () => {
   });
 });
 
-describe("NoteBodyEditor bubble menu", () => {
-  test("stays hidden until text is selected", () => {
+describe("NoteBodyEditor toolbar", () => {
+  test("sits above the body in one always visible toolbar", () => {
     renderBodyEditor();
-
-    expect(screen.queryByRole("toolbar", { name: "قالب‌بندی متن" })).toBeNull();
-  });
-
-  test("appears on a text selection", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
 
     expect(toolbar()).toBeDefined();
-  });
-
-  test("offers exactly the four marks", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
-
-    const labels = [...toolbar().querySelectorAll("button")].map((button) =>
-      button.getAttribute("aria-label"),
+    expect(toolbar().compareDocumentPosition(bodyField())).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(labels).toEqual(["ضخیم", "مورب", "زیرخط", "خط خورده"]);
   });
 
-  test("starts every mark on the ghost variant with no selection carried", async () => {
+  test("orders direction, block style, font size, marks, lists, align and position", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
+    expect(toolbarButtonLabels()).toEqual([
+      "جهت متن",
+      BLOCK_TYPE_LABEL,
+      FONT_SIZE_LABEL,
+      ...MARK_LABELS,
+      ...LIST_LABELS,
+      "تراز متن",
+      "موقعیت متن",
+      "انتخاب ایموجی",
+    ]);
+  });
 
-    for (const label of ["ضخیم", "مورب", "زیرخط", "خط خورده"]) {
-      expect(markButton(label).getAttribute("aria-pressed")).toBe("false");
-      expect(markButton(label).getAttribute("data-variant")).toBe("ghost");
+  test("keeps every toolbar control in the tab order", () => {
+    renderBodyEditor();
+
+    for (const control of toolbar().querySelectorAll("button")) {
+      expect(control.getAttribute("tabindex")).not.toBe("-1");
     }
   });
 
-  test("bolds the selection and reports the markup", async () => {
+  test("pads the toolbar and rounds it as a popover", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
-    pressMark("ضخیم");
-
-    expect(bodyEditor().getHTML()).toBe("<p><strong>متن</strong></p>");
-    expect(changes.at(-1)).toBe("<p><strong>متن</strong></p>");
+    expect(toolbar().className).toContain("p-1");
+    expect(toolbar().className).toContain("rounded-lg");
+    expect(toolbar().className).toContain("border-border");
   });
 
-  test("italics the selection", async () => {
+  test("draws the toolbar on a light grey in light mode and dims it in dark mode", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
-    pressMark("مورب");
-
-    expect(bodyEditor().getHTML()).toBe("<p><em>متن</em></p>");
+    expect(toolbar().className).toContain("bg-black/5");
+    expect(toolbar().className).toContain("dark:bg-muted/40");
   });
 
-  test("underlines the selection", async () => {
+  test("writes the toolbar controls in the foreground colour", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
-    pressMark("زیرخط");
-
-    expect(bodyEditor().getHTML()).toBe("<p><u>متن</u></p>");
+    expect(button("ضخیم").className).toContain("text-foreground");
+    expect(button("انتخاب ایموجی").className).toContain("text-foreground");
   });
 
-  test("strikes the selection", async () => {
+  test("keeps the two pickers on the background surface while hovered", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
-    pressMark("خط خورده");
-
-    expect(bodyEditor().getHTML()).toBe("<p><s>متن</s></p>");
-  });
-
-  test("toggles a mark off again", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
-    pressMark("ضخیم");
-    await selectAllBodyText();
-    pressMark("ضخیم");
-
-    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
-  });
-
-  test("marks a button as pressed while its mark is active", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
-    pressMark("زیرخط");
-
-    await waitFor(() =>
-      expect(markButton("زیرخط").getAttribute("aria-pressed")).toBe("true"),
-    );
-    expect(markButton("ضخیم").getAttribute("aria-pressed")).toBe("false");
-  });
-
-  test("switches an active mark to the primary variant", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
-    pressMark("زیرخط");
-
-    await waitFor(() =>
-      expect(markButton("زیرخط").getAttribute("data-variant")).toBe("default"),
-    );
-    expect(markButton("ضخیم").getAttribute("data-variant")).toBe("ghost");
-  });
-
-  test("only the marks the selection carries read as primary", async () => {
-    renderBodyEditor("<p><strong>پررنگ</strong></p>");
-
-    await selectAllBodyText();
-
-    await waitFor(() =>
-      expect(markButton("ضخیم").getAttribute("data-variant")).toBe("default"),
-    );
-    for (const label of ["مورب", "زیرخط", "خط خورده"]) {
-      expect(markButton(label).getAttribute("data-variant")).toBe("ghost");
+    for (const label of [BLOCK_TYPE_LABEL, FONT_SIZE_LABEL]) {
+      const className = toolbarSelect(label).className;
+      expect(className).toContain("bg-background");
+      expect(className).toContain("hover:bg-background");
     }
   });
 
-  test("shows two marks as primary at once when both are carried", async () => {
-    renderBodyEditor("<p><strong><em>هر دو</em></strong></p>");
-
-    await selectAllBodyText();
-
-    await waitFor(() => {
-      expect(markButton("ضخیم").getAttribute("data-variant")).toBe("default");
-      expect(markButton("مورب").getAttribute("data-variant")).toBe("default");
-    });
-  });
-
-  test("combines several marks on one selection", async () => {
+  test("groups the controls with full height vertical separators", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
-    pressMark("ضخیم");
-    pressMark("خط خورده");
-
-    expect(bodyEditor().getHTML()).toBe("<p><strong><s>متن</s></strong></p>");
-  });
-
-  test("keeps the selection so a second mark applies to the same text", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
-    pressMark("ضخیم");
-    pressMark("مورب");
-
-    expect(bodyEditor().getHTML()).toBe("<p><strong><em>متن</em></strong></p>");
-  });
-
-  test("keeps the mark buttons out of the tab order", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
-
-    for (const button of toolbar().querySelectorAll("button")) {
-      expect(button.getAttribute("tabindex")).toBe("-1");
+    expect(separators()).toHaveLength(4);
+    for (const separator of separators()) {
+      expect(separator.getAttribute("data-orientation")).toBe("vertical");
+      expect(separator.className).toContain("self-stretch");
     }
   });
 
-  test("does not move focus off the text when a mark is pressed", async () => {
+  test("does not move focus off the text when a mark is pressed", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
-    const button = markButton("ضخیم");
+    selectAllBodyText();
+    const mark = button("ضخیم");
     act(() => {
-      button.dispatchEvent(
+      mark.dispatchEvent(
         new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
       );
     });
 
-    expect(document.activeElement).not.toBe(button);
+    expectFocusNotIn(mark);
+  });
+
+  test("does not move focus off the text when a menu trigger is pressed", () => {
+    renderBodyEditor();
+
+    const trigger = button("تراز متن");
+    act(() => {
+      trigger.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+      );
+    });
+
+    expectFocusNotIn(trigger);
   });
 });
 
-describe("NoteBodyEditor block type bubble menu", () => {
-  test("stays hidden while the body is not being edited", () => {
-    renderBodyEditor();
-
-    expect(screen.queryByRole("toolbar", { name: "نوع بلوک متن" })).toBeNull();
-  });
-
-  test("appears when the caret sits in the body without a selection", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-
-    expect(blockTypeToolbar()).toBeDefined();
-  });
-
-  test("stays hidden while text is selected", async () => {
-    renderBodyEditor();
-
-    await selectAllBodyText();
-
-    expect(screen.queryByRole("toolbar", { name: "نوع بلوک متن" })).toBeNull();
-  });
-
-  test("hides the mark menu while the block type menu is up", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-
-    expect(screen.queryByRole("toolbar", { name: "قالب‌بندی متن" })).toBeNull();
-  });
-
-  test("offers a paragraph and the h2 to h6 headings", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-    openBlockTypeMenu();
-
-    const labels = [
-      ...screen
-        .getByRole("menu", { name: "سبک متن" })
-        .querySelectorAll("[role='menuitemradio']"),
-    ].map((item) => item.getAttribute("aria-label") ?? item.textContent);
-    expect(labels).toEqual([
+describe("NoteBodyEditor block type", () => {
+  test("offers a paragraph and the h2 to h6 headings", () => {
+    expect(BLOCK_TYPES.map(({ label }) => label)).toEqual([
       "پاراگراف",
       "عنوان ۲",
       "عنوان ۳",
@@ -394,199 +349,427 @@ describe("NoteBodyEditor block type bubble menu", () => {
     ]);
   });
 
-  test("turns the caret block into a heading and reports the markup", async () => {
+  test("turns the caret block into a heading and reports the markup", () => {
     renderBodyEditor();
 
-    await focusBodyCaret();
+    focusBodyCaret();
     chooseBlockType("عنوان ۳");
 
     expect(bodyEditor().getHTML()).toBe("<h3>متن</h3>");
     expect(changes.at(-1)).toBe("<h3>متن</h3>");
   });
 
-  test("turns a heading back into a paragraph", async () => {
+  test("turns a heading back into a paragraph", () => {
     renderBodyEditor("<h2>عنوان</h2>");
 
-    await focusBodyCaret();
+    focusBodyCaret();
     chooseBlockType("پاراگراف");
 
     expect(bodyEditor().getHTML()).toBe("<p>عنوان</p>");
   });
 
-  test("names the block type action in its tooltip", async () => {
-    renderBodyEditor("<h4>عنوان</h4>");
-
-    await focusBodyCaret();
-
-    fireHover(blockTypeButton());
-
-    await waitFor(() =>
-      expect(screen.getByRole("tooltip").textContent).toBe("سبک متن"),
-    );
-  });
-
   test("draws the trigger as the icon of the block type the caret is in", async () => {
     renderBodyEditor("<h4>عنوان</h4>");
 
-    await focusBodyCaret();
+    focusBodyCaret();
 
     await waitFor(() =>
       expect(
-        blockTypeButton().querySelector(".lucide-heading-4"),
+        blockTypeSelect().querySelector(".lucide-heading-4"),
       ).not.toBeNull(),
     );
+    expect(blockTypeSelect().textContent).toContain("عنوان ۴");
   });
 
   test("draws the paragraph trigger as the pilcrow icon", async () => {
     renderBodyEditor();
 
-    await focusBodyCaret();
+    focusBodyCaret();
 
     await waitFor(() =>
-      expect(blockTypeButton().querySelector(".lucide-pilcrow")).not.toBeNull(),
+      expect(blockTypeSelect().querySelector(".lucide-pilcrow")).not.toBeNull(),
+    );
+    expect(blockTypeSelect().textContent).toContain("پاراگراف");
+  });
+});
+
+describe("NoteBodyEditor marks", () => {
+  test("starts every mark on the ghost variant with no selection carried", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+
+    for (const label of MARK_LABELS) {
+      expect(button(label).getAttribute("aria-pressed")).toBe("false");
+      expect(button(label).getAttribute("data-variant")).toBe("ghost");
+    }
+  });
+
+  test("bolds the selection and reports the markup", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("ضخیم");
+
+    expect(bodyEditor().getHTML()).toBe("<p><strong>متن</strong></p>");
+    expect(changes.at(-1)).toBe("<p><strong>متن</strong></p>");
+  });
+
+  test("italics the selection", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("مورب");
+
+    expect(bodyEditor().getHTML()).toBe("<p><em>متن</em></p>");
+  });
+
+  test("underlines the selection", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("زیرخط");
+
+    expect(bodyEditor().getHTML()).toBe("<p><u>متن</u></p>");
+  });
+
+  test("strikes the selection", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("خط خورده");
+
+    expect(bodyEditor().getHTML()).toBe("<p><s>متن</s></p>");
+  });
+
+  test("toggles a mark off again", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("ضخیم");
+    selectAllBodyText();
+    pressButton("ضخیم");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+  });
+
+  test("marks a button as pressed while its mark is active", async () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("زیرخط");
+
+    await waitFor(() =>
+      expect(button("زیرخط").getAttribute("aria-pressed")).toBe("true"),
+    );
+    expect(button("ضخیم").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("switches an active mark to the primary variant", async () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("زیرخط");
+
+    await waitFor(() =>
+      expect(button("زیرخط").getAttribute("data-variant")).toBe("default"),
+    );
+    expect(button("ضخیم").getAttribute("data-variant")).toBe("ghost");
+  });
+
+  test("only the marks the selection carries read as primary", async () => {
+    renderBodyEditor("<p><strong>پررنگ</strong></p>");
+
+    selectAllBodyText();
+
+    await waitFor(() =>
+      expect(button("ضخیم").getAttribute("data-variant")).toBe("default"),
+    );
+    for (const label of ["مورب", "زیرخط", "خط خورده"]) {
+      expect(button(label).getAttribute("data-variant")).toBe("ghost");
+    }
+  });
+
+  test("shows two marks as primary at once when both are carried", async () => {
+    renderBodyEditor("<p><strong><em>هر دو</em></strong></p>");
+
+    selectAllBodyText();
+
+    await waitFor(() => {
+      expect(button("ضخیم").getAttribute("data-variant")).toBe("default");
+      expect(button("مورب").getAttribute("data-variant")).toBe("default");
+    });
+  });
+
+  test("combines several marks on one selection", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("ضخیم");
+    pressButton("خط خورده");
+
+    expect(bodyEditor().getHTML()).toBe("<p><strong><s>متن</s></strong></p>");
+  });
+
+  test("keeps the selection so a second mark applies to the same text", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("ضخیم");
+    pressButton("مورب");
+
+    expect(bodyEditor().getHTML()).toBe("<p><strong><em>متن</em></strong></p>");
+  });
+});
+
+describe("NoteBodyEditor tooltips", () => {
+  test("labels each mark button with its tooltip trigger", () => {
+    renderBodyEditor();
+
+    for (const label of MARK_LABELS) {
+      expect(button(label).getAttribute("data-slot")).toBe("tooltip-trigger");
+    }
+  });
+
+  test("shows the bold tooltip on hover", async () => {
+    renderBodyEditor();
+
+    fireHover(button("ضخیم"));
+
+    await waitFor(() => expect(screen.getByText("ضخیم")).toBeDefined());
+  });
+
+  test("shows the strikethrough tooltip on hover", async () => {
+    renderBodyEditor();
+
+    fireHover(button("خط خورده"));
+
+    await waitFor(() => expect(screen.getByText("خط خورده")).toBeDefined());
+  });
+
+  test("names the alignment action in its tooltip", async () => {
+    renderBodyEditor();
+
+    fireHover(button("تراز متن"));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip").textContent).toBe("تراز متن"),
     );
   });
 
-  test("marks only the block type the caret is in as checked", async () => {
+  test("names the emoji action in its tooltip", async () => {
+    renderBodyEditor();
+
+    fireHover(button("انتخاب ایموجی"));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip").textContent).toBe("انتخاب ایموجی"),
+    );
+  });
+
+  test("hides a picker tooltip while its list is open", async () => {
+    renderBodyEditor();
+
+    fireHover(button("انتخاب ایموجی"));
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip").textContent).toBe("انتخاب ایموجی"),
+    );
+
+    act(() => {
+      button("انتخاب ایموجی").click();
+    });
+
+    await waitFor(() => expect(screen.queryByRole("tooltip")).toBeNull());
+  });
+});
+
+describe("NoteBodyEditor font size", () => {
+  test("names the size control and starts on the default size", () => {
+    renderBodyEditor();
+
+    const select = toolbarSelect(FONT_SIZE_LABEL);
+    expect(select).toBeDefined();
+    expect(select.textContent).toContain("14px");
+  });
+
+  test("follows the size the selection carries", async () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    chooseFontSize(3);
+
+    await waitFor(() =>
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("20px"),
+    );
+    expect(bodyEditor().getHTML()).toContain(FONT_SIZES[3].fontSize);
+  });
+
+  test("keeps the existing block alone and sizes the text typed next", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseFontSize(4);
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+
+    act(() => {
+      bodyEditor().commands.insertContent("تازه");
+    });
+
+    expect(bodyEditor().getHTML()).toContain(FONT_SIZES[4].fontSize);
+  });
+
+  test("shows the pending size on the trigger before anything is typed", async () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseFontSize(4);
+
+    await waitFor(() =>
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("24px"),
+    );
+  });
+
+  test("keeps the caret collapsed after sizing a bare caret", () => {
+    renderBodyEditor("<p>hello world</p>");
+
+    act(() => {
+      bodyEditor().commands.focus(3);
+    });
+    chooseFontSize(2);
+
+    expect(bodyEditor().state.selection.empty).toBe(true);
+    expect(bodyEditor().getHTML()).toBe("<p>hello world</p>");
+  });
+});
+
+describe("NoteBodyEditor text alignment", () => {
+  test("offers the four alignments", () => {
+    renderBodyEditor();
+
+    openMenu("تراز متن");
+
+    expect(menuItemLabels("تراز متن")).toEqual([
+      "راست",
+      "وسط",
+      "چپ",
+      "هم تراز",
+    ]);
+  });
+
+  test("centres the caret block and reports the markup", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("وسط");
+
+    expect(bodyEditor().getHTML()).toBe(
+      '<p style="text-align: center;">متن</p>',
+    );
+    expect(changes.at(-1)).toBe('<p style="text-align: center;">متن</p>');
+  });
+
+  test("aligns the caret block to the left", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("چپ");
+
+    expect(bodyEditor().getHTML()).toBe('<p style="text-align: left;">متن</p>');
+  });
+
+  test("justifies the caret block", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("هم تراز");
+
+    expect(bodyEditor().getHTML()).toBe(
+      '<p style="text-align: justify;">متن</p>',
+    );
+  });
+
+  test("aligns a heading as well as a paragraph", () => {
     renderBodyEditor("<h2>عنوان</h2>");
 
-    await focusBodyCaret();
-    openBlockTypeMenu();
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("وسط");
+
+    expect(bodyEditor().getHTML()).toBe(
+      '<h2 style="text-align: center;">عنوان</h2>',
+    );
+  });
+
+  test("leaves no alignment style until one is chosen", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+  });
+
+  test("reads right as the alignment when none is set", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("تراز متن");
 
     expect(
       screen
-        .getByRole("menuitemradio", { name: "عنوان ۲" })
+        .getByRole("menuitemradio", { name: "راست" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  test("marks only the active alignment as checked", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("وسط");
+
+    openMenu("تراز متن");
+
+    expect(
+      screen
+        .getByRole("menuitemradio", { name: "وسط" })
         .getAttribute("aria-checked"),
     ).toBe("true");
     expect(
       screen
-        .getByRole("menuitemradio", { name: "پاراگراف" })
+        .getByRole("menuitemradio", { name: "راست" })
         .getAttribute("aria-checked"),
     ).toBe("false");
   });
 
-  test("keeps the block menu open while its list is open", async () => {
+  test("stores no text-align for the right default", () => {
     renderBodyEditor();
 
-    await focusBodyCaret();
-    openBlockTypeMenu();
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("راست");
 
-    expect(blockTypeButton().getAttribute("aria-expanded")).toBe("true");
-    expect(blockTypeToolbar()).toBeDefined();
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
   });
 
-  test("closes the list and keeps the toolbar after a choice", async () => {
+  test("anchors the list to the toolbar edge with no gap", () => {
     renderBodyEditor();
 
-    await focusBodyCaret();
-    chooseBlockType("عنوان ۲");
+    openMenu("تراز متن");
 
-    await waitFor(() =>
-      expect(blockTypeButton().getAttribute("aria-expanded")).toBe("false"),
-    );
-    expect(screen.queryByRole("menu", { name: "سبک متن" })).toBeNull();
-  });
-
-  test("does not move focus off the text when the trigger is pressed", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-
-    const button = blockTypeButton();
-    act(() => {
-      button.dispatchEvent(
-        new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
-      );
-    });
-
-    expect(document.activeElement).not.toBe(button);
-  });
-
-  test("lays the trigger out as a flex item so no line box pads it", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-
-    expect(buttonWrapper(blockTypeButton()).className).toContain("flex");
-  });
-
-  test("wraps the trigger in nothing but the toolbar itself", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-
-    expect(blockTypeButton().parentElement?.parentElement).toBe(
-      blockTypeToolbar(),
-    );
-  });
-
-  test("pads the toolbar the same way as the mark toolbar", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-    const blockClassName = blockTypeToolbar().className;
-
-    await selectAllBodyText();
-    const markClassName = toolbar().className;
-
-    for (const className of [blockClassName, markClassName]) {
-      expect(className).toContain("p-1");
-      expect(className).toContain("rounded-lg");
-      expect(className).toContain("border-border");
-      expect(className).toContain("shadow-md");
-    }
-  });
-
-  test("anchors the list to the toolbar edge with no gap", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-    openBlockTypeMenu();
-
-    const list = screen.getByRole("menu", { name: "سبک متن" });
-
+    const list = screen.getByRole("menu", { name: "تراز متن" });
     expect(list.className).toContain("top-full");
     expect(list.className).not.toContain("mt-");
-  });
-
-  test("gives every list item a lucide icon beside its name", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-    openBlockTypeMenu();
-
-    const items = screen
-      .getByRole("menu", { name: "سبک متن" })
-      .querySelectorAll("[role='menuitemradio']");
-
-    for (const item of items) {
-      expect(item.querySelector("svg.lucide")).not.toBeNull();
-    }
-  });
-
-  test("gives the paragraph item the pilcrow icon and headings their own", async () => {
-    renderBodyEditor();
-
-    await focusBodyCaret();
-    openBlockTypeMenu();
-
-    expect(
-      screen
-        .getByRole("menuitemradio", { name: "پاراگراف" })
-        .querySelector(".lucide-pilcrow"),
-    ).not.toBeNull();
-    expect(
-      screen
-        .getByRole("menuitemradio", { name: "عنوان ۵" })
-        .querySelector(".lucide-heading-5"),
-    ).not.toBeNull();
   });
 
   test("closes the list when a press lands outside the toolbar", async () => {
     renderBodyEditor();
 
-    await focusBodyCaret();
-    openBlockTypeMenu();
+    openMenu("تراز متن");
 
     act(() => {
       document
@@ -597,18 +780,17 @@ describe("NoteBodyEditor block type bubble menu", () => {
     });
 
     await waitFor(() =>
-      expect(screen.queryByRole("menu", { name: "سبک متن" })).toBeNull(),
+      expect(screen.queryByRole("menu", { name: "تراز متن" })).toBeNull(),
     );
   });
 
   test("closes the list on Escape", async () => {
     renderBodyEditor();
 
-    await focusBodyCaret();
-    openBlockTypeMenu();
+    openMenu("تراز متن");
 
     act(() => {
-      buttonWrapper(blockTypeButton()).dispatchEvent(
+      button("تراز متن").parentElement?.dispatchEvent(
         new KeyboardEvent("keydown", {
           key: "Escape",
           bubbles: true,
@@ -618,58 +800,518 @@ describe("NoteBodyEditor block type bubble menu", () => {
     });
 
     await waitFor(() =>
-      expect(screen.queryByRole("menu", { name: "سبک متن" })).toBeNull(),
+      expect(screen.queryByRole("menu", { name: "تراز متن" })).toBeNull(),
     );
   });
 });
 
-describe("NoteBodyEditor mark tooltips", () => {
-  test("labels each mark button with its tooltip trigger", async () => {
+describe("NoteBodyEditor text position", () => {
+  test("offers normal, subscript and superscript", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
+    openMenu("موقعیت متن");
 
-    for (const label of ["ضخیم", "مورب", "زیرخط", "خط خورده"]) {
-      expect(markButton(label).getAttribute("data-slot")).toBe(
-        "tooltip-trigger",
-      );
+    expect(menuItemLabels("موقعیت متن")).toEqual([
+      "معمولی",
+      "زیرنویس",
+      "بالانویس",
+    ]);
+  });
+
+  test("subscripts the selection and reports the markup", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    openMenu("موقعیت متن");
+    chooseMenuItem("زیرنویس");
+
+    expect(bodyEditor().getHTML()).toBe("<p><sub>متن</sub></p>");
+    expect(changes.at(-1)).toBe("<p><sub>متن</sub></p>");
+  });
+
+  test("superscripts the selection", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    openMenu("موقعیت متن");
+    chooseMenuItem("بالانویس");
+
+    expect(bodyEditor().getHTML()).toBe("<p><sup>متن</sup></p>");
+  });
+
+  test("returns a subscripted run to normal", () => {
+    renderBodyEditor("<p><sub>متن</sub></p>");
+
+    selectAllBodyText();
+    openMenu("موقعیت متن");
+    chooseMenuItem("معمولی");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+  });
+
+  test("switches a superscript to a subscript", () => {
+    renderBodyEditor("<p><sup>متن</sup></p>");
+
+    selectAllBodyText();
+    openMenu("موقعیت متن");
+    chooseMenuItem("زیرنویس");
+
+    expect(bodyEditor().getHTML()).toBe("<p><sub>متن</sub></p>");
+  });
+
+  test("keeps a mark and a subscript on the same text", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    pressButton("ضخیم");
+    openMenu("موقعیت متن");
+    chooseMenuItem("بالانویس");
+
+    expect(bodyEditor().getHTML()).toBe(
+      "<p><strong><sup>متن</sup></strong></p>",
+    );
+  });
+
+  test("marks normal as checked when no position mark is carried", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    openMenu("موقعیت متن");
+
+    expect(
+      screen
+        .getByRole("menuitemradio", { name: "معمولی" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+});
+
+describe("NoteBodyEditor text direction", () => {
+  test("offers rtl and ltr", () => {
+    renderBodyEditor();
+
+    openMenu("جهت متن");
+
+    expect(menuItemLabels("جهت متن")).toEqual(["راست به چپ", "چپ به راست"]);
+  });
+
+  test("writes ltr onto the caret block", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("جهت متن");
+    chooseMenuItem("چپ به راست");
+
+    expect(bodyEditor().getHTML()).toBe('<p dir="ltr">متن</p>');
+    expect(changes.at(-1)).toBe('<p dir="ltr">متن</p>');
+  });
+
+  test("switches a paragraph back to rtl", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("جهت متن");
+    chooseMenuItem("چپ به راست");
+    openMenu("جهت متن");
+    chooseMenuItem("راست به چپ");
+
+    expect(bodyEditor().getHTML()).toBe('<p dir="rtl">متن</p>');
+  });
+
+  test("writes the direction onto a heading", () => {
+    renderBodyEditor("<h3>عنوان</h3>");
+
+    focusBodyCaret();
+    openMenu("جهت متن");
+    chooseMenuItem("چپ به راست");
+
+    expect(bodyEditor().getHTML()).toBe('<h3 dir="ltr">عنوان</h3>');
+  });
+
+  test("keeps an alignment and a direction on the same block", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("وسط");
+    openMenu("جهت متن");
+    chooseMenuItem("چپ به راست");
+
+    expect(bodyEditor().getHTML()).toBe(
+      '<p style="text-align: center;" dir="ltr">متن</p>',
+    );
+  });
+
+  test("reads back a stored direction", () => {
+    renderBodyEditor('<p dir="ltr">latin text</p>');
+
+    focusBodyCaret();
+    openMenu("جهت متن");
+
+    expect(
+      screen
+        .getByRole("menuitemradio", { name: "چپ به راست" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  test("reads rtl as the direction when none is set", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("جهت متن");
+
+    expect(
+      screen
+        .getByRole("menuitemradio", { name: "راست به چپ" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  test("stores no dir attribute for the rtl default", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("جهت متن");
+    chooseMenuItem("راست به چپ");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+  });
+});
+
+describe("NoteBodyEditor lists", () => {
+  test("turns the caret block into a bullet list", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    pressButton("لیست نقطه ای");
+
+    expect(bodyEditor().getHTML()).toBe("<ul><li><p>متن</p></li></ul>");
+    expect(changes.at(-1)).toBe("<ul><li><p>متن</p></li></ul>");
+  });
+
+  test("turns the caret block into an ordered list", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    pressButton("لیست شماره دار");
+
+    expect(bodyEditor().getHTML()).toBe("<ol><li><p>متن</p></li></ol>");
+  });
+
+  test("switches a bullet list into an ordered one", () => {
+    renderBodyEditor("<ul><li><p>متن</p></li></ul>");
+
+    focusBodyCaret();
+    pressButton("لیست شماره دار");
+
+    expect(bodyEditor().getHTML()).toBe("<ol><li><p>متن</p></li></ol>");
+  });
+
+  test("leaves the list when the active list button is pressed", () => {
+    renderBodyEditor("<ul><li><p>متن</p></li></ul>");
+
+    focusBodyCaret();
+    pressButton("لیست نقطه ای");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+  });
+
+  test("marks only the list the caret is in as pressed", async () => {
+    renderBodyEditor("<ul><li><p>متن</p></li></ul>");
+
+    focusBodyCaret();
+
+    await waitFor(() =>
+      expect(button("لیست نقطه ای").getAttribute("aria-pressed")).toBe("true"),
+    );
+    expect(button("لیست شماره دار").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("marks only the ordered list primary inside an ordered list", async () => {
+    renderBodyEditor("<ol><li><p>متن</p></li></ol>");
+
+    focusBodyCaret();
+
+    await waitFor(() =>
+      expect(button("لیست شماره دار").getAttribute("data-variant")).toBe(
+        "default",
+      ),
+    );
+    expect(button("لیست نقطه ای").getAttribute("data-variant")).toBe("ghost");
+  });
+
+  test("starts a list block with the ghost variant", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+
+    expect(button("لیست نقطه ای").getAttribute("data-variant")).toBe("ghost");
+  });
+});
+
+describe("NoteBodyEditor heading restrictions", () => {
+  const HEADING = "<h3>عنوان</h3>";
+
+  test("disables the font size picker inside a heading", () => {
+    renderBodyEditor(HEADING);
+
+    focusBodyCaret();
+
+    expect(
+      toolbarSelect(FONT_SIZE_LABEL).getAttribute("data-disabled"),
+    ).not.toBe(null);
+  });
+
+  test("leaves the font size picker enabled inside a paragraph", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+
+    expect(toolbarSelect(FONT_SIZE_LABEL).getAttribute("data-disabled")).toBe(
+      null,
+    );
+  });
+
+  test("disables bold inside a heading", () => {
+    renderBodyEditor(HEADING);
+
+    focusBodyCaret();
+
+    expect(button("ضخیم").hasAttribute("disabled")).toBe(true);
+  });
+
+  test("leaves the other marks enabled inside a heading", () => {
+    renderBodyEditor(HEADING);
+
+    focusBodyCaret();
+
+    for (const label of ["مورب", "زیرخط", "خط خورده"]) {
+      expect(button(label).hasAttribute("disabled")).toBe(false);
     }
   });
 
-  test("shows the bold tooltip on hover", async () => {
-    renderBodyEditor();
+  test("disables both list buttons inside a heading", () => {
+    renderBodyEditor(HEADING);
 
-    await selectAllBodyText();
+    focusBodyCaret();
 
-    fireHover(markButton("ضخیم"));
-
-    await waitFor(() => expect(screen.getByText("ضخیم")).toBeDefined());
+    for (const label of LIST_LABELS) {
+      expect(button(label).hasAttribute("disabled")).toBe(true);
+    }
   });
 
-  test("shows the strikethrough tooltip on hover", async () => {
+  test("leaves bold and the lists enabled inside a paragraph", () => {
     renderBodyEditor();
 
-    await selectAllBodyText();
+    focusBodyCaret();
 
-    fireHover(markButton("خط خورده"));
+    expect(button("ضخیم").hasAttribute("disabled")).toBe(false);
+    for (const label of LIST_LABELS) {
+      expect(button(label).hasAttribute("disabled")).toBe(false);
+    }
+  });
 
-    await waitFor(() => expect(screen.getByText("خط خورده")).toBeDefined());
+  test("hides the font size tooltip while the picker is disabled", async () => {
+    renderBodyEditor(HEADING);
+
+    fireHover(toolbarSelect(FONT_SIZE_LABEL));
+
+    await Bun.sleep(50);
+    expect(screen.queryByText(FONT_SIZE_LABEL)).toBeNull();
+  });
+
+  test("hides the bold tooltip while bold is disabled", () => {
+    renderBodyEditor(HEADING);
+
+    fireHover(button("ضخیم"));
+
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
   });
 });
 
-function fireHover(element: HTMLElement): void {
-  act(() => {
-    element.dispatchEvent(
-      new MouseEvent("mouseenter", { bubbles: false, cancelable: true }),
-    );
-    element.dispatchEvent(
-      new PointerEvent("pointerenter", { bubbles: false, cancelable: true }),
-    );
-    element.dispatchEvent(
-      new MouseEvent("mouseover", { bubbles: true, cancelable: true }),
-    );
-    element.dispatchEvent(
-      new PointerEvent("pointermove", { bubbles: true, cancelable: true }),
+describe("NoteBodyEditor stored lists", () => {
+  test("reads back a stored bullet list as markup", () => {
+    renderBodyEditor("<ul><li><p>متن</p></li></ul>");
+
+    expect(bodyEditor().getHTML()).toBe("<ul><li><p>متن</p></li></ul>");
+  });
+
+  test("reads back a stored ordered list as markup", () => {
+    renderBodyEditor("<ol><li><p>متن</p></li></ol>");
+
+    expect(bodyEditor().getHTML()).toBe("<ol><li><p>متن</p></li></ol>");
+  });
+
+  test("still turns plain text into paragraphs", () => {
+    renderBodyEditor("خط اول\nخط دوم");
+
+    expect(bodyEditor().getHTML()).toBe("<p>خط اول</p><p>خط دوم</p>");
+  });
+});
+
+describe("NoteBodyEditor toolbar icons", () => {
+  function triggerIcon(label: string): string {
+    return button(label).querySelector("svg")?.getAttribute("class") ?? "";
+  }
+
+  function menuIcons(menuLabel: string): string[] {
+    openMenu(menuLabel);
+    return [
+      ...screen
+        .getByRole("menu", { name: menuLabel })
+        .querySelectorAll("[role='menuitemradio']"),
+    ].map((item) => item.querySelector("svg")?.getAttribute("class") ?? "");
+  }
+
+  test("gives right and left opposite align icons", () => {
+    renderBodyEditor();
+
+    const icons = menuIcons("تراز متن");
+
+    expect(icons[0]).toContain("text-align-end");
+    expect(icons[2]).toContain("text-align-start");
+  });
+
+  test("gives rtl and ltr opposite direction icons", () => {
+    renderBodyEditor();
+
+    const icons = menuIcons("جهت متن");
+
+    expect(icons[0]).toContain("pilcrow-left");
+    expect(icons[1]).toContain("pilcrow-right");
+  });
+
+  test("draws the direction trigger as the active direction", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+
+    expect(triggerIcon("جهت متن")).toContain("pilcrow-left");
+  });
+
+  test("swaps the direction trigger once ltr is chosen", async () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("جهت متن");
+    chooseMenuItem("چپ به راست");
+
+    await waitFor(() =>
+      expect(triggerIcon("جهت متن")).toContain("pilcrow-right"),
     );
   });
-}
+
+  test("draws the align trigger as the active alignment", async () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    openMenu("تراز متن");
+    chooseMenuItem("وسط");
+
+    await waitFor(() =>
+      expect(triggerIcon("تراز متن")).toContain("text-align-center"),
+    );
+  });
+
+  test("wraps a trigger in a flex item so no line box pads it", () => {
+    renderBodyEditor();
+
+    for (const label of ["جهت متن", "تراز متن", "موقعیت متن"]) {
+      expect(button(label).parentElement?.className).toContain("flex");
+    }
+  });
+});
+
+describe("NoteBodyEditor emoji picker", () => {
+  function openEmojiGrid() {
+    renderBodyEditor();
+    focusBodyCaret();
+
+    const trigger = button("انتخاب ایموجی");
+    act(() => {
+      trigger.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+      );
+      trigger.click();
+    });
+  }
+
+  test("opens a grid of the frequent emoji", () => {
+    openEmojiGrid();
+
+    expect(screen.getByRole("grid", { name: "انتخاب ایموجی" })).toBeDefined();
+    expect(screen.getAllByRole("gridcell")).toHaveLength(FREQUENT_EMOJI.length);
+  });
+
+  test("inserts the chosen emoji into the body", () => {
+    openEmojiGrid();
+
+    act(() => {
+      screen.getByRole("gridcell", { name: "🔥" }).click();
+    });
+
+    expect(bodyEditor().getText()).toBe("متن🔥");
+    expect(changes.at(-1)).toBe("<p>متن🔥</p>");
+  });
+
+  test("stays open so several emoji can be picked", () => {
+    openEmojiGrid();
+
+    act(() => {
+      screen.getByRole("gridcell", { name: "🔥" }).click();
+    });
+    act(() => {
+      screen.getByRole("gridcell", { name: "🚀" }).click();
+    });
+
+    expect(bodyEditor().getText()).toBe("متن🔥🚀");
+    expect(screen.getByRole("grid", { name: "انتخاب ایموجی" })).toBeDefined();
+  });
+
+  test("reports every insert as a change", () => {
+    openEmojiGrid();
+
+    act(() => {
+      screen.getByRole("gridcell", { name: "🔥" }).click();
+    });
+
+    expect(changes.at(-1)).toBe("<p>متن🔥</p>");
+  });
+
+  test("sits behind a separator in the toolbar", () => {
+    renderBodyEditor();
+
+    const separator = separators().at(-1);
+    const trigger = button("انتخاب ایموجی");
+
+    expect(separator).not.toBeNull();
+    expect(separator?.compareDocumentPosition(trigger)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  test("does not steal focus into the grid", () => {
+    renderBodyEditor();
+
+    const trigger = button("انتخاب ایموجی");
+    act(() => {
+      trigger.click();
+    });
+
+    expectFocusNotIn(trigger);
+  });
+
+  test("shows its tooltip on keyboard focus, not only on hover", async () => {
+    renderBodyEditor();
+
+    act(() => {
+      button("انتخاب ایموجی").focus();
+    });
+    fireHover(button("انتخاب ایموجی"));
+
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip").textContent).toBe("انتخاب ایموجی"),
+    );
+  });
+});

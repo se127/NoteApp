@@ -1,6 +1,6 @@
 import { Smile } from "lucide-react";
-import { useState } from "react";
 
+import { EMOJI_LABEL, EmojiGrid } from "@/components/emoji-grid";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -12,9 +12,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
 
-const LABEL = "انتخاب ایموجی";
+const LABEL = EMOJI_LABEL;
 
 export function TitleEmojiPicker({
   onSelect,
@@ -25,12 +24,9 @@ export function TitleEmojiPicker({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const isOpen = open;
-
   return (
-    <Popover open={isOpen} onOpenChange={onOpenChange}>
-      <Tooltip open={isHovered && !isOpen}>
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <Tooltip open={open ? false : undefined}>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
             <Button
@@ -39,9 +35,7 @@ export function TitleEmojiPicker({
               size="icon-sm"
               aria-label={LABEL}
               onMouseDown={(event) => event.preventDefault()}
-              onPointerEnter={() => setIsHovered(true)}
-              onPointerLeave={() => setIsHovered(false)}
-              className="bg-popover text-muted-foreground"
+              className="bg-popover text-foreground"
             >
               <Smile />
             </Button>
@@ -58,25 +52,7 @@ export function TitleEmojiPicker({
         onFocusOutside={(event) => event.preventDefault()}
         className="w-auto gap-0 p-1"
       >
-        <div
-          role="grid"
-          aria-label={LABEL}
-          onMouseDown={(event) => event.preventDefault()}
-          className="grid grid-cols-8 gap-0.5"
-        >
-          {FREQUENT_EMOJI.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              role="gridcell"
-              aria-label={emoji}
-              onClick={() => onSelect(emoji)}
-              className="grid size-8 place-items-center rounded-md text-lg transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
+        <EmojiGrid onSelect={onSelect} />
       </PopoverContent>
     </Popover>
   );

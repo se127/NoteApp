@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { useState } from "react";
 
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
@@ -107,5 +113,58 @@ describe("TitleEmojiPicker", () => {
     );
 
     expect(screen.queryByRole("gridcell")).toBeNull();
+  });
+
+  test("stays in the tab order so Tab reaches it from the title", () => {
+    render(
+      <TooltipProvider>
+        <Controlled onSelect={() => {}} />
+      </TooltipProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: LABEL }).getAttribute("tabindex"),
+    ).not.toBe("-1");
+  });
+
+  test("shows its tooltip on keyboard focus, not only on hover", async () => {
+    render(
+      <TooltipProvider>
+        <Controlled onSelect={() => {}} />
+      </TooltipProvider>,
+    );
+
+    const trigger = screen.getByRole("button", { name: LABEL });
+    fireEvent.focus(trigger);
+
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+    expect(screen.getByRole("tooltip").textContent).toBe(LABEL);
+  });
+
+  test("hides its tooltip while the grid is open", () => {
+    const { container } = renderOpen(() => {});
+
+    const trigger = screen.getByRole("button", { name: LABEL });
+    fireEvent.mouseEnter(trigger);
+    fireEvent.pointerEnter(trigger);
+    fireEvent.mouseOver(trigger);
+    fireEvent.pointerOver(trigger);
+    fireEvent.pointerMove(trigger);
+
+    expect(
+      container.ownerDocument.querySelector('[role="tooltip"]'),
+    ).toBeNull();
+  });
+
+  test("writes the trigger icon in the foreground colour", () => {
+    render(
+      <TooltipProvider>
+        <Controlled onSelect={() => {}} />
+      </TooltipProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: LABEL }).className).toContain(
+      "text-foreground",
+    );
   });
 });
