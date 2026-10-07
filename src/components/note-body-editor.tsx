@@ -10,16 +10,25 @@ import StarterKit from "@tiptap/starter-kit";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import TextAlign from "@tiptap/extension-text-align";
-import { FontSize, LineHeight, TextStyle } from "@tiptap/extension-text-style";
+import {
+  FontSize,
+  LineHeight,
+  Color,
+  TextStyle,
+} from "@tiptap/extension-text-style";
+import Highlight from "@tiptap/extension-highlight";
 import {
   Baseline,
   Bold,
+  Highlighter,
   Italic,
   List,
   ListOrdered,
   PilcrowLeft,
   PilcrowRight,
+  Redo2,
   Smile,
+  Square,
   Strikethrough,
   Subscript as SubscriptIcon,
   Superscript as SuperscriptIcon,
@@ -27,7 +36,9 @@ import {
   TextAlignEnd,
   TextAlignJustify,
   TextAlignStart,
+  Type as TypeIcon,
   Underline as UnderlineIcon,
+  Undo2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -46,6 +57,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import {
   Popover,
@@ -97,8 +116,10 @@ const EXTENSIONS = [
   TextAlign.configure({ types: ALIGNABLE_TYPES }),
   TextDirectionExtension,
   TextStyle,
+  Color,
   FontSize,
   LineHeight,
+  Highlight.configure({ multicolor: true }),
   Placeholder.configure({ placeholder: BODY_PLACEHOLDER }),
 ];
 
@@ -179,6 +200,282 @@ function MarkButton({ action, editor }: MarkButtonProps) {
       </TooltipTrigger>
       <TooltipContent side="top">{action.label}</TooltipContent>
     </Tooltip>
+  );
+}
+
+type HistoryAction = {
+  label: string;
+  icon: LucideIcon;
+  isAvailable: (editor: BodyEditor) => boolean;
+  run: (editor: BodyEditor) => void;
+};
+
+const HISTORY_ACTIONS: HistoryAction[] = [
+  {
+    label: "برگرداندن",
+    icon: Undo2,
+    isAvailable: (editor) => editor.can().undo(),
+    run: (editor) => editor.chain().focus().undo().run(),
+  },
+  {
+    label: "بازگرداندن",
+    icon: Redo2,
+    isAvailable: (editor) => editor.can().redo(),
+    run: (editor) => editor.chain().focus().redo().run(),
+  },
+];
+
+function HistoryButton({
+  action,
+  editor,
+}: {
+  action: HistoryAction;
+  editor: BodyEditor;
+}) {
+  const Icon = action.icon;
+  const isAvailable = useEditorState({
+    editor,
+    selector: ({ editor: instance }) => action.isAvailable(instance),
+  });
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={action.label}
+          disabled={!isAvailable}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => action.run(editor)}
+          className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <Icon className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{action.label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+const COLOR_PALETTE = [
+  "#000000",
+  "#262626",
+  "#404040",
+  "#595959",
+  "#737373",
+  "#8c8c8c",
+  "#a6a6a6",
+  "#bfbfbf",
+  "#d9d9d9",
+  "#ffffff",
+  "#7f1d1d",
+  "#991b1b",
+  "#b91c1c",
+  "#dc2626",
+  "#ef4444",
+  "#f87171",
+  "#fca5a5",
+  "#fecaca",
+  "#fee2e2",
+  "#fef2f2",
+  "#7c2d12",
+  "#9a3412",
+  "#c2410c",
+  "#ea580c",
+  "#f97316",
+  "#fb923c",
+  "#fdba74",
+  "#fed7aa",
+  "#ffedd5",
+  "#fff7ed",
+  "#14532d",
+  "#166534",
+  "#15803d",
+  "#16a34a",
+  "#22c55e",
+  "#4ade80",
+  "#86efac",
+  "#bbf7d0",
+  "#dcfce7",
+  "#f0fdf4",
+  "#1e3a8a",
+  "#1e40af",
+  "#1d4ed8",
+  "#2563eb",
+  "#3b82f6",
+  "#60a5fa",
+  "#93c5fd",
+  "#bfdbfe",
+  "#dbeafe",
+  "#eff6ff",
+  "#581c87",
+  "#6b21a8",
+  "#7e22ce",
+  "#9333ea",
+  "#a855f7",
+  "#c084fc",
+  "#d8b4fe",
+  "#e9d5ff",
+  "#f3e8ff",
+  "#fdf4ff",
+];
+
+const DEFAULT_HIGHLIGHT_COLOR = "#fef08a";
+
+type ColorAction = {
+  label: string;
+  icon: LucideIcon;
+  idleColor: string;
+  getColor: (editor: BodyEditor) => string | undefined;
+  setColor: (editor: BodyEditor, color: string) => void;
+  unsetColor: (editor: BodyEditor) => void;
+};
+
+const COLOR_ACTIONS: ColorAction[] = [
+  {
+    label: "رنگ متن",
+    icon: TypeIcon,
+    idleColor: "currentColor",
+    getColor: (editor) =>
+      editor.getAttributes("textStyle").color as string | undefined,
+    setColor: (editor, color) => {
+      editor.chain().focus().setColor(color).run();
+    },
+    unsetColor: (editor) => {
+      editor.chain().focus().unsetColor().run();
+    },
+  },
+  {
+    label: "رنگ پس زمینه",
+    icon: Highlighter,
+    idleColor: DEFAULT_HIGHLIGHT_COLOR,
+    getColor: (editor) =>
+      editor.getAttributes("highlight").color as string | undefined,
+    setColor: (editor, color) => {
+      editor.chain().focus().setHighlight({ color }).run();
+    },
+    unsetColor: (editor) => {
+      editor.chain().focus().unsetHighlight().run();
+    },
+  },
+];
+
+function ColorSwatch({
+  color,
+  isSelected,
+  onSelect,
+}: {
+  color: string;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={color}
+      aria-label={color}
+      aria-pressed={isSelected}
+      onClick={(event) => {
+        event.preventDefault();
+        onSelect();
+      }}
+      className={cn(
+        "size-5 rounded-sm transition-shadow hover:ring-2 hover:ring-foreground hover:ring-offset-1 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        isSelected && "ring-2 ring-foreground ring-offset-1",
+      )}
+      style={{ backgroundColor: color }}
+    />
+  );
+}
+
+function ColorPicker({
+  action,
+  editor,
+}: {
+  action: ColorAction;
+  editor: BodyEditor;
+}) {
+  const Icon = action.icon;
+  const color = useEditorState({
+    editor,
+    selector: ({ editor: instance }) => action.getColor(instance),
+  });
+  const { saveSelection, restoreSelection } = useSavedSelection(editor);
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative flex">
+      <Tooltip open={open ? false : undefined}>
+        <TooltipTrigger asChild>
+          <div className="flex">
+            <DropdownMenu
+              open={open}
+              onOpenChange={(next) => {
+                setOpen(next);
+                if (next) saveSelection();
+              }}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={action.label}
+                  onPointerDown={saveSelection}
+                  onMouseDown={(event) => event.preventDefault()}
+                  className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+                >
+                  <span className="flex flex-col items-center justify-center gap-0.5">
+                    <Icon className="size-3.5" />
+                    <span
+                      className="h-0.5 w-4 rounded-full"
+                      style={{ backgroundColor: color ?? action.idleColor }}
+                    />
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-64"
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                  restoreSelection();
+                }}
+              >
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="justify-center"
+                    onSelect={() => action.unsetColor(editor)}
+                  >
+                    <span className="relative size-4">
+                      <Square className="size-4" />
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="h-full w-0.5 rotate-45 bg-destructive" />
+                      </span>
+                    </span>
+                    پیش فرض
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <div className="grid grid-cols-10 gap-1 p-2">
+                  {COLOR_PALETTE.map((swatch) => (
+                    <ColorSwatch
+                      key={swatch}
+                      color={swatch}
+                      isSelected={swatch === color}
+                      onSelect={() => {
+                        action.setColor(editor, swatch);
+                        setOpen(false);
+                      }}
+                    />
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top">{action.label}</TooltipContent>
+      </Tooltip>
+    </div>
   );
 }
 
@@ -637,12 +934,19 @@ export function NoteBodyEditor({
         aria-label="قالب‌بندی متن"
         className="flex shrink-0 flex-wrap items-center gap-0.5 rounded-lg border border-border bg-black/5 p-1 dark:bg-muted/40"
       >
+        {HISTORY_ACTIONS.map((action) => (
+          <HistoryButton key={action.label} action={action} editor={editor} />
+        ))}
+        <Separator orientation="vertical" className="mx-0.5" />
         <TextDirectionMenu editor={editor} />
         <BlockTypeMenu editor={editor} />
         <Separator orientation="vertical" className="mx-0.5" />
         <FontSizePicker editor={editor} />
         {MARK_ACTIONS.map((action) => (
           <MarkButton key={action.label} action={action} editor={editor} />
+        ))}
+        {COLOR_ACTIONS.map((action) => (
+          <ColorPicker key={action.label} action={action} editor={editor} />
         ))}
         <Separator orientation="vertical" className="mx-0.5" />
         {LIST_ACTIONS.map((action) => (

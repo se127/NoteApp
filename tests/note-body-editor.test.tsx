@@ -17,6 +17,10 @@ const TOOLBAR_LABEL = "قالب‌بندی متن";
 const BLOCK_TYPE_LABEL = "سبک متن";
 const MARK_LABELS = ["ضخیم", "مورب", "زیرخط", "خط خورده"];
 const LIST_LABELS = ["لیست نقطه ای", "لیست شماره دار"];
+const HISTORY_LABELS = ["برگرداندن", "بازگرداندن"];
+const COLOR_LABELS = ["رنگ متن", "رنگ پس زمینه"];
+const TEXT_RED = "#ef4444";
+const HIGHLIGHT_ORANGE = "#fed7aa";
 
 let changes: string[] = [];
 
@@ -59,6 +63,33 @@ function openMenu(triggerLabel: string): void {
       new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
     );
     trigger.click();
+  });
+}
+
+function openColorMenu(triggerLabel: string): void {
+  const trigger = button(triggerLabel);
+  act(() => {
+    trigger.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1,
+        button: 0,
+        ctrlKey: false,
+      }),
+    );
+    trigger.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+    );
+    trigger.click();
+  });
+}
+
+function pickColor(triggerLabel: string, color: string): void {
+  openColorMenu(triggerLabel);
+  const swatch = screen.getByRole("button", { name: color });
+  act(() => {
+    swatch.click();
   });
 }
 
@@ -244,14 +275,16 @@ describe("NoteBodyEditor toolbar", () => {
     );
   });
 
-  test("orders direction, block style, font size, marks, lists, align and position", () => {
+  test("orders history, direction, block style, font size, marks, colors, lists, align and position", () => {
     renderBodyEditor();
 
     expect(toolbarButtonLabels()).toEqual([
+      ...HISTORY_LABELS,
       "جهت متن",
       BLOCK_TYPE_LABEL,
       FONT_SIZE_LABEL,
       ...MARK_LABELS,
+      ...COLOR_LABELS,
       ...LIST_LABELS,
       "تراز متن",
       "موقعیت متن",
@@ -302,7 +335,7 @@ describe("NoteBodyEditor toolbar", () => {
   test("groups the controls with full height vertical separators", () => {
     renderBodyEditor();
 
-    expect(separators()).toHaveLength(4);
+    expect(separators()).toHaveLength(5);
     for (const separator of separators()) {
       expect(separator.getAttribute("data-orientation")).toBe("vertical");
       expect(separator.className).toContain("self-stretch");
@@ -1127,6 +1160,144 @@ describe("NoteBodyEditor heading restrictions", () => {
     fireHover(button("ضخیم"));
 
     expect(document.querySelector('[role="tooltip"]')).toBeNull();
+  });
+});
+
+describe("NoteBodyEditor colors", () => {
+  test("colours the selected text", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ متن", TEXT_RED);
+
+    expect(bodyEditor().getHTML()).toBe(
+      `<p><span style="color: ${TEXT_RED};">متن</span></p>`,
+    );
+  });
+
+  test("highlights the selected text", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ پس زمینه", HIGHLIGHT_ORANGE);
+
+    const html = bodyEditor().getHTML();
+    expect(html).toContain("<mark");
+    expect(html).toContain(`background-color: ${HIGHLIGHT_ORANGE}`);
+  });
+
+  test("puts the chosen colour on text typed afterwards", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    pickColor("رنگ متن", TEXT_RED);
+
+    act(() => {
+      bodyEditor().commands.insertContent("تازه");
+    });
+
+    expect(bodyEditor().getHTML()).toContain(TEXT_RED);
+  });
+
+  test("shows a reset entry above the palette", () => {
+    renderBodyEditor();
+
+    openColorMenu("رنگ متن");
+
+    expect(screen.getByRole("menuitem", { name: "پیش فرض" })).toBeDefined();
+  });
+
+  test("the reset entry clears the colour back to the default", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ متن", TEXT_RED);
+    expect(bodyEditor().getHTML()).toContain(TEXT_RED);
+
+    openColorMenu("رنگ متن");
+    const reset = screen.getByRole("menuitem", { name: "پیش فرض" });
+    act(() => {
+      reset.click();
+    });
+
+    expect(bodyEditor().getHTML()).not.toContain(TEXT_RED);
+  });
+
+  test("marks the chosen swatch as the pressed one", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ متن", TEXT_RED);
+
+    openColorMenu("رنگ متن");
+
+    expect(
+      screen
+        .getByRole("button", { name: TEXT_RED })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  test("only the chosen swatch carries a ring", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ متن", TEXT_RED);
+
+    openColorMenu("رنگ متن");
+
+    const chosen = screen.getByRole("button", { name: TEXT_RED }).className;
+    const other = screen.getByRole("button", { name: "#22c55e" }).className;
+
+    expect(chosen.split(" ")).toContain("ring-2");
+    expect(other.split(" ")).not.toContain("ring-2");
+  });
+
+  test("leaves the other swatches unpressed", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ متن", TEXT_RED);
+
+    openColorMenu("رنگ متن");
+
+    expect(
+      screen
+        .getByRole("button", { name: "#22c55e" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
+  });
+
+  test("the trigger underline reflects the current text colour", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ متن", TEXT_RED);
+
+    const underline = button("رنگ متن").querySelector("span span");
+    expect(underline?.getAttribute("style")).toBe(
+      `background-color: ${TEXT_RED};`,
+    );
+  });
+
+  test("picking a swatch closes the menu and leaves focus in the editor", async () => {
+    renderBodyEditor();
+
+    await selectAllBodyText();
+    pickColor("رنگ متن", TEXT_RED);
+
+    await waitFor(() =>
+      expect(screen.queryByRole("menuitem", { name: "پیش فرض" })).toBeNull(),
+    );
+    expect(document.activeElement === bodyField()).toBe(true);
+  });
+
+  test("a stored coloured body comes back as markup", () => {
+    renderBodyEditor(`<p><span style="color: ${TEXT_RED};">متن</span></p>`);
+
+    expect(bodyEditor().getHTML()).toBe(
+      `<p><span style="color: ${TEXT_RED};">متن</span></p>`,
+    );
   });
 });
 

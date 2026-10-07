@@ -2,7 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { act, screen } from "@testing-library/react";
 
 import { NoteBodyEditor } from "@/components/note-body-editor";
-import { bodyEditor, selectAllBodyText } from "./helpers/note-body";
+import {
+  bodyEditor,
+  selectAllBodyText,
+  toolbarButton,
+} from "./helpers/note-body";
 import { renderWithProviders } from "./helpers/render";
 
 function mountBodyEditor(body: string) {
@@ -19,6 +23,13 @@ function appendToBody(text: string): void {
   const editor = bodyEditor();
   const endOfParagraph = editor.state.doc.content.size - 1;
   editor.commands.insertContentAt(endOfParagraph, text);
+}
+
+function clickToolbarButton(label: string): void {
+  const button = toolbarButton(label);
+  act(() => {
+    button.click();
+  });
 }
 
 afterEach(() => {
@@ -128,6 +139,85 @@ describe("NoteBodyEditor undo", () => {
     expect(bodyHtml()).toBe("<p>متن</p>");
 
     expect(bodyEditor().can().undo()).toBe(false);
+  });
+});
+
+describe("NoteBodyEditor history buttons", () => {
+  test("undo is disabled until there is something to undo", () => {
+    mountBodyEditor("<p>متن</p>");
+
+    expect(toolbarButton("برگرداندن").hasAttribute("disabled")).toBe(true);
+
+    act(() => {
+      appendToBody(" تازه");
+    });
+
+    expect(toolbarButton("برگرداندن").hasAttribute("disabled")).toBe(false);
+  });
+
+  test("the undo button takes back what was typed", () => {
+    mountBodyEditor("<p>متن</p>");
+
+    act(() => {
+      appendToBody(" تازه");
+    });
+    clickToolbarButton("برگرداندن");
+
+    expect(bodyHtml()).toBe("<p>متن</p>");
+  });
+
+  test("the redo button is disabled until an undo happens", () => {
+    mountBodyEditor("<p>متن</p>");
+
+    act(() => {
+      appendToBody(" تازه");
+    });
+
+    expect(toolbarButton("بازگرداندن").hasAttribute("disabled")).toBe(true);
+
+    clickToolbarButton("برگرداندن");
+
+    expect(toolbarButton("بازگرداندن").hasAttribute("disabled")).toBe(false);
+  });
+
+  test("the redo button puts the undone text back", () => {
+    mountBodyEditor("<p>متن</p>");
+
+    act(() => {
+      appendToBody(" تازه");
+    });
+    clickToolbarButton("برگرداندن");
+    clickToolbarButton("بازگرداندن");
+
+    expect(bodyHtml()).toBe("<p>متن تازه</p>");
+  });
+
+  test("both buttons disable again once history is exhausted", () => {
+    mountBodyEditor("<p>متن</p>");
+
+    act(() => {
+      appendToBody(" تازه");
+    });
+    clickToolbarButton("برگرداندن");
+
+    expect(toolbarButton("برگرداندن").hasAttribute("disabled")).toBe(true);
+    expect(toolbarButton("بازگرداندن").hasAttribute("disabled")).toBe(false);
+
+    clickToolbarButton("بازگرداندن");
+
+    expect(toolbarButton("بازگرداندن").hasAttribute("disabled")).toBe(true);
+  });
+
+  test("the undo button undoes a mark applied from the toolbar", async () => {
+    mountBodyEditor("<p>متن</p>");
+
+    await selectAllBodyText();
+    clickToolbarButton("ضخیم");
+    expect(bodyHtml()).toBe("<p><strong>متن</strong></p>");
+
+    clickToolbarButton("برگرداندن");
+
+    expect(bodyHtml()).toBe("<p>متن</p>");
   });
 });
 
