@@ -7,6 +7,7 @@ import { CODE_BLOCK_LANGUAGES } from "@/lib/code-block";
 import { lowlight } from "@/lib/lowlight";
 import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
 import {
+  DEFAULT_FONT_SIZE,
   FONT_SIZES,
   FONT_SIZE_LABEL,
   MIXED_FONT_SIZE_LABEL,
@@ -852,26 +853,50 @@ describe("NoteBodyEditor font size", () => {
 
     const select = toolbarSelect(FONT_SIZE_LABEL);
     expect(select).toBeDefined();
-    expect(select.textContent).toContain("14px");
+    expect(select.textContent).toContain("16px");
+  });
+
+  test("offers 16px as the smallest size", () => {
+    expect(FONT_SIZES.map((size) => size.label)).toEqual([
+      "16px",
+      "18px",
+      "20px",
+      "24px",
+    ]);
+  });
+
+  test("treats 16px as the size of plain text", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+
+    expect(activeFontSize(bodyEditor())).toBe("base");
+    expect(DEFAULT_FONT_SIZE).toBe("base");
+  });
+
+  test("offers no size below 16px", () => {
+    expect(FONT_SIZES.some((size) => size.fontSize.includes("--text-sm"))).toBe(
+      false,
+    );
   });
 
   test("follows the size the selection carries", async () => {
     renderBodyEditor();
 
     selectAllBodyText();
-    chooseFontSize(3);
+    chooseFontSize(2);
 
     await waitFor(() =>
       expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("20px"),
     );
-    expect(bodyEditor().getHTML()).toContain(FONT_SIZES[3].fontSize);
+    expect(bodyEditor().getHTML()).toContain(FONT_SIZES[2].fontSize);
   });
 
   test("keeps the existing block alone and sizes the text typed next", () => {
     renderBodyEditor();
 
     focusBodyCaret();
-    chooseFontSize(4);
+    chooseFontSize(3);
 
     expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
 
@@ -879,14 +904,14 @@ describe("NoteBodyEditor font size", () => {
       bodyEditor().commands.insertContent("تازه");
     });
 
-    expect(bodyEditor().getHTML()).toContain(FONT_SIZES[4].fontSize);
+    expect(bodyEditor().getHTML()).toContain(FONT_SIZES[3].fontSize);
   });
 
   test("shows the pending size on the trigger before anything is typed", async () => {
     renderBodyEditor();
 
     focusBodyCaret();
-    chooseFontSize(4);
+    chooseFontSize(3);
 
     await waitFor(() =>
       expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("24px"),
@@ -899,7 +924,7 @@ describe("NoteBodyEditor font size", () => {
     act(() => {
       bodyEditor().commands.focus(3);
     });
-    chooseFontSize(2);
+    chooseFontSize(1);
 
     expect(bodyEditor().state.selection.empty).toBe(true);
     expect(bodyEditor().getHTML()).toBe("<p>hello world</p>");
@@ -915,7 +940,7 @@ describe("NoteBodyEditor font size of text pasted from the title", () => {
     selectAllBodyText();
 
     await waitFor(() =>
-      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("14px"),
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("16px"),
     );
   });
 
@@ -929,17 +954,17 @@ describe("NoteBodyEditor font size of text pasted from the title", () => {
         MIXED_FONT_SIZE_LABEL,
       ),
     );
-    expect(toolbarSelect(FONT_SIZE_LABEL).textContent).not.toContain("14px");
+    expect(toolbarSelect(FONT_SIZE_LABEL).textContent).not.toContain("16px");
   });
 
   test("applies a picked size straight over the pasted one", () => {
     renderBodyEditor(TITLE_SIZE);
 
     selectAllBodyText();
-    applyFontSize(bodyEditor(), "sm");
+    applyFontSize(bodyEditor(), "base");
 
     expect(bodyEditor().getHTML()).toBe(
-      `<p><span style="font-size: var(--text-sm); line-height: var(--text-sm--line-height);">متن</span></p>`,
+      `<p><span style="font-size: var(--text-base); line-height: var(--text-base--line-height);">متن</span></p>`,
     );
   });
 
@@ -949,7 +974,7 @@ describe("NoteBodyEditor font size of text pasted from the title", () => {
     selectAllBodyText();
 
     expect(activeFontSize(bodyEditor())).toBeNull();
-    expect(activeFontSize(bodyEditor())).not.toBe("sm");
+    expect(activeFontSize(bodyEditor())).not.toBe("base");
   });
 
   test("reports a selection of two different sizes as mixed", async () => {
@@ -983,10 +1008,10 @@ describe("NoteBodyEditor font size of text pasted from the title", () => {
     renderBodyEditor(TITLE_SIZE);
 
     selectAllBodyText();
-    applyFontSize(bodyEditor(), "sm");
+    applyFontSize(bodyEditor(), "base");
 
     await waitFor(() =>
-      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("14px"),
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("16px"),
     );
   });
 });

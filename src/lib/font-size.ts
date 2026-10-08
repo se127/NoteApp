@@ -4,12 +4,6 @@ import type { BodyEditor } from "@/components/note-body-editor";
 
 export const FONT_SIZES = [
   {
-    label: "14px",
-    value: "sm",
-    fontSize: "var(--text-sm)",
-    lineHeight: "var(--text-sm--line-height)",
-  },
-  {
     label: "16px",
     value: "base",
     fontSize: "var(--text-base)",
@@ -37,7 +31,7 @@ export const FONT_SIZES = [
 
 export type FontSizeValue = (typeof FONT_SIZES)[number]["value"];
 
-export const DEFAULT_FONT_SIZE: FontSizeValue = "sm";
+export const DEFAULT_FONT_SIZE: FontSizeValue = "base";
 
 export const FONT_SIZE_LABEL = "اندازه ی متن";
 

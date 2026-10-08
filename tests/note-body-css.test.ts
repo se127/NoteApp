@@ -153,6 +153,20 @@ describe("note body code block styling", () => {
     expect(ruleBody(CODE_BLOCK_FONT_SELECTOR)).toContain("font-mono");
   });
 
+  test("sizes code at the smallest offered size", () => {
+    expect(ruleBody(CODE_BLOCK_FONT_SELECTOR)).toContain("text-base");
+  });
+
+  test("sizes the note body itself at that same size", () => {
+    expect(ruleBody(".prose")).toContain("text-base");
+    expect(ruleBody(".prose")).not.toContain("text-sm");
+  });
+
+  test("sizes table text at that same size", () => {
+    expect(ruleBody(".prose table")).toContain("text-base");
+    expect(ruleBody(".prose table")).not.toContain("text-sm");
+  });
+
   test("reaches both the block and the code inside it", () => {
     expect(CODE_BLOCK_FONT_SELECTOR).toContain(".prose pre code");
   });

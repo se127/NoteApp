@@ -1,5 +1,5 @@
 .prose {
-  @apply max-w-full text-sm;
+  @apply max-w-full text-base;
   color: black;
   --tw-prose-bullets: black;
   --tw-prose-counters: black;
@@ -52,7 +52,7 @@
 
 .prose pre,
 .prose pre code {
-  @apply font-mono;
+  @apply font-mono text-base;
 }
 
 .prose pre {
@@ -100,7 +100,7 @@
 }
 
 .prose table {
-  @apply w-full table-fixed border-collapse overflow-hidden text-sm;
+  @apply w-full table-fixed border-collapse overflow-hidden text-base;
 }
 
 .prose table th {
