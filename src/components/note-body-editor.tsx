@@ -20,6 +20,8 @@ import Highlight from "@tiptap/extension-highlight";
 import {
   Baseline,
   Bold,
+  Check,
+  Code2,
   Highlighter,
   Italic,
   List,
@@ -90,6 +92,12 @@ import {
   setBlockType,
 } from "@/lib/block-type";
 import {
+  CODE_BLOCK_LANGUAGES,
+  CodeBlock,
+  activeCodeBlockLanguage,
+  setCodeBlockLanguage,
+} from "@/lib/code-block";
+import {
   FONT_SIZES,
   MIXED_FONT_SIZE_LABEL,
   NO_FONT_SIZE_OFFERED,
@@ -124,6 +132,7 @@ const EXTENSIONS = [
   FontSize,
   LineHeight,
   Highlight.configure({ multicolor: true }),
+  CodeBlock,
   Placeholder.configure({ placeholder: BODY_PLACEHOLDER }),
 ];
 
@@ -732,6 +741,79 @@ function BodyEmojiPicker({ editor }: { editor: BodyEditor }) {
   );
 }
 
+function CodeBlockButton({ editor }: { editor: BodyEditor }) {
+  const language = useEditorState({
+    editor,
+    selector: ({ editor: instance }) => activeCodeBlockLanguage(instance),
+  });
+  const { saveSelection, restoreSelection } = useSavedSelection(editor);
+  const [open, setOpen] = useState(false);
+  const shortcut = toolbarShortcut("codeBlock");
+
+  const run = useCallback(() => {
+    saveSelection();
+    setOpen(true);
+  }, [saveSelection]);
+
+  useToolbarCommand("codeBlock", run);
+
+  return (
+    <ShortcutTooltip shortcut={shortcut} open={open ? false : undefined}>
+      <div className="flex">
+        <DropdownMenu
+          open={open}
+          onOpenChange={(next) => {
+            setOpen(next);
+            if (next) saveSelection();
+          }}
+        >
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant={language === null ? "ghost" : "default"}
+              size="icon-sm"
+              aria-label={shortcut.label}
+              aria-pressed={language !== null}
+              onPointerDown={saveSelection}
+              onMouseDown={(event) => event.preventDefault()}
+              className={cn(
+                "rounded-md",
+                language === null &&
+                  "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
+              )}
+            >
+              <Code2 className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-48"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              restoreSelection();
+            }}
+          >
+            <DropdownMenuGroup className="max-h-48 scrollbar-thin overflow-y-auto">
+              {CODE_BLOCK_LANGUAGES.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onSelect={() => {
+                    setCodeBlockLanguage(editor, option.value);
+                    setOpen(false);
+                  }}
+                >
+                  {option.label}
+                  {language === option.value ? (
+                    <Check className="ms-auto size-4" />
+                  ) : null}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </ShortcutTooltip>
+  );
+}
+
 function BlockquoteButton({ editor }: { editor: BodyEditor }) {
   const isActive = useEditorState({
     editor,
@@ -1054,6 +1136,7 @@ export function NoteBodyEditor({
         <TextAlignMenu editor={editor} />
         <TextPositionMenu editor={editor} />
         <Separator orientation="vertical" className="mx-0.5" />
+        <CodeBlockButton editor={editor} />
         <BlockquoteButton editor={editor} />
         <HorizontalRuleButton editor={editor} />
         <Separator orientation="vertical" className="mx-0.5" />

@@ -5,7 +5,7 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
-const STORED_BLOCK = /^<(p|h[1-6]|ul|ol|hr|blockquote)(\s[^>]*)?>/i;
+const STORED_BLOCK = /^<(p|h[1-6]|ul|ol|hr|blockquote|pre)(\s[^>]*)?>/i;
 
 function isStoredHtml(body: string): boolean {
   return STORED_BLOCK.test(body);

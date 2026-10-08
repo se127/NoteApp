@@ -3,6 +3,8 @@ import { act, screen, waitFor } from "@testing-library/react";
 
 import { NoteBodyEditor } from "@/components/note-body-editor";
 import { BLOCK_TYPES, setBlockType, type BlockType } from "@/lib/block-type";
+import { CODE_BLOCK_LANGUAGES } from "@/lib/code-block";
+import { lowlight } from "@/lib/lowlight";
 import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
 import {
   FONT_SIZES,
@@ -11,7 +13,11 @@ import {
   activeFontSize,
   applyFontSize,
 } from "@/lib/font-size";
-import { TOOLBAR_SHORTCUTS, toolbarShortcut } from "@/lib/shortcuts";
+import {
+  TOOLBAR_SHORTCUTS,
+  type ToolbarCommand,
+  toolbarShortcut,
+} from "@/lib/shortcuts";
 import {
   bodyEditor,
   focusBodyCaret,
@@ -130,6 +136,22 @@ function chooseBlockType(label: string): void {
 function pressButton(label: string): void {
   act(() => {
     button(label).click();
+  });
+}
+
+function pressCommand(command: ToolbarCommand): void {
+  const shortcut = toolbarShortcut(command);
+  act(() => {
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        code: shortcut.code,
+        ctrlKey: true,
+        altKey: shortcut.alt === true,
+        shiftKey: shortcut.shift === true,
+      }),
+    );
   });
 }
 
@@ -282,7 +304,7 @@ describe("NoteBodyEditor toolbar", () => {
     );
   });
 
-  test("orders history, direction, block style, font size, marks, colors, lists, align, position, rule and emoji", () => {
+  test("orders history, direction, block style, font size, marks, colors, lists, align, position, code block, rule and emoji", () => {
     renderBodyEditor();
 
     expect(toolbarButtonLabels()).toEqual([
@@ -295,6 +317,7 @@ describe("NoteBodyEditor toolbar", () => {
       ...LIST_LABELS,
       "تراز متن",
       "موقعیت متن",
+      "بلاک کد",
       "نقل قول",
       "خط افقی",
       "انتخاب ایموجی",
@@ -1590,6 +1613,233 @@ describe("NoteBodyEditor colors", () => {
     expect(bodyEditor().getHTML()).toBe(
       `<p><span style="color: ${TEXT_RED};">متن</span></p>`,
     );
+  });
+});
+
+describe("NoteBodyEditor code block", () => {
+  const CODE_BLOCK_LABEL = "بلاک کد";
+
+  function openCodeBlockMenu(): void {
+    const trigger = button(CODE_BLOCK_LABEL);
+    act(() => {
+      trigger.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          button: 0,
+          ctrlKey: false,
+        }),
+      );
+      trigger.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, cancelable: true }),
+      );
+      trigger.click();
+    });
+  }
+
+  function chooseLanguage(label: string): void {
+    openCodeBlockMenu();
+    const item = screen.getByRole("menuitem", { name: label });
+    act(() => {
+      item.click();
+    });
+  }
+
+  function languageNames(): (string | null)[] {
+    return [...document.querySelectorAll("[role='menuitem']")].map(
+      (item) => item.textContent,
+    );
+  }
+
+  test("turns the current block into a code block", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("JavaScript");
+
+    const html = bodyEditor().getHTML();
+    expect(html).toContain("<pre");
+    expect(html).toContain('class="language-javascript"');
+  });
+
+  test("marks the block as left to right so code reads left to right", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("HTML");
+
+    expect(bodyEditor().getHTML()).toContain('dir="ltr"');
+  });
+
+  test("offers every language the lowlight instance can highlight", () => {
+    renderBodyEditor();
+
+    openCodeBlockMenu();
+
+    expect(languageNames()).toEqual(
+      CODE_BLOCK_LANGUAGES.map((option) => option.label),
+    );
+  });
+
+  test("registers every offered language with lowlight", () => {
+    expect(lowlight.listLanguages().toSorted()).toEqual(
+      CODE_BLOCK_LANGUAGES.map((option) => option.value).toSorted(),
+    );
+  });
+
+  test("highlights the code it stores", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("JSON");
+    act(() => {
+      bodyEditor().commands.insertContent('{"a":1}');
+    });
+
+    const highlighted = document.querySelectorAll(
+      "pre code .hljs-string, pre code .hljs-attr",
+    );
+    expect(highlighted.length).toBeGreaterThan(0);
+  });
+
+  test("switches the language of the code block the caret is in", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("Python");
+    chooseLanguage("SQL");
+
+    expect(bodyEditor().getHTML()).toContain('class="language-sql"');
+    expect(bodyEditor().getHTML()).not.toContain("language-python");
+  });
+
+  test("keeps the code when it changes language", () => {
+    renderBodyEditor("<pre><code>ls</code></pre>");
+
+    focusBodyCaret();
+    chooseLanguage("Bash");
+    chooseLanguage("Markdown");
+
+    expect(bodyEditor().getText()).toBe("ls");
+  });
+
+  test("reads a stored code block back as markup", () => {
+    renderBodyEditor(
+      '<pre><code class="language-css">p{color:red}</code></pre>',
+    );
+
+    const html = bodyEditor().getHTML();
+    expect(html).toContain("<pre");
+    expect(html).toContain('class="language-css"');
+  });
+
+  test("ticks only the language the code block is written in", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("Python");
+    openCodeBlockMenu();
+
+    const ticked = [...document.querySelectorAll("[role='menuitem']")]
+      .filter((item) => item.querySelector("svg") !== null)
+      .map((item) => item.textContent);
+
+    expect(ticked).toEqual(["Python"]);
+  });
+
+  test("leaves every language unticked outside a code block", () => {
+    renderBodyEditor();
+
+    openCodeBlockMenu();
+
+    const ticked = [...document.querySelectorAll("[role='menuitem']")].filter(
+      (item) => item.querySelector("svg") !== null,
+    );
+
+    expect(ticked.length).toBe(0);
+  });
+
+  test("scrolls the language list inside the menu", () => {
+    renderBodyEditor();
+
+    openCodeBlockMenu();
+
+    const group = document.querySelector("[data-slot='dropdown-menu-group']");
+    expect(group?.className).toContain("overflow-y-auto");
+    expect(group?.className).toContain("scrollbar-thin");
+    expect(group?.className).toContain("max-h-48");
+  });
+
+  test("reads a code block with no language as plain code", () => {
+    renderBodyEditor("<pre><code>ls</code></pre>");
+
+    expect(bodyEditor().getHTML()).toContain('class="language-plaintext"');
+  });
+
+  test("leaves the caret in the editor after picking a language", async () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("JSON");
+
+    await waitFor(() =>
+      expect(document.querySelector("[role='menuitem']")).toBeNull(),
+    );
+    expect(document.activeElement === bodyField()).toBe(true);
+  });
+
+  test("presses the trigger while the caret is in a code block", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("Bash");
+
+    expect(button(CODE_BLOCK_LABEL).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("leaves the trigger unpressed in ordinary text", () => {
+    renderBodyEditor();
+
+    expect(button(CODE_BLOCK_LABEL).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("opens the language list on Ctrl + Alt + K", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    pressCommand("codeBlock");
+
+    expect(screen.getByRole("menuitem", { name: "کد ساده" })).toBeDefined();
+  });
+
+  test("the shortcut only fires on its own binding", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          bubbles: true,
+          cancelable: true,
+          code: "KeyL",
+          ctrlKey: true,
+          altKey: true,
+        }),
+      );
+    });
+
+    expect(document.querySelectorAll("[role='menuitem']").length).toBe(0);
+  });
+
+  test("undoes the code block it inserted", () => {
+    renderBodyEditor();
+
+    focusBodyCaret();
+    chooseLanguage("JSON");
+    pressButton("برگرداندن");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
   });
 });
 

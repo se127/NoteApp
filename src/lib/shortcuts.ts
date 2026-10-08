@@ -14,6 +14,7 @@ export type ToolbarCommand =
   | "bodyEmoji"
   | "bold"
   | "bulletList"
+  | "codeBlock"
   | "fontSize"
   | "highlightColor"
   | "horizontalRule"
@@ -220,6 +221,18 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
         "فهرست موقعیت متن را باز می‌ کند تا متن را معمولی ، زیرنویس یا بالانویس کنید.",
       key: "p",
       label: "موقعیت متن",
+    },
+  },
+  {
+    command: "codeBlock",
+    shortcut: {
+      alt: true,
+      code: "KeyK",
+      combination: "Ctrl + Alt + K",
+      description:
+        "فهرست زبان های بلوک کد را باز می‌ کند تا کد ساده یا کد هایلایت دار درج کنید.",
+      key: "k",
+      label: "بلاک کد",
     },
   },
   {

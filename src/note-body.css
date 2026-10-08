@@ -50,6 +50,15 @@
   @apply mb-[1.5em];
 }
 
+.prose pre,
+.prose pre code {
+  @apply font-mono;
+}
+
+.prose pre {
+  @apply rounded-lg;
+}
+
 .prose a {
   color: var(--color-primary);
 }

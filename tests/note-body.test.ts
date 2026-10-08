@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 
 import { bodyToHtml } from "@/lib/note-body";
 
+const STORED_CODE_BLOCK =
+  '<pre dir="ltr"><code class="language-html">&lt;p&gt;hi&lt;/p&gt;</code></pre>';
+
 describe("bodyToHtml", () => {
   test("returns an empty string for an empty body", () => {
     expect(bodyToHtml("")).toBe("");
@@ -41,6 +44,13 @@ describe("bodyToHtml", () => {
     expect(bodyToHtml("<h2>عنوان</h2>")).toBe("<h2>عنوان</h2>");
     expect(bodyToHtml("<h3>زیرعنوان</h3><p>متن</p>")).toBe(
       "<h3>زیرعنوان</h3><p>متن</p>",
+    );
+  });
+
+  test("passes stored code block html through untouched", () => {
+    expect(bodyToHtml(STORED_CODE_BLOCK)).toBe(STORED_CODE_BLOCK);
+    expect(bodyToHtml(`<p>متن</p>${STORED_CODE_BLOCK}`)).toBe(
+      `<p>متن</p>${STORED_CODE_BLOCK}`,
     );
   });
 

@@ -756,12 +756,16 @@ describe("NoteEditor Ctrl+S save", () => {
 });
 
 describe("NoteEditor paste", () => {
+  function clipboardWith(text: string) {
+    return { getData: (type: string) => (type === "text/plain" ? text : "") };
+  }
+
   test("collapses whitespace pasted into the title", () => {
     renderEditor();
 
     act(() => {
       fireEvent.paste(titleField(), {
-        clipboardData: { getData: () => "  چند   خط\n\tجدید  " },
+        clipboardData: clipboardWith("  چند   خط\n\tجدید  "),
       });
     });
 
@@ -773,7 +777,7 @@ describe("NoteEditor paste", () => {
 
     act(() => {
       fireEvent.paste(bodyField(), {
-        clipboardData: { getData: () => "چسبانده" },
+        clipboardData: clipboardWith("چسبانده"),
       });
     });
 

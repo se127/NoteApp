@@ -35,6 +35,7 @@ describe("SHORTCUTS", () => {
       "Ctrl + Shift + O",
       "Ctrl + Alt + A",
       "Ctrl + Alt + P",
+      "Ctrl + Alt + K",
       "Ctrl + Shift + Q",
       "Ctrl + Shift + H",
       "Ctrl + Alt + E",

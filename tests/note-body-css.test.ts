@@ -8,8 +8,15 @@ const PLACEHOLDER_SELECTOR =
 const NO_TOP_MARGIN_SELECTOR =
   ".prose p, .prose h2, .prose h3, .prose h4, .prose blockquote, .prose ul, .prose ol, .prose table, .prose pre, .prose hr, .prose video, .prose img, .prose audio, .prose ul > li:first-child, .prose ol > li:first-child";
 
+const CODE_BLOCK_FONT_SELECTOR = ".prose pre, .prose pre code";
+
 const noteBody = readFileSync(
   path.join(import.meta.dir, "..", "src", "note-body.css"),
+  "utf8",
+).replace(/\s+/g, " ");
+
+const indexCss = readFileSync(
+  path.join(import.meta.dir, "..", "src", "index.css"),
   "utf8",
 ).replace(/\s+/g, " ");
 
@@ -138,6 +145,24 @@ describe("note body block spacing", () => {
 
   test("reaches a paragraph nested in a list", () => {
     expect(ruleBody(".prose li p")).toContain("my-0");
+  });
+});
+
+describe("note body code block styling", () => {
+  test("draws code in a monospace face, not the note font", () => {
+    expect(ruleBody(CODE_BLOCK_FONT_SELECTOR)).toContain("font-mono");
+  });
+
+  test("reaches both the block and the code inside it", () => {
+    expect(CODE_BLOCK_FONT_SELECTOR).toContain(".prose pre code");
+  });
+
+  test("rounds the block's corners", () => {
+    expect(ruleBody(".prose pre")).toContain("rounded-lg");
+  });
+
+  test("loads a syntax highlight theme", () => {
+    expect(indexCss).toContain('@import "highlight.js/styles/github-dark.css"');
   });
 });
 

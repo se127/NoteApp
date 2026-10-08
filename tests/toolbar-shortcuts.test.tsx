@@ -353,6 +353,7 @@ describe("every toolbar command is bound", () => {
     "undo",
     "redo",
     "blockquote",
+    "codeBlock",
     "horizontalRule",
     "bulletList",
     "orderedList",
