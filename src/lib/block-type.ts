@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import type { BodyEditor } from "@/components/note-body-editor";
+import { fontSizeRange } from "@/lib/font-size";
 
 export const HEADING_LEVELS = [2, 3, 4, 5, 6] as const;
 
@@ -36,9 +37,20 @@ export function activeBlockType(editor: BodyEditor): BlockType {
 }
 
 export function setBlockType(editor: BodyEditor, blockType: BlockType): void {
+  const saved = editor.state.selection;
   const chain = editor.chain().focus();
-  if (blockType.level === null) chain.setParagraph().run();
-  else chain.setHeading({ level: blockType.level }).run();
+
+  if (blockType.level === null) {
+    chain.setParagraph();
+  } else {
+    chain
+      .setTextSelection(fontSizeRange(editor))
+      .setHeading({ level: blockType.level })
+      .unsetFontSize()
+      .unsetLineHeight();
+  }
+
+  chain.setTextSelection(saved).run();
 }
 
 export function isHeadingBlock(editor: BodyEditor): boolean {

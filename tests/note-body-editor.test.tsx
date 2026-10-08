@@ -4,7 +4,13 @@ import { act, screen, waitFor } from "@testing-library/react";
 import { NoteBodyEditor } from "@/components/note-body-editor";
 import { BLOCK_TYPES, setBlockType, type BlockType } from "@/lib/block-type";
 import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
-import { FONT_SIZES, FONT_SIZE_LABEL } from "@/lib/font-size";
+import {
+  FONT_SIZES,
+  FONT_SIZE_LABEL,
+  MIXED_FONT_SIZE_LABEL,
+  activeFontSize,
+  applyFontSize,
+} from "@/lib/font-size";
 import {
   bodyEditor,
   focusBodyCaret,
@@ -476,6 +482,102 @@ describe("NoteBodyEditor block type", () => {
   });
 });
 
+describe("NoteBodyEditor heading typography", () => {
+  const SIZED = '<p><span style="font-size: 16px;">متن</span></p>';
+
+  test("lets a heading size itself instead of the copied text size", () => {
+    renderBodyEditor(SIZED);
+
+    focusBodyCaret();
+    chooseBlockType("عنوان ۲");
+
+    expect(bodyEditor().getHTML()).toBe("<h2>متن</h2>");
+  });
+
+  test("drops the line height the copied text carried too", () => {
+    renderBodyEditor(
+      '<p><span style="font-size: 16px; line-height: 1.25;">متن</span></p>',
+    );
+
+    focusBodyCaret();
+    chooseBlockType("عنوان ۲");
+
+    expect(bodyEditor().getHTML()).toBe("<h2>متن</h2>");
+  });
+
+  test("keeps the colour the copied text carried", () => {
+    renderBodyEditor(
+      `<p><span style="font-size: 16px; color: ${TEXT_RED};">متن</span></p>`,
+    );
+
+    focusBodyCaret();
+    chooseBlockType("عنوان ۲");
+
+    expect(bodyEditor().getHTML()).toBe(
+      `<h2><span style="color: ${TEXT_RED};">متن</span></h2>`,
+    );
+  });
+
+  test("keeps the bold the copied text carried", () => {
+    renderBodyEditor(
+      '<p><strong><span style="font-size: 16px;">متن</span></strong></p>',
+    );
+
+    focusBodyCaret();
+    chooseBlockType("عنوان ۲");
+
+    expect(bodyEditor().getHTML()).toBe("<h2><strong>متن</strong></h2>");
+  });
+
+  test("lets every heading the selection spans size itself", () => {
+    renderBodyEditor(
+      '<p><span style="font-size: 16px;">یک</span></p><p><span style="font-size: 40px;">دو</span></p>',
+    );
+
+    selectAllBodyText();
+    chooseBlockType("عنوان ۲");
+
+    expect(bodyEditor().getHTML()).toBe("<h2>یک</h2><h2>دو</h2>");
+  });
+
+  test("leaves a paragraph the size it was given", () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+    chooseFontSize(2);
+
+    expect(bodyEditor().getHTML()).toBe(
+      `<p><span style="font-size: ${FONT_SIZES[2].fontSize}; line-height: ${FONT_SIZES[2].lineHeight};">متن</span></p>`,
+    );
+  });
+
+  test("keeps the caret collapsed after the size is dropped", () => {
+    renderBodyEditor("<p>hello world</p>");
+
+    act(() => {
+      bodyEditor().commands.focus(3);
+    });
+    chooseBlockType("عنوان ۲");
+
+    expect(bodyEditor().state.selection.empty).toBe(true);
+    expect(bodyEditor().state.selection.from).toBe(3);
+  });
+
+  test("undoes the heading and the size it dropped in one step", () => {
+    renderBodyEditor(SIZED);
+
+    focusBodyCaret();
+    chooseBlockType("عنوان ۲");
+    expect(bodyEditor().getHTML()).toBe("<h2>متن</h2>");
+
+    act(() => {
+      bodyEditor().commands.undo();
+    });
+
+    expect(bodyEditor().getHTML()).toBe(SIZED);
+  });
+});
+
 describe("NoteBodyEditor marks", () => {
   test("starts every mark on the ghost variant with no selection carried", () => {
     renderBodyEditor();
@@ -723,6 +825,91 @@ describe("NoteBodyEditor font size", () => {
 
     expect(bodyEditor().state.selection.empty).toBe(true);
     expect(bodyEditor().getHTML()).toBe("<p>hello world</p>");
+  });
+});
+
+describe("NoteBodyEditor font size of text pasted from the title", () => {
+  const TITLE_SIZE = '<p><span style="font-size: 30px;">متن</span></p>';
+
+  test("reads the default for plain text the body already sizes", async () => {
+    renderBodyEditor();
+
+    selectAllBodyText();
+
+    await waitFor(() =>
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("14px"),
+    );
+  });
+
+  test("reports a size the picker does not offer as mixed", async () => {
+    renderBodyEditor(TITLE_SIZE);
+
+    selectAllBodyText();
+
+    await waitFor(() =>
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain(
+        MIXED_FONT_SIZE_LABEL,
+      ),
+    );
+    expect(toolbarSelect(FONT_SIZE_LABEL).textContent).not.toContain("14px");
+  });
+
+  test("applies a picked size straight over the pasted one", () => {
+    renderBodyEditor(TITLE_SIZE);
+
+    selectAllBodyText();
+    applyFontSize(bodyEditor(), "sm");
+
+    expect(bodyEditor().getHTML()).toBe(
+      `<p><span style="font-size: var(--text-sm); line-height: var(--text-sm--line-height);">متن</span></p>`,
+    );
+  });
+
+  test("leaves the picker on a size that differs from the pasted one", () => {
+    renderBodyEditor(TITLE_SIZE);
+
+    selectAllBodyText();
+
+    expect(activeFontSize(bodyEditor())).toBeNull();
+    expect(activeFontSize(bodyEditor())).not.toBe("sm");
+  });
+
+  test("reports a selection of two different sizes as mixed", async () => {
+    renderBodyEditor(
+      `<p><span style="font-size: 30px;">یک</span><span style="font-size: 40px;">دو</span></p>`,
+    );
+
+    selectAllBodyText();
+
+    await waitFor(() =>
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain(
+        MIXED_FONT_SIZE_LABEL,
+      ),
+    );
+  });
+
+  test("sizes both halves of that selection in one pick", () => {
+    renderBodyEditor(
+      `<p><span style="font-size: 30px;">یک</span><span style="font-size: 40px;">دو</span></p>`,
+    );
+
+    selectAllBodyText();
+    applyFontSize(bodyEditor(), "base");
+
+    expect(bodyEditor().getHTML()).toBe(
+      `<p><span style="font-size: var(--text-base); line-height: var(--text-base--line-height);">یکدو</span></p>`,
+    );
+  });
+
+  test("follows the size once the pasted text has been resized", async () => {
+    renderBodyEditor(TITLE_SIZE);
+
+    selectAllBodyText();
+    applyFontSize(bodyEditor(), "sm");
+
+    await waitFor(() =>
+      expect(toolbarSelect(FONT_SIZE_LABEL).textContent).toContain("14px"),
+    );
   });
 });
 

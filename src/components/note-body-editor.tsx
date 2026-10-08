@@ -88,10 +88,13 @@ import {
   setBlockType,
 } from "@/lib/block-type";
 import {
-  DEFAULT_FONT_SIZE,
   FONT_SIZE_LABEL,
   FONT_SIZES,
-  type FontSizeValue,
+  MIXED_FONT_SIZE_LABEL,
+  NO_FONT_SIZE_OFFERED,
+  activeFontSize,
+  applyFontSize,
+  isFontSizeValue,
 } from "@/lib/font-size";
 import {
   TextDirectionExtension,
@@ -821,20 +824,6 @@ function ListButton({ action, editor }: MarkButtonProps) {
   );
 }
 
-function activeFontSize(editor: BodyEditor): FontSizeValue {
-  const stored =
-    editor.state.storedMarks ?? editor.state.selection.$from.marks();
-  const storedFontSize = stored.find((mark) => mark.type.name === "textStyle")
-    ?.attrs.fontSize;
-  const { fontSize } = editor.getAttributes("textStyle");
-
-  return (
-    FONT_SIZES.find((size) => size.fontSize === fontSize)?.value ??
-    FONT_SIZES.find((size) => size.fontSize === storedFontSize)?.value ??
-    DEFAULT_FONT_SIZE
-  );
-}
-
 function clampedSelection(
   editor: BodyEditor,
   saved: EditorSelection,
@@ -887,8 +876,9 @@ function FontSizePicker({
     editor,
     selector: ({ editor: instance }) => isHeadingBlock(instance),
   });
-  const active =
-    FONT_SIZES.find((size) => size.value === value) ?? FONT_SIZES[0];
+  const label =
+    FONT_SIZES.find((size) => size.value === value)?.label ??
+    MIXED_FONT_SIZE_LABEL;
   const { saveSelection, restoreSelection } = useSavedSelection(editor);
   const [isListOpen, setIsListOpen] = useState(false);
 
@@ -898,7 +888,7 @@ function FontSizePicker({
         <TooltipTrigger asChild>
           <div className="flex">
             <Select
-              value={value}
+              value={value ?? NO_FONT_SIZE_OFFERED}
               open={isListOpen}
               disabled={isHeading}
               onOpenChange={(open) => {
@@ -906,14 +896,7 @@ function FontSizePicker({
                 onOpenChange?.(open);
               }}
               onValueChange={(next) => {
-                const size = FONT_SIZES.find((item) => item.value === next);
-                if (size === undefined) return;
-                editor
-                  .chain()
-                  .focus()
-                  .setFontSize(size.fontSize)
-                  .setLineHeight(size.lineHeight)
-                  .run();
+                if (isFontSizeValue(next)) applyFontSize(editor, next);
               }}
             >
               <SelectTrigger
@@ -922,7 +905,7 @@ function FontSizePicker({
                 onMouseDown={(event) => event.preventDefault()}
                 className="h-7 w-20 items-center rounded-md bg-background px-2 py-0 text-sm text-foreground hover:bg-background disabled:opacity-50 dark:bg-input/30"
               >
-                <SelectValue>{active.label}</SelectValue>
+                <SelectValue>{label}</SelectValue>
               </SelectTrigger>
               <SelectContent
                 className="min-w-24"
