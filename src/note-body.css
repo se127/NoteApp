@@ -126,7 +126,7 @@
 }
 
 .prose .tableWrapper {
-  @apply mb-[2em] scrollbar-thin overflow-x-auto;
+  @apply mb-[2em] overflow-x-auto;
 }
 
 .prose .tableWrapper table {

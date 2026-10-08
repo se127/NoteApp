@@ -256,3 +256,31 @@ describe("note body alignment follows the dir attribute", () => {
     }
   });
 });
+
+describe("scrollbars keep their thumb and drop their arrow buttons", () => {
+  test("removes the up and down arrow buttons", () => {
+    expect(indexCss).toMatch(/::-webkit-scrollbar-button \{ display: none; \}/);
+  });
+
+  test("keeps the platform thin width in one named place", () => {
+    expect(indexCss).toContain("--scrollbar-thin-size:");
+    expect(indexCss).toMatch(
+      /::-webkit-scrollbar \{ width: var\(--scrollbar-thin-size\); height: var\(--scrollbar-thin-size\); \}/,
+    );
+  });
+
+  test("keeps a visible track and thumb", () => {
+    expect(indexCss).toContain("::-webkit-scrollbar-thumb");
+    expect(indexCss).toContain("::-webkit-scrollbar-track");
+    expect(indexCss).not.toMatch(/::-webkit-scrollbar \{[^}]*width: 0(?:px)?;/);
+  });
+
+  test("sets no standard scrollbar property, which would outrank the webkit rule", () => {
+    expect(indexCss).not.toContain("scrollbar-width");
+    expect(indexCss).not.toContain("scrollbar-color");
+  });
+
+  test("leaves no scrollbar utility on the note body", () => {
+    expect(noteBody).not.toContain("scrollbar");
+  });
+});

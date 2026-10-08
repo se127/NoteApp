@@ -791,7 +791,7 @@ function CodeBlockButton({ editor }: { editor: BodyEditor }) {
               restoreSelection();
             }}
           >
-            <DropdownMenuGroup className="max-h-48 scrollbar-thin overflow-y-auto">
+            <DropdownMenuGroup className="max-h-48 overflow-y-auto">
               {CODE_BLOCK_LANGUAGES.map((option) => (
                 <DropdownMenuItem
                   key={option.value}
@@ -1143,11 +1143,8 @@ export function NoteBodyEditor({
         <BodyEmojiPicker editor={editor} />
       </div>
       <div className="note-body mt-4 flex min-h-0 flex-1 flex-col overflow-hidden px-6">
-        <div
-          data-note-scroll=""
-          className="min-h-0 flex-1 scrollbar-thin overflow-y-auto"
-        >
-          <div className="pb-14">
+        <div data-note-scroll="" className="min-h-0 flex-1 overflow-y-auto">
+          <div>
             <EditorContent editor={editor} className="prose" />
           </div>
         </div>

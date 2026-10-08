@@ -41,7 +41,7 @@ export function ShortcutsDialog() {
           <DialogDescription>{CLOSE_HINT}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid max-h-[60vh] scrollbar-thin gap-4 overflow-y-auto pe-1">
+        <div className="grid max-h-[60vh] gap-4 overflow-y-auto pe-1">
           {SHORTCUT_GROUPS.map(({ heading, shortcuts }) => (
             <section key={heading} className="grid gap-2">
               <h3 className="text-xs font-medium text-muted-foreground">

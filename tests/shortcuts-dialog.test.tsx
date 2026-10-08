@@ -63,13 +63,13 @@ describe("ShortcutsDialog", () => {
     expect(dialog).toContain("ذخیره خودکار معطل را لغو می‌ کند");
   });
 
-  test("scrolls the list on a thin scrollbar", () => {
+  test("scrolls the list without opting into the platform scrollbar", () => {
     renderDialog();
     openDialog();
 
     const list = screen.getByRole("dialog").querySelector(".overflow-y-auto");
-    expect(list?.className).toContain("scrollbar-thin");
     expect(list?.className).toContain("max-h-");
+    expect(list?.className).not.toContain("scrollbar");
   });
 
   test("documents every bound shortcut", () => {

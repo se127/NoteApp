@@ -382,7 +382,7 @@ describe("NoteBodyEditor toolbar", () => {
     const content = scroller?.firstElementChild;
 
     expect(scroller?.className).not.toContain("pb-");
-    expect(content?.className).toContain("pb-14");
+    expect(content?.className).not.toContain("pb-");
   });
 
   test("draws the toolbar on a light grey in light mode and dims it in dark mode", () => {
@@ -1829,14 +1829,14 @@ describe("NoteBodyEditor code block", () => {
     expect(ticked.length).toBe(0);
   });
 
-  test("scrolls the language list inside the menu", () => {
+  test("scrolls the language list without opting into the platform scrollbar", () => {
     renderBodyEditor();
 
     openCodeBlockMenu();
 
     const group = document.querySelector("[data-slot='dropdown-menu-group']");
     expect(group?.className).toContain("overflow-y-auto");
-    expect(group?.className).toContain("scrollbar-thin");
+    expect(group?.className).not.toContain("scrollbar");
     expect(group?.className).toContain("max-h-48");
   });
 
