@@ -9,6 +9,8 @@ import {
   isShortcut,
   SAVE_NOTE_SHORTCUT,
   type ShortcutKeys,
+  TITLE_EMOJI_SHORTCUT,
+  toolbarShortcut,
 } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 
@@ -30,12 +32,16 @@ function syncPlainText(element: HTMLElement): string {
   return text;
 }
 
-const FORMATTING_SHORTCUTS = ["b", "i", "u"];
-
 const FORMATTING_INPUT_PREFIX = "format";
 
+const BOLD_SHORTCUT = toolbarShortcut("bold");
+const ITALIC_SHORTCUT = toolbarShortcut("italic");
+const UNDERLINE_SHORTCUT = toolbarShortcut("underline");
+
 function isFormattingShortcut(event: ShortcutKeys): boolean {
-  return FORMATTING_SHORTCUTS.some((key) => isShortcut(event, key));
+  return [BOLD_SHORTCUT, ITALIC_SHORTCUT, UNDERLINE_SHORTCUT].some((shortcut) =>
+    isShortcut(event, shortcut),
+  );
 }
 
 function isFormattingInputType(inputType: string): boolean {
@@ -202,7 +208,7 @@ export function NoteEditor({ note }: { note: Note }) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isShortcut(event, SAVE_NOTE_SHORTCUT.key)) return;
+      if (!isShortcut(event, SAVE_NOTE_SHORTCUT)) return;
 
       event.preventDefault();
 
@@ -218,6 +224,19 @@ export function NoteEditor({ note }: { note: Note }) {
     return () =>
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
   }, [saveNow]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, TITLE_EMOJI_SHORTCUT)) return;
+
+      event.preventDefault();
+      setIsPickerOpen((wasOpen) => !wasOpen);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, []);
 
   useEffect(() => {
     if (status !== "saved") return;

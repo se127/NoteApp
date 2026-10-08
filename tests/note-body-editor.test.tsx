@@ -11,6 +11,7 @@ import {
   activeFontSize,
   applyFontSize,
 } from "@/lib/font-size";
+import { TOOLBAR_SHORTCUTS, toolbarShortcut } from "@/lib/shortcuts";
 import {
   bodyEditor,
   focusBodyCaret,
@@ -738,7 +739,7 @@ describe("NoteBodyEditor tooltips", () => {
     fireHover(button("تراز متن"));
 
     await waitFor(() =>
-      expect(screen.getByRole("tooltip").textContent).toBe("تراز متن"),
+      expect(screen.getByRole("tooltip").textContent).toContain("تراز متن"),
     );
   });
 
@@ -748,7 +749,59 @@ describe("NoteBodyEditor tooltips", () => {
     fireHover(button("انتخاب ایموجی"));
 
     await waitFor(() =>
-      expect(screen.getByRole("tooltip").textContent).toBe("انتخاب ایموجی"),
+      expect(screen.getByRole("tooltip").textContent).toContain(
+        "انتخاب ایموجی",
+      ),
+    );
+  });
+
+  test("names the bold shortcut in its tooltip kbd", async () => {
+    renderBodyEditor();
+
+    fireHover(button("ضخیم"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("tooltip").querySelector("kbd")?.textContent,
+      ).toBe(toolbarShortcut("bold").combination),
+    );
+  });
+
+  test("names the rule shortcut in its tooltip kbd", async () => {
+    renderBodyEditor();
+
+    fireHover(button("خط افقی"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("tooltip").querySelector("kbd")?.textContent,
+      ).toBe(toolbarShortcut("horizontalRule").combination),
+    );
+  });
+
+  test("gives every toolbar control a trigger labelled as its shortcut", () => {
+    renderBodyEditor();
+
+    const labels = new Set(
+      [...toolbar().querySelectorAll("button, [role='combobox']")].map(
+        (element) => element.getAttribute("aria-label"),
+      ),
+    );
+
+    for (const { shortcut } of TOOLBAR_SHORTCUTS) {
+      expect(labels.has(shortcut.label)).toBe(true);
+    }
+  });
+
+  test("names the body emoji shortcut apart from the title one", async () => {
+    renderBodyEditor();
+
+    fireHover(button("انتخاب ایموجی"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("tooltip").querySelector("kbd")?.textContent,
+      ).toBe(toolbarShortcut("bodyEmoji").combination),
     );
   });
 
@@ -757,7 +810,9 @@ describe("NoteBodyEditor tooltips", () => {
 
     fireHover(button("انتخاب ایموجی"));
     await waitFor(() =>
-      expect(screen.getByRole("tooltip").textContent).toBe("انتخاب ایموجی"),
+      expect(screen.getByRole("tooltip").textContent).toContain(
+        "انتخاب ایموجی",
+      ),
     );
 
     act(() => {
@@ -1766,7 +1821,9 @@ describe("NoteBodyEditor emoji picker", () => {
     fireHover(button("انتخاب ایموجی"));
 
     await waitFor(() =>
-      expect(screen.getByRole("tooltip").textContent).toBe("انتخاب ایموجی"),
+      expect(screen.getByRole("tooltip").textContent).toContain(
+        toolbarShortcut("bodyEmoji").combination,
+      ),
     );
   });
 });

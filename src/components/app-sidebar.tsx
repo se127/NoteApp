@@ -61,7 +61,7 @@ export function AppSidebar() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!isShortcut(event, NEW_NOTE_SHORTCUT.key)) return;
+      if (!isShortcut(event, NEW_NOTE_SHORTCUT)) return;
 
       event.preventDefault();
       void handleNewNote();

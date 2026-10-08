@@ -47,9 +47,10 @@ import {
   TextSelection,
   type Selection as EditorSelection,
 } from "@tiptap/pm/state";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { EmojiGrid } from "@/components/emoji-grid";
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { ToolbarMenu, type ToolbarMenuOption } from "@/components/toolbar-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,11 +74,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { type ToolbarCommand, toolbarShortcut } from "@/lib/shortcuts";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  findToolbarCommand,
+  runToolbarCommand,
+  useToolbarCommand,
+} from "@/lib/toolbar-commands";
 import { bodyToHtml } from "@/lib/note-body";
 import { keepPastedTextInline } from "@/lib/note-paste";
 import {
@@ -88,7 +90,6 @@ import {
   setBlockType,
 } from "@/lib/block-type";
 import {
-  FONT_SIZE_LABEL,
   FONT_SIZES,
   MIXED_FONT_SIZE_LABEL,
   NO_FONT_SIZE_OFFERED,
@@ -129,6 +130,7 @@ const EXTENSIONS = [
 export type BodyEditor = Editor;
 
 type MarkAction = {
+  command: ToolbarCommand;
   label: string;
   icon: LucideIcon;
   isActive: (editor: BodyEditor) => boolean;
@@ -138,6 +140,7 @@ type MarkAction = {
 
 const MARK_ACTIONS: MarkAction[] = [
   {
+    command: "bold",
     label: "ضخیم",
     icon: Bold,
     isActive: (editor) => editor.isActive("bold"),
@@ -145,18 +148,21 @@ const MARK_ACTIONS: MarkAction[] = [
     disablesOnHeading: true,
   },
   {
+    command: "italic",
     label: "مورب",
     icon: Italic,
     isActive: (editor) => editor.isActive("italic"),
     toggle: (editor) => editor.chain().focus().toggleItalic().run(),
   },
   {
+    command: "underline",
     label: "زیرخط",
     icon: UnderlineIcon,
     isActive: (editor) => editor.isActive("underline"),
     toggle: (editor) => editor.chain().focus().toggleUnderline().run(),
   },
   {
+    command: "strike",
     label: "خط خورده",
     icon: Strikethrough,
     isActive: (editor) => editor.isActive("strike"),
@@ -180,33 +186,36 @@ function MarkButton({ action, editor }: MarkButtonProps) {
     selector: ({ editor: instance }) =>
       action.disablesOnHeading === true && isHeadingBlock(instance),
   });
+  const shortcut = toolbarShortcut(action.command);
+
+  const run = useCallback(() => action.toggle(editor), [action, editor]);
+
+  useToolbarCommand(action.command, run);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant={isActive ? "default" : "ghost"}
-          size="icon-sm"
-          aria-label={action.label}
-          aria-pressed={isActive}
-          disabled={isDisabled}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => action.toggle(editor)}
-          className={cn(
-            "rounded-md",
-            !isActive &&
-              "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
-          )}
-        >
-          <Icon className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top">{action.label}</TooltipContent>
-    </Tooltip>
+    <ShortcutTooltip shortcut={shortcut}>
+      <Button
+        variant={isActive ? "default" : "ghost"}
+        size="icon-sm"
+        aria-label={action.label}
+        aria-pressed={isActive}
+        disabled={isDisabled}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={run}
+        className={cn(
+          "rounded-md",
+          !isActive &&
+            "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
+        )}
+      >
+        <Icon className="size-4" />
+      </Button>
+    </ShortcutTooltip>
   );
 }
 
 type HistoryAction = {
+  command: ToolbarCommand;
   label: string;
   icon: LucideIcon;
   isAvailable: (editor: BodyEditor) => boolean;
@@ -215,12 +224,14 @@ type HistoryAction = {
 
 const HISTORY_ACTIONS: HistoryAction[] = [
   {
+    command: "undo",
     label: "برگرداندن",
     icon: Undo2,
     isAvailable: (editor) => editor.can().undo(),
     run: (editor) => editor.chain().focus().undo().run(),
   },
   {
+    command: "redo",
     label: "بازگرداندن",
     icon: Redo2,
     isAvailable: (editor) => editor.can().redo(),
@@ -240,24 +251,26 @@ function HistoryButton({
     editor,
     selector: ({ editor: instance }) => action.isAvailable(instance),
   });
+  const shortcut = toolbarShortcut(action.command);
+
+  const run = useCallback(() => action.run(editor), [action, editor]);
+
+  useToolbarCommand(action.command, run);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={action.label}
-          disabled={!isAvailable}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => action.run(editor)}
-          className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <Icon className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top">{action.label}</TooltipContent>
-    </Tooltip>
+    <ShortcutTooltip shortcut={shortcut}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={action.label}
+        disabled={!isAvailable}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={run}
+        className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+      >
+        <Icon className="size-4" />
+      </Button>
+    </ShortcutTooltip>
   );
 }
 
@@ -327,6 +340,7 @@ const COLOR_PALETTE = [
 const DEFAULT_HIGHLIGHT_COLOR = "#fef08a";
 
 type ColorAction = {
+  command: ToolbarCommand;
   label: string;
   icon: LucideIcon;
   idleColor: string;
@@ -337,6 +351,7 @@ type ColorAction = {
 
 const COLOR_ACTIONS: ColorAction[] = [
   {
+    command: "textColor",
     label: "رنگ متن",
     icon: TypeIcon,
     idleColor: "currentColor",
@@ -350,6 +365,7 @@ const COLOR_ACTIONS: ColorAction[] = [
     },
   },
   {
+    command: "highlightColor",
     label: "رنگ پس زمینه",
     icon: Highlighter,
     idleColor: DEFAULT_HIGHLIGHT_COLOR,
@@ -406,78 +422,83 @@ function ColorPicker({
   });
   const { saveSelection, restoreSelection } = useSavedSelection(editor);
   const [open, setOpen] = useState(false);
+  const shortcut = toolbarShortcut(action.command);
+
+  const run = useCallback(() => {
+    saveSelection();
+    setOpen(true);
+  }, [saveSelection]);
+
+  useToolbarCommand(action.command, run);
 
   return (
     <div className="relative flex">
-      <Tooltip open={open ? false : undefined}>
-        <TooltipTrigger asChild>
-          <div className="flex">
-            <DropdownMenu
-              open={open}
-              onOpenChange={(next) => {
-                setOpen(next);
-                if (next) saveSelection();
+      <ShortcutTooltip shortcut={shortcut} open={open ? false : undefined}>
+        <div className="flex">
+          <DropdownMenu
+            open={open}
+            onOpenChange={(next) => {
+              setOpen(next);
+              if (next) saveSelection();
+            }}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={action.label}
+                onPointerDown={saveSelection}
+                onMouseDown={(event) => event.preventDefault()}
+                className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                <span className="flex flex-col items-center justify-center gap-0.5">
+                  <Icon className="size-3.5" />
+                  <span
+                    className="h-0.5 w-4 rounded-full"
+                    style={{ backgroundColor: color ?? action.idleColor }}
+                  />
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-64"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                restoreSelection();
               }}
             >
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={action.label}
-                  onPointerDown={saveSelection}
-                  onMouseDown={(event) => event.preventDefault()}
-                  className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className="justify-center"
+                  onSelect={() => action.unsetColor(editor)}
                 >
-                  <span className="flex flex-col items-center justify-center gap-0.5">
-                    <Icon className="size-3.5" />
-                    <span
-                      className="h-0.5 w-4 rounded-full"
-                      style={{ backgroundColor: color ?? action.idleColor }}
-                    />
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-64"
-                onCloseAutoFocus={(event) => {
-                  event.preventDefault();
-                  restoreSelection();
-                }}
-              >
-                <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    className="justify-center"
-                    onSelect={() => action.unsetColor(editor)}
-                  >
-                    <span className="relative size-4">
-                      <Square className="size-4" />
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="h-full w-0.5 rotate-45 bg-destructive" />
-                      </span>
+                  <span className="relative size-4">
+                    <Square className="size-4" />
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="h-full w-0.5 rotate-45 bg-destructive" />
                     </span>
-                    پیش فرض
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <div className="grid grid-cols-10 gap-1 p-2">
-                  {COLOR_PALETTE.map((swatch) => (
-                    <ColorSwatch
-                      key={swatch}
-                      color={swatch}
-                      isSelected={swatch === color}
-                      onSelect={() => {
-                        action.setColor(editor, swatch);
-                        setOpen(false);
-                      }}
-                    />
-                  ))}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top">{action.label}</TooltipContent>
-      </Tooltip>
+                  </span>
+                  پیش فرض
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <div className="grid grid-cols-10 gap-1 p-2">
+                {COLOR_PALETTE.map((swatch) => (
+                  <ColorSwatch
+                    key={swatch}
+                    color={swatch}
+                    isSelected={swatch === color}
+                    onSelect={() => {
+                      action.setColor(editor, swatch);
+                      setOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </ShortcutTooltip>
     </div>
   );
 }
@@ -490,59 +511,64 @@ function BlockTypeMenu({ editor }: { editor: BodyEditor }) {
   const TriggerIcon = blockType.icon;
   const { saveSelection, restoreSelection } = useSavedSelection(editor);
   const [isListOpen, setIsListOpen] = useState(false);
+  const shortcut = toolbarShortcut("blockType");
+
+  const run = useCallback(() => {
+    saveSelection();
+    setIsListOpen(true);
+  }, [saveSelection]);
+
+  useToolbarCommand("blockType", run);
 
   return (
-    <Tooltip open={isListOpen ? false : undefined}>
-      <TooltipTrigger asChild>
-        <div className="flex">
-          <Select
-            value={blockType.label}
-            open={isListOpen}
-            onOpenChange={setIsListOpen}
-            onValueChange={(label) => {
-              const type = BLOCK_TYPES.find(
-                (candidate) => candidate.label === label,
-              );
-              if (type !== undefined) setBlockType(editor, type);
+    <ShortcutTooltip shortcut={shortcut} open={isListOpen ? false : undefined}>
+      <div className="flex">
+        <Select
+          value={blockType.label}
+          open={isListOpen}
+          onOpenChange={setIsListOpen}
+          onValueChange={(label) => {
+            const type = BLOCK_TYPES.find(
+              (candidate) => candidate.label === label,
+            );
+            if (type !== undefined) setBlockType(editor, type);
+          }}
+        >
+          <SelectTrigger
+            aria-label={shortcut.label}
+            onPointerDown={saveSelection}
+            onMouseDown={(event) => event.preventDefault()}
+            className="h-7 w-32 items-center rounded-md bg-background px-2 py-0 text-sm text-foreground hover:bg-background dark:bg-input/30"
+          >
+            <SelectValue>
+              <span className="flex items-center gap-1.5">
+                <TriggerIcon className="size-4" />
+                {blockType.label}
+              </span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent
+            className="min-w-32"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              restoreSelection();
             }}
           >
-            <SelectTrigger
-              aria-label="سبک متن"
-              onPointerDown={saveSelection}
-              onMouseDown={(event) => event.preventDefault()}
-              className="h-7 w-32 items-center rounded-md bg-background px-2 py-0 text-sm text-foreground hover:bg-background dark:bg-input/30"
-            >
-              <SelectValue>
-                <span className="flex items-center gap-1.5">
-                  <TriggerIcon className="size-4" />
-                  {blockType.label}
-                </span>
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent
-              className="min-w-32"
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                restoreSelection();
-              }}
-            >
-              {BLOCK_TYPES.map((type) => {
-                const ItemIcon = type.icon;
-                return (
-                  <SelectItem key={type.label} value={type.label}>
-                    <span className="flex items-center gap-1.5">
-                      <ItemIcon className="size-4" />
-                      {type.label}
-                    </span>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="top">سبک متن</TooltipContent>
-    </Tooltip>
+            {BLOCK_TYPES.map((type) => {
+              const ItemIcon = type.icon;
+              return (
+                <SelectItem key={type.label} value={type.label}>
+                  <span className="flex items-center gap-1.5">
+                    <ItemIcon className="size-4" />
+                    {type.label}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+    </ShortcutTooltip>
   );
 }
 
@@ -571,8 +597,7 @@ function TextAlignMenu({ editor }: { editor: BodyEditor }) {
 
   return (
     <ToolbarMenu
-      label="تراز متن"
-      triggerLabel="تراز متن"
+      command="textAlign"
       options={ALIGNMENTS}
       activeValue={alignment}
       triggerIcon={active?.icon ?? TextAlignStart}
@@ -616,8 +641,7 @@ function TextPositionMenu({ editor }: { editor: BodyEditor }) {
 
   return (
     <ToolbarMenu
-      label="موقعیت متن"
-      triggerLabel="موقعیت متن"
+      command="textPosition"
       options={TEXT_POSITIONS}
       activeValue={position}
       triggerIcon={active?.icon ?? Baseline}
@@ -653,8 +677,7 @@ function TextDirectionMenu({ editor }: { editor: BodyEditor }) {
 
   return (
     <ToolbarMenu
-      label="جهت متن"
-      triggerLabel="جهت متن"
+      command="textDirection"
       options={TEXT_DIRECTIONS}
       activeValue={direction}
       triggerIcon={directionIcon(direction)}
@@ -669,25 +692,27 @@ function TextDirectionMenu({ editor }: { editor: BodyEditor }) {
 
 function BodyEmojiPicker({ editor }: { editor: BodyEditor }) {
   const [open, setOpen] = useState(false);
+  const shortcut = toolbarShortcut("bodyEmoji");
+
+  const toggle = useCallback(() => setOpen((wasOpen) => !wasOpen), []);
+
+  useToolbarCommand("bodyEmoji", toggle);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <Tooltip open={open ? false : undefined}>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="انتخاب ایموجی"
-              onMouseDown={(event) => event.preventDefault()}
-              className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              <Smile className="size-4" />
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="top">انتخاب ایموجی</TooltipContent>
-      </Tooltip>
+      <ShortcutTooltip shortcut={shortcut} open={open ? false : undefined}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={shortcut.label}
+            onMouseDown={(event) => event.preventDefault()}
+            className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <Smile className="size-4" />
+          </Button>
+        </PopoverTrigger>
+      </ShortcutTooltip>
 
       <PopoverContent
         side="bottom"
@@ -712,48 +737,59 @@ function BlockquoteButton({ editor }: { editor: BodyEditor }) {
     editor,
     selector: ({ editor: instance }) => instance.isActive("blockquote"),
   });
+  const shortcut = toolbarShortcut("blockquote");
+
+  const run = useCallback(
+    () => editor.chain().focus().toggleBlockquote().run(),
+    [editor],
+  );
+
+  useToolbarCommand("blockquote", run);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant={isActive ? "default" : "ghost"}
-          size="icon-sm"
-          aria-label="نقل قول"
-          aria-pressed={isActive}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={cn(
-            "rounded-md",
-            !isActive &&
-              "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
-          )}
-        >
-          <Quote className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top">نقل قول</TooltipContent>
-    </Tooltip>
+    <ShortcutTooltip shortcut={shortcut}>
+      <Button
+        variant={isActive ? "default" : "ghost"}
+        size="icon-sm"
+        aria-label={shortcut.label}
+        aria-pressed={isActive}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={run}
+        className={cn(
+          "rounded-md",
+          !isActive &&
+            "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
+        )}
+      >
+        <Quote className="size-4" />
+      </Button>
+    </ShortcutTooltip>
   );
 }
 
 function HorizontalRuleButton({ editor }: { editor: BodyEditor }) {
+  const shortcut = toolbarShortcut("horizontalRule");
+
+  const run = useCallback(
+    () => editor.chain().focus().setHorizontalRule().run(),
+    [editor],
+  );
+
+  useToolbarCommand("horizontalRule", run);
+
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="خط افقی"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
-        >
-          <Minus className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top">خط افقی</TooltipContent>
-    </Tooltip>
+    <ShortcutTooltip shortcut={shortcut}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={shortcut.label}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={run}
+        className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+      >
+        <Minus className="size-4" />
+      </Button>
+    </ShortcutTooltip>
   );
 }
 
@@ -767,6 +803,7 @@ function toggleList(editor: BodyEditor, kind: ListKind): void {
 }
 
 type ListAction = {
+  command: ToolbarCommand;
   label: string;
   icon: LucideIcon;
   isActive: (editor: BodyEditor) => boolean;
@@ -775,12 +812,14 @@ type ListAction = {
 
 const LIST_ACTIONS: ListAction[] = [
   {
+    command: "bulletList",
     label: "لیست نقطه ای",
     icon: List,
     isActive: (editor) => editor.isActive("bulletList"),
     toggle: (editor) => toggleList(editor, "bulletList"),
   },
   {
+    command: "orderedList",
     label: "لیست شماره دار",
     icon: ListOrdered,
     isActive: (editor) => editor.isActive("orderedList"),
@@ -798,29 +837,31 @@ function ListButton({ action, editor }: MarkButtonProps) {
     editor,
     selector: ({ editor: instance }) => isHeadingBlock(instance),
   });
+  const shortcut = toolbarShortcut(action.command);
+
+  const run = useCallback(() => action.toggle(editor), [action, editor]);
+
+  useToolbarCommand(action.command, run);
 
   return (
-    <Tooltip open={isHeading ? false : undefined}>
-      <TooltipTrigger asChild>
-        <Button
-          variant={isActive ? "default" : "ghost"}
-          size="icon-sm"
-          aria-label={action.label}
-          aria-pressed={isActive}
-          disabled={isHeading}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => action.toggle(editor)}
-          className={cn(
-            "rounded-md",
-            !isActive &&
-              "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
-          )}
-        >
-          <Icon className="size-4" />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top">{action.label}</TooltipContent>
-    </Tooltip>
+    <ShortcutTooltip shortcut={shortcut} open={isHeading ? false : undefined}>
+      <Button
+        variant={isActive ? "default" : "ghost"}
+        size="icon-sm"
+        aria-label={action.label}
+        aria-pressed={isActive}
+        disabled={isHeading}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={run}
+        className={cn(
+          "rounded-md",
+          !isActive &&
+            "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
+        )}
+      >
+        <Icon className="size-4" />
+      </Button>
+    </ShortcutTooltip>
   );
 }
 
@@ -881,50 +922,58 @@ function FontSizePicker({
     MIXED_FONT_SIZE_LABEL;
   const { saveSelection, restoreSelection } = useSavedSelection(editor);
   const [isListOpen, setIsListOpen] = useState(false);
+  const shortcut = toolbarShortcut("fontSize");
+
+  const run = useCallback(() => {
+    saveSelection();
+    setIsListOpen(true);
+  }, [saveSelection]);
+
+  useToolbarCommand("fontSize", run);
 
   return (
     <div className="relative flex">
-      <Tooltip open={isListOpen || isHeading ? false : undefined}>
-        <TooltipTrigger asChild>
-          <div className="flex">
-            <Select
-              value={value ?? NO_FONT_SIZE_OFFERED}
-              open={isListOpen}
-              disabled={isHeading}
-              onOpenChange={(open) => {
-                setIsListOpen(open);
-                onOpenChange?.(open);
-              }}
-              onValueChange={(next) => {
-                if (isFontSizeValue(next)) applyFontSize(editor, next);
+      <ShortcutTooltip
+        shortcut={shortcut}
+        open={isListOpen || isHeading ? false : undefined}
+      >
+        <div className="flex">
+          <Select
+            value={value ?? NO_FONT_SIZE_OFFERED}
+            open={isListOpen}
+            disabled={isHeading}
+            onOpenChange={(open) => {
+              setIsListOpen(open);
+              onOpenChange?.(open);
+            }}
+            onValueChange={(next) => {
+              if (isFontSizeValue(next)) applyFontSize(editor, next);
+            }}
+          >
+            <SelectTrigger
+              aria-label={shortcut.label}
+              onPointerDown={saveSelection}
+              onMouseDown={(event) => event.preventDefault()}
+              className="h-7 w-20 items-center rounded-md bg-background px-2 py-0 text-sm text-foreground hover:bg-background disabled:opacity-50 dark:bg-input/30"
+            >
+              <SelectValue>{label}</SelectValue>
+            </SelectTrigger>
+            <SelectContent
+              className="min-w-24"
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                restoreSelection();
               }}
             >
-              <SelectTrigger
-                aria-label={FONT_SIZE_LABEL}
-                onPointerDown={saveSelection}
-                onMouseDown={(event) => event.preventDefault()}
-                className="h-7 w-20 items-center rounded-md bg-background px-2 py-0 text-sm text-foreground hover:bg-background disabled:opacity-50 dark:bg-input/30"
-              >
-                <SelectValue>{label}</SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                className="min-w-24"
-                onCloseAutoFocus={(event) => {
-                  event.preventDefault();
-                  restoreSelection();
-                }}
-              >
-                {FONT_SIZES.map((size) => (
-                  <SelectItem key={size.value} value={size.value}>
-                    {size.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="top">{FONT_SIZE_LABEL}</TooltipContent>
-      </Tooltip>
+              {FONT_SIZES.map((size) => (
+                <SelectItem key={size.value} value={size.value}>
+                  {size.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </ShortcutTooltip>
     </div>
   );
 }
@@ -957,6 +1006,22 @@ export function NoteBodyEditor({
   useEffect(() => {
     if (editor !== null) onReady?.(editor);
   }, [editor, onReady]);
+
+  useEffect(() => {
+    if (editor === null) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const command = findToolbarCommand(event);
+      if (command === undefined) return;
+
+      event.preventDefault();
+      runToolbarCommand(command);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [editor]);
 
   if (editor === null) return null;
 

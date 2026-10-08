@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { ShortcutsDialog } from "@/components/shortcuts-dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SHORTCUT_GROUPS } from "@/lib/shortcuts";
 
 const TRIGGER_LABEL = "کلیدهای میان بر";
 
@@ -49,7 +50,7 @@ describe("ShortcutsDialog", () => {
     const dialog = screen.getByRole("dialog").textContent ?? "";
     expect(dialog).toContain("Ctrl + N");
     expect(dialog).toContain("یادداشت جدید");
-    expect(dialog).toContain("ویرایشگر آن را باز می‌کند");
+    expect(dialog).toContain("ویرایشگر آن را باز می‌ کند");
   });
 
   test("lists the save shortcut with its explanation", () => {
@@ -59,14 +60,45 @@ describe("ShortcutsDialog", () => {
     const dialog = screen.getByRole("dialog").textContent ?? "";
     expect(dialog).toContain("Ctrl + S");
     expect(dialog).toContain("ذخیره ی یادداشت فعلی");
-    expect(dialog).toContain("ذخیره خودکار معطل را لغو می‌کند");
+    expect(dialog).toContain("ذخیره خودکار معطل را لغو می‌ کند");
   });
 
-  test("documents no shortcut beyond the two bound ones", () => {
+  test("scrolls the list on a thin scrollbar", () => {
     renderDialog();
     openDialog();
 
-    expect(screen.getAllByRole("listitem").length).toBe(2);
+    const list = screen.getByRole("dialog").querySelector(".overflow-y-auto");
+    expect(list?.className).toContain("scrollbar-thin");
+    expect(list?.className).toContain("max-h-");
+  });
+
+  test("documents every bound shortcut", () => {
+    renderDialog();
+    openDialog();
+
+    expect(screen.getAllByRole("listitem").length).toBe(
+      SHORTCUT_GROUPS.flatMap(({ shortcuts }) => shortcuts).length,
+    );
+  });
+
+  test("groups the note, title and body shortcuts under Farsi headings", () => {
+    renderDialog();
+    openDialog();
+
+    const headings = SHORTCUT_GROUPS.map(({ heading }) => heading);
+
+    for (const heading of headings) {
+      expect(screen.getByRole("heading", { name: heading })).toBeDefined();
+    }
+  });
+
+  test("documents the body emoji shortcut apart from the new note one", () => {
+    renderDialog();
+    openDialog();
+
+    const dialog = screen.getByRole("dialog").textContent ?? "";
+    expect(dialog).toContain("Ctrl + Alt + E");
+    expect(dialog).toContain("Ctrl + Alt + G");
   });
 
   test("closes on Escape", () => {

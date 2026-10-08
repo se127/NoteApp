@@ -11,6 +11,7 @@ import { useState } from "react";
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
+import { TITLE_EMOJI_SHORTCUT } from "@/lib/shortcuts";
 
 const LABEL = "انتخاب ایموجی";
 
@@ -138,7 +139,25 @@ describe("TitleEmojiPicker", () => {
     fireEvent.focus(trigger);
 
     await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
-    expect(screen.getByRole("tooltip").textContent).toBe(LABEL);
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.textContent).toContain(LABEL);
+    expect(tooltip.textContent).toContain(TITLE_EMOJI_SHORTCUT.combination);
+  });
+
+  test("names the shortcut in its own kbd inside the tooltip", async () => {
+    render(
+      <TooltipProvider>
+        <Controlled onSelect={() => {}} />
+      </TooltipProvider>,
+    );
+
+    fireEvent.focus(screen.getByRole("button", { name: LABEL }));
+
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+    expect(screen.getByRole("tooltip").querySelector("kbd")?.textContent).toBe(
+      TITLE_EMOJI_SHORTCUT.combination,
+    );
   });
 
   test("hides its tooltip while the grid is open", () => {

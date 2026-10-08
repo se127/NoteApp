@@ -118,6 +118,20 @@ function typeIntoBody(text: string): void {
   setBodyContent(`<p>${text}</p>`);
 }
 
+function pressTitleEmojiShortcut(): void {
+  act(() => {
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        code: "KeyG",
+        ctrlKey: true,
+        altKey: true,
+      }),
+    );
+  });
+}
+
 describe("NoteEditor initial render", () => {
   test("shows the stored title and body", () => {
     renderEditor();
@@ -490,6 +504,49 @@ describe("NoteEditor keyboard", () => {
     } finally {
       document.execCommand = original;
     }
+  });
+
+  test("opens the title emoji grid on Ctrl + Alt + G", () => {
+    renderEditor();
+
+    pressTitleEmojiShortcut();
+
+    expect(screen.getByRole("grid", { name: EMOJI_LABEL })).toBeDefined();
+  });
+
+  test("opens the title emoji grid from the body too", () => {
+    renderEditor();
+
+    setBodyContent("<p>متن</p>");
+    pressTitleEmojiShortcut();
+
+    expect(screen.getByRole("grid", { name: EMOJI_LABEL })).toBeDefined();
+  });
+
+  test("closes the title emoji grid when the shortcut repeats", () => {
+    renderEditor();
+
+    pressTitleEmojiShortcut();
+    pressTitleEmojiShortcut();
+
+    expect(screen.queryByRole("grid", { name: EMOJI_LABEL })).toBeNull();
+  });
+
+  test("leaves the title emoji grid closed without alt", () => {
+    renderEditor();
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          bubbles: true,
+          cancelable: true,
+          code: "KeyG",
+          ctrlKey: true,
+        }),
+      );
+    });
+
+    expect(screen.queryByRole("grid", { name: EMOJI_LABEL })).toBeNull();
   });
 
   test("leaves the caret where it was when a formatting command is cancelled", () => {

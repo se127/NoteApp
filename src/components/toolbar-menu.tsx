@@ -1,12 +1,10 @@
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { type ToolbarCommand, toolbarShortcut } from "@/lib/shortcuts";
+import { useToolbarCommand } from "@/lib/toolbar-commands";
 import { cn } from "@/lib/utils";
 
 export type ToolbarMenuOption<T> = {
@@ -16,15 +14,13 @@ export type ToolbarMenuOption<T> = {
 };
 
 export function ToolbarMenu<T extends string | null>({
-  label,
-  triggerLabel,
+  command,
   options,
   activeValue,
   triggerIcon,
   onSelect,
 }: {
-  label: string;
-  triggerLabel: string;
+  command: ToolbarCommand;
   options: ToolbarMenuOption<T>[];
   activeValue: T;
   triggerIcon: LucideIcon;
@@ -33,6 +29,11 @@ export function ToolbarMenu<T extends string | null>({
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const TriggerIcon = triggerIcon;
+  const shortcut = toolbarShortcut(command);
+
+  const toggle = useCallback(() => setOpen((wasOpen) => !wasOpen), []);
+
+  useToolbarCommand(command, toggle);
 
   useEffect(() => {
     if (!open) return;
@@ -58,27 +59,24 @@ export function ToolbarMenu<T extends string | null>({
         if (event.key === "Escape") setOpen(false);
       }}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={triggerLabel}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => setOpen((wasOpen) => !wasOpen)}
-            className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
-          >
-            <TriggerIcon className="size-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">{label}</TooltipContent>
-      </Tooltip>
+      <ShortcutTooltip shortcut={shortcut}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={shortcut.label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={toggle}
+          className="rounded-md text-foreground hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          <TriggerIcon className="size-4" />
+        </Button>
+      </ShortcutTooltip>
       {open ? (
         <div
           role="menu"
-          aria-label={label}
+          aria-label={shortcut.label}
           className="inset-inline-0 absolute top-full z-30 flex min-w-36 flex-col gap-0.5 rounded-lg border border-border bg-popover p-1 shadow-md"
         >
           {options.map((option) => {
@@ -86,7 +84,7 @@ export function ToolbarMenu<T extends string | null>({
 
             return (
               <button
-                key={option.value ?? label}
+                key={option.value ?? shortcut.label}
                 type="button"
                 role="menuitemradio"
                 aria-label={option.label}

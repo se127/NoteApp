@@ -7,11 +7,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
+import { TITLE_EMOJI_SHORTCUT } from "@/lib/shortcuts";
 
 const LABEL = EMOJI_LABEL;
 
@@ -26,23 +23,24 @@ export function TitleEmojiPicker({
 }) {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <Tooltip open={open ? false : undefined}>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              aria-label={LABEL}
-              onMouseDown={(event) => event.preventDefault()}
-              className="bg-popover text-foreground"
-            >
-              <Smile />
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">{LABEL}</TooltipContent>
-      </Tooltip>
+      <ShortcutTooltip
+        shortcut={TITLE_EMOJI_SHORTCUT}
+        side="bottom"
+        open={open ? false : undefined}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label={LABEL}
+            onMouseDown={(event) => event.preventDefault()}
+            className="bg-popover text-foreground"
+          >
+            <Smile />
+          </Button>
+        </PopoverTrigger>
+      </ShortcutTooltip>
 
       <PopoverContent
         side="bottom"

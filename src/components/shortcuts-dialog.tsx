@@ -14,7 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SHORTCUTS } from "@/lib/shortcuts";
+import { SHORTCUT_GROUPS } from "@/lib/shortcuts";
 
 const SHORTCUTS_LABEL = "کلیدهای میان بر";
 const CLOSE_HINT = "برای بستن این پنجره کلید Esc را بزنید.";
@@ -41,24 +41,35 @@ export function ShortcutsDialog() {
           <DialogDescription>{CLOSE_HINT}</DialogDescription>
         </DialogHeader>
 
-        <ul className="grid gap-2">
-          {SHORTCUTS.map((shortcut) => (
-            <li
-              key={shortcut.key}
-              className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2"
-            >
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{shortcut.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {shortcut.description}
-                </span>
-              </span>
-              <kbd className="shrink-0 rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs whitespace-nowrap">
-                {shortcut.combination}
-              </kbd>
-            </li>
+        <div className="grid max-h-[60vh] scrollbar-thin gap-4 overflow-y-auto pe-1">
+          {SHORTCUT_GROUPS.map(({ heading, shortcuts }) => (
+            <section key={heading} className="grid gap-2">
+              <h3 className="text-xs font-medium text-muted-foreground">
+                {heading}
+              </h3>
+              <ul className="grid gap-2">
+                {shortcuts.map((shortcut) => (
+                  <li
+                    key={shortcut.combination}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2"
+                  >
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">
+                        {shortcut.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {shortcut.description}
+                      </span>
+                    </span>
+                    <kbd className="shrink-0 rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs whitespace-nowrap">
+                      {shortcut.combination}
+                    </kbd>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       </DialogContent>
     </Dialog>
   );
