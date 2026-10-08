@@ -1583,3 +1583,19 @@ describe("NoteBodyEditor emoji picker", () => {
     );
   });
 });
+
+describe("NoteBodyEditor context menu", () => {
+  test("prevents default on right-click in the body", () => {
+    renderBodyEditor();
+
+    const event = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      bodyField().dispatchEvent(event);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+});
