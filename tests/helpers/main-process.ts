@@ -19,11 +19,24 @@ export type DevToolsInput = {
   meta: boolean;
 };
 
+export type ContextMenuParams = {
+  misspelledWord: string;
+  dictionarySuggestions: string[];
+  editFlags: {
+    canCut: boolean;
+    canCopy: boolean;
+    canPaste: boolean;
+    canSelectAll: boolean;
+  };
+};
+
 export type WebContentsStub = {
   listeners: Map<string, Handler>;
   openHandler: ((details: { url: string }) => { action: string }) | null;
   sentChannels: string[];
   devToolsToggleCount: number;
+  replacedMisspellings: string[];
+  menuTemplates: Array<Array<Record<string, unknown>>>;
   send: (channel: string) => void;
   setWindowOpenHandler: (
     handler: (details: { url: string }) => { action: string },
@@ -33,6 +46,8 @@ export type WebContentsStub = {
   toggleDevTools: () => void;
   willNavigate: (url: string) => boolean;
   openExternal: (url: string) => { action: string };
+  replaceMisspelling: (word: string) => void;
+  fireContextMenu: (params: ContextMenuParams) => void;
 };
 
 export type WindowStub = {
@@ -66,6 +81,7 @@ export type MainProcessStub = {
   updateNoteResult: unknown;
   updateNoteThrows: boolean;
   singleInstanceLock: boolean;
+  addedDictionaryWords: string[];
 };
 
 export type MainProcessHarness = {
@@ -108,6 +124,8 @@ function createWebContentsStub(): WebContentsStub {
     openHandler: null,
     sentChannels: [],
     devToolsToggleCount: 0,
+    replacedMisspellings: [],
+    menuTemplates: [],
     send: (channel) => {
       target.sentChannels.push(channel);
     },
@@ -133,6 +151,13 @@ function createWebContentsStub(): WebContentsStub {
     openExternal: (url) => {
       active?.externalUrls.push(url);
       return { action: "deny" };
+    },
+    replaceMisspelling: (word: string) => {
+      target.replacedMisspellings.push(word);
+    },
+    fireContextMenu: (params: ContextMenuParams) => {
+      const event = preventableEvent();
+      target.listeners.get("context-menu")?.(event, params);
     },
   };
 
@@ -243,6 +268,13 @@ function installMocksOnce(): void {
       setApplicationMenu: () => {
         if (active !== null) active.menuRemoved = true;
       },
+      buildFromTemplate: (template: Array<Record<string, unknown>>) => {
+        const webContents = active?.windows[0]?.webContents;
+        webContents?.menuTemplates.push(template);
+        return {
+          popup: () => {},
+        };
+      },
     },
     shell: {
       openExternal: (url: string) => {
@@ -255,6 +287,15 @@ function installMocksOnce(): void {
       },
       on: (channel: string, handler: Handler) => {
         active?.ipcListeners.set(channel, handler);
+      },
+    },
+    session: {
+      defaultSession: {
+        setSpellCheckerEnabled: () => {},
+        setSpellCheckerLanguages: () => {},
+        addWordToSpellCheckerDictionary: (word: string) => {
+          active?.addedDictionaryWords.push(word);
+        },
       },
     },
   }));
@@ -309,6 +350,7 @@ export function createMainProcessHarness(
     updateNoteResult: { id: 1 },
     updateNoteThrows: false,
     singleInstanceLock: options.singleInstanceLock ?? true,
+    addedDictionaryWords: [],
   };
 
   active = stub;

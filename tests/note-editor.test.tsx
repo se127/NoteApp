@@ -724,22 +724,6 @@ describe("NoteEditor paste", () => {
   });
 });
 
-describe("NoteEditor context menu", () => {
-  test("prevents default on right-click in the title", () => {
-    renderEditor();
-
-    const event = new MouseEvent("contextmenu", {
-      bubbles: true,
-      cancelable: true,
-    });
-    act(() => {
-      titleField().dispatchEvent(event);
-    });
-
-    expect(event.defaultPrevented).toBe(true);
-  });
-});
-
 describe("NoteEditor unload flush", () => {
   test("writes a pending change synchronously before unload", () => {
     installNotesBridgeForSync();

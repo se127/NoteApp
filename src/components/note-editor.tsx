@@ -306,7 +306,6 @@ export function NoteEditor({ note }: { note: Note }) {
                 .replace(/\s+/g, " ");
               document.execCommand("insertText", false, text);
             }}
-            onContextMenu={(event) => event.preventDefault()}
             className="min-h-[1em] w-full cursor-text border-b border-border bg-transparent pb-3 text-3xl leading-tight font-bold whitespace-pre-wrap transition-colors duration-300 outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)] focus:border-ring"
           />
           <div className="flex justify-start">

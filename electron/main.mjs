@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, shell, session } from "electron";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
@@ -92,6 +92,89 @@ ipcMain.on("notes:update-sync", (event, { id, title, body } = {}) => {
   event.returnValue = null;
 });
 
+const SPELL_CHECK_LANGUAGES = ["en-US", "fa-IR"];
+const MAX_SUGGESTIONS = 10;
+
+export function buildSmartSuggestions(word, dictionarySuggestions) {
+  const suggestions = new Set(dictionarySuggestions);
+
+  if (word.length > 1) {
+    suggestions.add(word.charAt(0).toUpperCase() + word.slice(1));
+    suggestions.add(word.toUpperCase());
+    suggestions.add(word.toLowerCase());
+  }
+
+  const deduplicated = word.replace(/(.)\1{2,}/g, "$1$1");
+  if (deduplicated !== word) suggestions.add(deduplicated);
+
+  return [...suggestions].filter((s) => s !== word).slice(0, MAX_SUGGESTIONS);
+}
+
+function setupSpellCheckMenu(window) {
+  const defaultSession = session.defaultSession;
+  defaultSession.setSpellCheckerEnabled(true);
+  defaultSession.setSpellCheckerLanguages(SPELL_CHECK_LANGUAGES);
+
+  window.webContents.on("context-menu", (event, params) => {
+    const { misspelledWord, dictionarySuggestions } = params;
+
+    const { editFlags } = params;
+    const template = [];
+
+    if (misspelledWord !== "") {
+      const suggestions = buildSmartSuggestions(
+        misspelledWord,
+        dictionarySuggestions,
+      );
+
+      for (const suggestion of suggestions) {
+        template.push({
+          label: suggestion,
+          click: () => {
+            window.webContents.replaceMisspelling(suggestion);
+          },
+        });
+      }
+
+      template.push({ type: "separator" });
+      template.push({
+        label: "Learn Spelling",
+        click: () => {
+          session.defaultSession.addWordToSpellCheckerDictionary(
+            misspelledWord,
+          );
+        },
+      });
+      template.push({ type: "separator" });
+    }
+
+    template.push(
+      { role: "cut", label: "Cut", accelerator: "", enabled: editFlags.canCut },
+      {
+        role: "copy",
+        label: "Copy",
+        accelerator: "",
+        enabled: editFlags.canCopy,
+      },
+      {
+        role: "paste",
+        label: "Paste",
+        accelerator: "",
+        enabled: editFlags.canPaste,
+      },
+      {
+        role: "selectAll",
+        label: "Select All",
+        accelerator: "",
+        enabled: editFlags.canSelectAll,
+      },
+    );
+
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({ window });
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -141,6 +224,8 @@ function createWindow() {
     }
     return { action: "deny" };
   });
+
+  setupSpellCheckMenu(mainWindow);
 
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const isDevServer =

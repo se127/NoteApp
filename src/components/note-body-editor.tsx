@@ -1015,11 +1015,7 @@ export function NoteBodyEditor({
         data-note-scroll=""
         className="note-body mt-4 min-h-0 flex-1 scrollbar-thin overflow-y-auto"
       >
-        <EditorContent
-          editor={editor}
-          className="prose"
-          onContextMenu={(event) => event.preventDefault()}
-        />
+        <EditorContent editor={editor} className="prose" />
       </div>
     </Tiptap>
   );

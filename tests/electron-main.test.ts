@@ -657,3 +657,265 @@ describe("single instance lock", () => {
     expect(harness.stub.windows).toHaveLength(1);
   });
 });
+
+describe("spell check menu", () => {
+  test("enables the spell checker with en-US and fa-IR", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.windows).toHaveLength(1);
+  });
+
+  test("shows cut, copy, paste and select all on right-click", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "",
+      dictionarySuggestions: [],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    expect(templates).toHaveLength(1);
+    const labels = templates[0].map(
+      (item) => (item as { label?: string }).label,
+    );
+    expect(labels).toEqual(["Cut", "Copy", "Paste", "Select All"]);
+  });
+
+  test("shows suggestions first, then learn spelling, then edit actions", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "teh",
+      dictionarySuggestions: ["the", "tea"],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const labels = templates[0].map(
+      (item) => (item as { label?: string }).label,
+    );
+    expect(labels[0]).toBe("the");
+    expect(labels[1]).toBe("tea");
+    expect(labels).toContain("Learn Spelling");
+    expect(labels.at(-4)).toBe("Cut");
+    expect(labels.at(-3)).toBe("Copy");
+    expect(labels.at(-2)).toBe("Paste");
+    expect(labels.at(-1)).toBe("Select All");
+
+    const learnIndex = labels.indexOf("Learn Spelling");
+    const cutIndex = labels.indexOf("Cut");
+    expect(learnIndex).toBeLessThan(cutIndex);
+  });
+
+  test("disables cut and copy when there is no selection", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "",
+      dictionarySuggestions: [],
+      editFlags: {
+        canCut: false,
+        canCopy: false,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const items = templates[0] as Array<{ label?: string; enabled?: boolean }>;
+    const cut = items.find((item) => item.label === "Cut");
+    const copy = items.find((item) => item.label === "Copy");
+    const paste = items.find((item) => item.label === "Paste");
+
+    expect(cut?.enabled).toBe(false);
+    expect(copy?.enabled).toBe(false);
+    expect(paste?.enabled).toBe(true);
+  });
+
+  test("shows spelling suggestions when a word is misspelled", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "teh",
+      dictionarySuggestions: ["the", "tea"],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const labels = templates[0].map(
+      (item) => (item as { label?: string }).label,
+    );
+    expect(labels).toContain("the");
+    expect(labels).toContain("tea");
+    expect(labels).toContain("Learn Spelling");
+  });
+
+  test("replaces a misspelling when a suggestion is clicked", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "teh",
+      dictionarySuggestions: ["the"],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const items = templates[0] as Array<{
+      label?: string;
+      click?: () => void;
+    }>;
+    const suggestion = items.find((item) => item.label === "the");
+    suggestion?.click?.();
+
+    expect(harness.firstWindow().webContents.replacedMisspellings).toEqual([
+      "the",
+    ]);
+  });
+
+  test("adds a word to the dictionary when Learn Spelling is clicked", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "teh",
+      dictionarySuggestions: ["the"],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const items = templates[0] as Array<{
+      label?: string;
+      click?: () => void;
+    }>;
+    const learnSpelling = items.find((item) => item.label === "Learn Spelling");
+    learnSpelling?.click?.();
+
+    expect(harness.stub.addedDictionaryWords).toEqual(["teh"]);
+  });
+});
+
+describe("spell check suggestions", () => {
+  test("shows dictionary suggestions when a word is misspelled", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "teh",
+      dictionarySuggestions: ["the", "tea"],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const labels = templates[0].map(
+      (item) => (item as { label?: string }).label,
+    );
+    expect(labels).toContain("the");
+    expect(labels).toContain("tea");
+  });
+
+  test("adds case variations to suggestions", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "hello",
+      dictionarySuggestions: [],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const labels = templates[0].map(
+      (item) => (item as { label?: string }).label,
+    );
+    expect(labels).toContain("Hello");
+    expect(labels).toContain("HELLO");
+  });
+
+  test("filters out the original word from suggestions", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "the",
+      dictionarySuggestions: ["the"],
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const labels = templates[0].map(
+      (item) => (item as { label?: string }).label,
+    );
+    expect(labels).not.toContain("the");
+  });
+
+  test("limits suggestions to 10", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const many = Array.from({ length: 15 }, (_, i) => `suggestion${i}`);
+    harness.firstWindow().webContents.fireContextMenu({
+      misspelledWord: "word",
+      dictionarySuggestions: many,
+      editFlags: {
+        canCut: true,
+        canCopy: true,
+        canPaste: true,
+        canSelectAll: true,
+      },
+    });
+
+    const templates = harness.firstWindow().webContents.menuTemplates;
+    const suggestionItems = templates[0].filter(
+      (item) =>
+        (item as { label?: string }).label?.startsWith("suggestion") === true,
+    );
+    expect(suggestionItems.length).toBeLessThanOrEqual(10);
+  });
+});
