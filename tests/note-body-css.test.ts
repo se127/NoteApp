@@ -174,6 +174,36 @@ describe("note body theme colours", () => {
   });
 });
 
+describe("note body blockquote", () => {
+  test("sets the quote weight and drops the plugin italic", () => {
+    const body = ruleBody(".prose blockquote");
+
+    expect(body).toContain("font-normal");
+    expect(body).toContain("not-italic");
+  });
+
+  test("draws the quote in the theme foreground rather than the quote tint", () => {
+    expect(ruleBody(".prose blockquote")).toContain(
+      "color: var(--color-foreground)",
+    );
+  });
+
+  test("wraps every block of the quote in guillemets", () => {
+    expect(ruleBody(".prose blockquote > *::before")).toContain(
+      'content: "\\00AB"',
+    );
+    expect(ruleBody(".prose blockquote > *::after")).toContain(
+      'content: "\\00BB"',
+    );
+  });
+
+  test("collapses the empty paragraph break so both marks stay on one line", () => {
+    expect(ruleBody(".prose blockquote > * > br:only-child")).toContain(
+      "display: none",
+    );
+  });
+});
+
 describe("note body alignment follows the dir attribute", () => {
   test("forces no text alignment inside the body", () => {
     for (const alignment of [

@@ -288,6 +288,7 @@ describe("NoteBodyEditor toolbar", () => {
       ...LIST_LABELS,
       "تراز متن",
       "موقعیت متن",
+      "نقل قول",
       "خط افقی",
       "انتخاب ایموجی",
     ]);
@@ -368,6 +369,54 @@ describe("NoteBodyEditor toolbar", () => {
     });
 
     expectFocusNotIn(trigger);
+  });
+});
+
+describe("NoteBodyEditor blockquote", () => {
+  test("wraps the current block in a blockquote", () => {
+    renderBodyEditor("<p>متن</p>");
+
+    focusBodyCaret();
+    pressButton("نقل قول");
+
+    expect(bodyEditor().getHTML()).toBe("<blockquote><p>متن</p></blockquote>");
+  });
+
+  test("unwraps the blockquote when pressed inside one", () => {
+    renderBodyEditor("<blockquote><p>متن</p></blockquote>");
+
+    focusBodyCaret();
+    pressButton("نقل قول");
+
+    expect(bodyEditor().getHTML()).toBe("<p>متن</p>");
+  });
+
+  test("reports the button as pressed while the caret is in a quote", () => {
+    renderBodyEditor("<blockquote><p>متن</p></blockquote>");
+
+    focusBodyCaret();
+
+    expect(button("نقل قول").getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("reports the button as released while the caret is outside one", () => {
+    renderBodyEditor("<p>متن</p>");
+
+    focusBodyCaret();
+
+    expect(button("نقل قول").getAttribute("aria-pressed")).toBe("false");
+  });
+
+  test("keeps a stored blockquote as a blockquote instead of escaping it", () => {
+    renderBodyEditor("<blockquote><p>متن</p></blockquote>");
+
+    expect(bodyEditor().getHTML()).toBe("<blockquote><p>متن</p></blockquote>");
+  });
+
+  test("keeps every block of a multi line quote inside one blockquote", () => {
+    renderBodyEditor("<blockquote><p>اول</p><p>دوم</p></blockquote>");
+
+    expect(bodyEditor().view.dom.querySelectorAll("blockquote").length).toBe(1);
   });
 });
 

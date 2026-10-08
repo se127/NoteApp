@@ -27,6 +27,7 @@ import {
   Minus,
   PilcrowLeft,
   PilcrowRight,
+  Quote,
   Redo2,
   Smile,
   Square,
@@ -104,7 +105,6 @@ const ALIGNABLE_TYPES = ["paragraph", "heading"];
 
 const EXTENSIONS = [
   StarterKit.configure({
-    blockquote: false,
     code: false,
     codeBlock: false,
     heading: { levels: [...HEADING_LEVELS] },
@@ -704,6 +704,36 @@ function BodyEmojiPicker({ editor }: { editor: BodyEditor }) {
   );
 }
 
+function BlockquoteButton({ editor }: { editor: BodyEditor }) {
+  const isActive = useEditorState({
+    editor,
+    selector: ({ editor: instance }) => instance.isActive("blockquote"),
+  });
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant={isActive ? "default" : "ghost"}
+          size="icon-sm"
+          aria-label="نقل قول"
+          aria-pressed={isActive}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          className={cn(
+            "rounded-md",
+            !isActive &&
+              "text-foreground hover:bg-black/5 dark:hover:bg-white/10",
+          )}
+        >
+          <Quote className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top">نقل قول</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function HorizontalRuleButton({ editor }: { editor: BodyEditor }) {
   return (
     <Tooltip>
@@ -976,6 +1006,7 @@ export function NoteBodyEditor({
         <TextAlignMenu editor={editor} />
         <TextPositionMenu editor={editor} />
         <Separator orientation="vertical" className="mx-0.5" />
+        <BlockquoteButton editor={editor} />
         <HorizontalRuleButton editor={editor} />
         <Separator orientation="vertical" className="mx-0.5" />
         <BodyEmojiPicker editor={editor} />

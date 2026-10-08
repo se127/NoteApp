@@ -134,11 +134,19 @@
 
 .prose blockquote {
   @apply font-normal not-italic;
+  color: var(--color-foreground);
 }
 
-.prose blockquote > *::before,
+.prose blockquote > *::before {
+  content: "\00AB";
+}
+
 .prose blockquote > *::after {
-  @apply content-none;
+  content: "\00BB";
+}
+
+.prose blockquote > * > br:only-child {
+  display: none;
 }
 
 .prose .column-resize-handle {
