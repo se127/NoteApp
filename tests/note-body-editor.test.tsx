@@ -333,12 +333,56 @@ describe("NoteBodyEditor toolbar", () => {
     }
   });
 
-  test("pads the toolbar and rounds it as a popover", () => {
+  test("runs the toolbar edge to edge with no corners and no side borders", () => {
     renderBodyEditor();
 
-    expect(toolbar().className).toContain("p-1");
-    expect(toolbar().className).toContain("rounded-lg");
+    expect(toolbar().className).toContain("px-6");
+    expect(toolbar().className).not.toContain("rounded");
+    expect(toolbar().className).not.toContain("border-x");
+    expect(toolbar().className).not.toContain("border-l");
+    expect(toolbar().className).not.toContain("border-r");
+  });
+
+  test("rules the toolbar off above and below only", () => {
+    renderBodyEditor();
+
+    expect(toolbar().className).toContain("border-y");
     expect(toolbar().className).toContain("border-border");
+  });
+
+  test("pads the toolbar above and below its controls", () => {
+    renderBodyEditor();
+
+    expect(toolbar().className).toContain("py-2");
+  });
+
+  test("keeps the note text inset from the pane edge", () => {
+    renderBodyEditor();
+
+    const scroller = document.querySelector<HTMLElement>("[data-note-scroll]");
+    const gutter = scroller?.parentElement;
+
+    expect(scroller?.className).not.toContain("px-6");
+    expect(gutter?.className).toContain("px-6");
+  });
+
+  test("keeps the scrollbar inside the gutter rather than at the pane edge", () => {
+    renderBodyEditor();
+
+    const scroller = document.querySelector<HTMLElement>("[data-note-scroll]");
+
+    expect(scroller?.className).toContain("overflow-y-auto");
+    expect(scroller?.parentElement?.className).toContain("overflow-hidden");
+  });
+
+  test("runs the note text down to the bottom of the pane", () => {
+    renderBodyEditor();
+
+    const scroller = document.querySelector<HTMLElement>("[data-note-scroll]");
+    const content = scroller?.firstElementChild;
+
+    expect(scroller?.className).not.toContain("pb-");
+    expect(content?.className).toContain("pb-14");
   });
 
   test("draws the toolbar on a light grey in light mode and dims it in dark mode", () => {

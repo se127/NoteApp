@@ -56,6 +56,18 @@ describe("TitleEmojiPicker", () => {
     expect(screen.queryByRole("grid", { name: LABEL })).toBeNull();
   });
 
+  test("opens the grid aligned to the end of its trigger", async () => {
+    renderOpen(() => {});
+
+    await waitFor(() =>
+      expect(
+        document
+          .querySelector("[data-slot='popover-content']")
+          ?.getAttribute("data-align"),
+      ).toBe("end"),
+    );
+  });
+
   test("opens the grid from the trigger", () => {
     render(
       <TooltipProvider>

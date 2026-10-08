@@ -2,6 +2,7 @@ import { Check, CircleAlert, Loader2, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { NoteBodyEditor, type BodyEditor } from "@/components/note-body-editor";
+import { Separator } from "@/components/ui/separator";
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { getNotesBridge, type Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
@@ -296,8 +297,8 @@ export function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-6 py-8 pb-14">
-        <div className="flex flex-col gap-2 pb-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden py-8">
+        <div className="flex items-center gap-2 px-6 pb-2">
           <div
             ref={titleRef}
             contentEditable
@@ -325,15 +326,14 @@ export function NoteEditor({ note }: { note: Note }) {
                 .replace(/\s+/g, " ");
               document.execCommand("insertText", false, text);
             }}
-            className="min-h-[1em] w-full cursor-text border-b border-border bg-transparent pb-3 text-3xl leading-tight font-bold whitespace-pre-wrap transition-colors duration-300 outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)] focus:border-ring"
+            className="min-h-[1em] min-w-0 flex-1 cursor-text bg-transparent pb-3 text-3xl leading-tight font-bold whitespace-pre-wrap outline-none before:text-muted-foreground/60 empty:before:content-[attr(data-placeholder)]"
           />
-          <div className="flex justify-start">
-            <TitleEmojiPicker
-              onSelect={insertEmoji}
-              open={isPickerOpen}
-              onOpenChange={setIsPickerOpen}
-            />
-          </div>
+          <Separator orientation="vertical" className="mb-1" />
+          <TitleEmojiPicker
+            onSelect={insertEmoji}
+            open={isPickerOpen}
+            onOpenChange={setIsPickerOpen}
+          />
         </div>
         <div
           ref={bodyAnchorRef}

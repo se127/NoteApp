@@ -44,7 +44,7 @@ export function TitleEmojiPicker({
 
       <PopoverContent
         side="bottom"
-        align="start"
+        align="end"
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         onFocusOutside={(event) => event.preventDefault()}

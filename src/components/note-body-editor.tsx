@@ -1112,7 +1112,7 @@ export function NoteBodyEditor({
       <div
         role="toolbar"
         aria-label="قالب‌بندی متن"
-        className="flex shrink-0 flex-wrap items-center gap-0.5 rounded-lg border border-border bg-black/5 p-1 dark:bg-muted/40"
+        className="flex shrink-0 flex-wrap items-center gap-0.5 border-y border-border bg-black/5 px-6 py-2 dark:bg-muted/40"
       >
         {HISTORY_ACTIONS.map((action) => (
           <HistoryButton key={action.label} action={action} editor={editor} />
@@ -1142,11 +1142,15 @@ export function NoteBodyEditor({
         <Separator orientation="vertical" className="mx-0.5" />
         <BodyEmojiPicker editor={editor} />
       </div>
-      <div
-        data-note-scroll=""
-        className="note-body mt-4 min-h-0 flex-1 scrollbar-thin overflow-y-auto"
-      >
-        <EditorContent editor={editor} className="prose" />
+      <div className="note-body mt-4 flex min-h-0 flex-1 flex-col overflow-hidden px-6">
+        <div
+          data-note-scroll=""
+          className="min-h-0 flex-1 scrollbar-thin overflow-y-auto"
+        >
+          <div className="pb-14">
+            <EditorContent editor={editor} className="prose" />
+          </div>
+        </div>
       </div>
     </Tiptap>
   );

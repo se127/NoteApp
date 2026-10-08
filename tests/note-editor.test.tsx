@@ -154,6 +154,42 @@ describe("NoteEditor initial render", () => {
     expect(bodyField().getAttribute("aria-multiline")).toBe("true");
   });
 
+  test("keeps the title emoji picker on the title's own line", () => {
+    renderEditor();
+
+    const row = titleField().parentElement;
+
+    expect(
+      [...(row?.children ?? [])].map(
+        (child) =>
+          child.getAttribute("aria-label") ?? child.getAttribute("data-slot"),
+      ),
+    ).toEqual(["عنوان", "separator", "انتخاب ایموجی"]);
+  });
+
+  test("keeps no gap under the note column", () => {
+    renderEditor();
+
+    const wrapper = titleField().parentElement?.parentElement;
+
+    expect(wrapper?.className).not.toContain("pb-");
+  });
+
+  test("keeps the title inset from the pane edge", () => {
+    renderEditor();
+
+    expect(titleField().parentElement?.className).toContain("px-6");
+  });
+
+  test("draws the title without a rule under it", () => {
+    renderEditor();
+
+    const className = titleField().className;
+
+    expect(className).not.toContain("border-b");
+    expect(className).not.toContain("focus:border-ring");
+  });
+
   test("hides the save indicator until something happens", () => {
     renderEditor();
 
