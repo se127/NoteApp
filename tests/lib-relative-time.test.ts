@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import { formatAbsoluteTime, formatRelativeTime } from "@/lib/relative-time";
+import {
+  formatAbsoluteTime,
+  formatRelativeTime,
+  hasBeenEdited,
+} from "@/lib/relative-time";
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -69,6 +73,39 @@ describe("formatRelativeTime", () => {
     expect(formatAbsoluteTime("2026-01-01 10:30:00")).toBe(
       formatAbsoluteTime("2026-01-01T10:30:00Z"),
     );
+  });
+});
+
+describe("hasBeenEdited", () => {
+  test("reports an edit once the two timestamps differ", () => {
+    expect(hasBeenEdited("2026-01-01 10:00:00", "2026-01-02 11:30:00")).toBe(
+      true,
+    );
+  });
+
+  test("reports no edit when both timestamps match", () => {
+    expect(hasBeenEdited("2026-01-01 10:00:00", "2026-01-01 10:00:00")).toBe(
+      false,
+    );
+  });
+
+  test("treats the same instant written two ways as one instant", () => {
+    expect(hasBeenEdited("2026-01-01 10:00:00", "2026-01-01T10:00:00Z")).toBe(
+      false,
+    );
+  });
+
+  test("reports no edit when both timestamps are missing", () => {
+    expect(hasBeenEdited("", "")).toBe(false);
+  });
+
+  test("reports no edit when the stored timestamps are unreadable", () => {
+    expect(hasBeenEdited("not a date", "not a date")).toBe(false);
+  });
+
+  test("reports an edit when only one timestamp is missing", () => {
+    expect(hasBeenEdited("2026-01-01 10:00:00", "")).toBe(false);
+    expect(hasBeenEdited("", "2026-01-01 10:00:00")).toBe(true);
   });
 });
 

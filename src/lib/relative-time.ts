@@ -79,6 +79,17 @@ export function formatRelativeTime(value: string): string {
   return isFuture ? `${IN_PREFIX}${elapsed}` : `${elapsed}${AGO_SUFFIX}`;
 }
 
+export function hasBeenEdited(createdAt: string, updatedAt: string): boolean {
+  const created = parseSqliteTimestamp(createdAt);
+  const updated = parseSqliteTimestamp(updatedAt);
+
+  if (!created.isValid() || !updated.isValid()) {
+    return updatedAt.trim() !== "" && updatedAt.trim() !== createdAt.trim();
+  }
+
+  return updated.valueOf() !== created.valueOf();
+}
+
 export function formatAbsoluteTime(value: string): string {
   const date = parseSqliteTimestamp(value);
   if (!date.isValid()) return MISSING_VALUE;

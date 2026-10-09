@@ -26,13 +26,18 @@ import {
 import type { Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
 import { noteTitle } from "@/lib/note-title";
-import { formatAbsoluteTime, formatRelativeTime } from "@/lib/relative-time";
+import {
+  formatAbsoluteTime,
+  formatRelativeTime,
+  hasBeenEdited,
+} from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 
 const LIST_LABEL = "یادداشت‌ها";
 const TITLE_HEADING = "عنوان";
 const CREATED_HEADING = "زمان ایجاد";
 const ACTIONS_HEADING = "گزینه ها";
+const EDITED_LABEL = "ویرایش شده:";
 const TITLE_COLUMN = "w-1/2";
 const CREATED_COLUMN = "w-1/4";
 const ACTIONS_COLUMN = "w-1/4";
@@ -69,6 +74,7 @@ function NoteTableRow({ note }: { note: Note }) {
   const [isHovered, setIsHovered] = useState(false);
 
   const title = noteTitle(note);
+  const wasEdited = hasBeenEdited(note.createdAt, note.updatedAt);
 
   return (
     <TableRow>
@@ -86,6 +92,22 @@ function NoteTableRow({ note }: { note: Note }) {
         >
           {title}
         </NavLink>
+
+        {wasEdited && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <time
+                dateTime={note.updatedAt}
+                className="relative z-10 mt-1 block w-fit cursor-default text-xs text-muted-foreground"
+              >
+                {`${EDITED_LABEL} ${formatRelativeTime(note.updatedAt)}`}
+              </time>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {formatAbsoluteTime(note.updatedAt)}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </TableCell>
 
       <TableCell

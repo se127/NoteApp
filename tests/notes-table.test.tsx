@@ -123,6 +123,57 @@ describe("NotesTable rows", () => {
   });
 });
 
+describe("NotesTable edited time", () => {
+  function editedNote(): Note {
+    return noteWith({
+      createdAt: "2026-01-01 10:00:00",
+      updatedAt: "2026-01-02 11:30:00",
+    });
+  }
+
+  test("shows the edited time below the title once the note changed", () => {
+    renderTable([editedNote()]);
+
+    expect(screen.getByText(/^ویرایش شده:/)).toBeDefined();
+  });
+
+  test("labels the edited time with a colon before the relative time", () => {
+    renderTable([editedNote()]);
+
+    expect(screen.getByText(/^ویرایش شده: .+/).textContent).toStartWith(
+      "ویرایش شده: ",
+    );
+  });
+
+  test("keeps the edited time out of the link name", () => {
+    renderTable([editedNote()]);
+
+    expect(screen.getByRole("link", { name: "یادداشت" })).toBeDefined();
+  });
+
+  test("hides the edited time when the note was never touched", () => {
+    renderTable([noteWith({})]);
+
+    expect(screen.queryByText(/ویرایش شده/)).toBeNull();
+  });
+
+  test("shows the edited time in the muted small style", () => {
+    renderTable([editedNote()]);
+
+    const label = screen.getByText(/^ویرایش شده:/);
+    expect(label.className).toContain("text-muted-foreground");
+    expect(label.className).toContain("text-xs");
+  });
+
+  test("shows the full fa-IR date when the edited time is hovered", async () => {
+    renderTable([editedNote()]);
+
+    fireHover(screen.getByText(/^ویرایش شده:/));
+
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+  });
+});
+
 async function openDeleteDialogFor(note: Note): Promise<void> {
   const trigger = screen.getByRole("button", {
     name: `گزینه های یادداشت ${note.title}`,
