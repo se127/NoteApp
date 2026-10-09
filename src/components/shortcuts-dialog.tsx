@@ -30,7 +30,7 @@ export function ShortcutsDialog() {
             </Button>
           </DialogTrigger>
         </TooltipTrigger>
-        <TooltipContent side="left" align="end">
+        <TooltipContent side="bottom" align="end">
           {SHORTCUTS_LABEL}
         </TooltipContent>
       </Tooltip>

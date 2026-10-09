@@ -84,7 +84,7 @@ export function ThemeToggle() {
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent side="left" align="end">
+        <TooltipContent side="bottom" align="end">
           تغییر پوسته
         </TooltipContent>
       </Tooltip>

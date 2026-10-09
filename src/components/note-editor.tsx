@@ -1,7 +1,15 @@
-import { Check, CircleAlert, Loader2, type LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  CircleAlert,
+  Loader2,
+  type LucideIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 
 import { NoteBodyEditor, type BodyEditor } from "@/components/note-body-editor";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { getNotesBridge, type Note } from "@/lib/notes";
@@ -18,6 +26,7 @@ import { cn } from "@/lib/utils";
 const SAVE_DELAY = 800;
 
 const SAVE_FAILED_MESSAGE = "ذخیره یادداشت ناموفق بود";
+const BACK_LABEL = "بازگشت به یادداشت ها";
 
 type NotePayload = { title: string; body: string };
 
@@ -113,6 +122,7 @@ const STATUS_ICONS: Record<SaveStatus, LucideIcon> = {
 };
 
 export function NoteEditor({ note }: { note: Note }) {
+  const navigate = useNavigate();
   const { update, setIsSaving } = useNotesStore();
 
   const [title, setTitle] = useState(note.title);
@@ -156,17 +166,37 @@ export function NoteEditor({ note }: { note: Note }) {
         await commit(data);
         setMessage(null);
         setStatus("saved");
+        return true;
       } catch (cause) {
         setStatus("error");
         setMessage(
           cause instanceof Error ? cause.message : SAVE_FAILED_MESSAGE,
         );
+        return false;
       } finally {
         setIsSaving(false);
       }
     },
     [commit, setIsSaving],
   );
+
+  const clearPendingSave = useCallback(() => {
+    if (debounceTimerRef.current === null) return;
+
+    clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = null;
+  }, []);
+
+  const flushPendingSave = useCallback(async () => {
+    clearPendingSave();
+
+    const data = pendingPayload(latestRef.current, savedRef.current);
+    return data === null ? true : saveNow(data);
+  }, [clearPendingSave, saveNow]);
+
+  const handleBack = useCallback(async () => {
+    if (await flushPendingSave()) navigate("/");
+  }, [flushPendingSave, navigate]);
 
   useEffect(() => {
     const flushSync = () => {
@@ -212,11 +242,7 @@ export function NoteEditor({ note }: { note: Note }) {
       if (!isShortcut(event, SAVE_NOTE_SHORTCUT)) return;
 
       event.preventDefault();
-
-      if (debounceTimerRef.current !== null) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
+      clearPendingSave();
 
       void saveNow(latestRef.current);
     };
@@ -224,7 +250,7 @@ export function NoteEditor({ note }: { note: Note }) {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () =>
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [saveNow]);
+  }, [clearPendingSave, saveNow]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -297,7 +323,20 @@ export function NoteEditor({ note }: { note: Note }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden py-8">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-8">
+        <div className="flex items-center gap-2 px-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={(event) => {
+              event.preventDefault();
+              void handleBack();
+            }}
+          >
+            <ArrowRight className="size-4" />
+            {BACK_LABEL}
+          </Button>
+        </div>
         <div className="flex items-center gap-2 px-6 pb-2">
           <div
             ref={titleRef}
@@ -351,7 +390,7 @@ export function NoteEditor({ note }: { note: Note }) {
         role="status"
         aria-live="polite"
         className={cn(
-          "fixed top-4 left-6 z-10 flex items-center gap-2 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-sm transition-opacity duration-300",
+          "fixed top-8 left-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-lg border border-border bg-popover px-3 py-2 text-sm shadow-sm transition-opacity duration-300",
           isStatusVisible ? "opacity-100" : "pointer-events-none opacity-0",
           message !== null
             ? "text-destructive"

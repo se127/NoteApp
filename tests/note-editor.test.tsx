@@ -167,12 +167,13 @@ describe("NoteEditor initial render", () => {
     ).toEqual(["عنوان", "separator", "انتخاب ایموجی"]);
   });
 
-  test("keeps no gap under the note column", () => {
+  test("pads the note column below the body only", () => {
     renderEditor();
 
     const wrapper = titleField().parentElement?.parentElement;
 
-    expect(wrapper?.className).not.toContain("pb-");
+    expect(wrapper?.className).toContain("pb-8");
+    expect(wrapper?.className).not.toContain("py-");
   });
 
   test("keeps the title inset from the pane edge", () => {

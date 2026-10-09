@@ -48,7 +48,7 @@ Measure before changing CSS. Read the computed DOM rather than guessing a paddin
 
 ## Code conventions
 
-- Shortcuts are declared once in `src/lib/shortcuts.ts`. The `window` handlers in `app-sidebar.tsx` and `note-editor.tsx` and the list in `shortcuts-dialog.tsx` all read from it, so the documented list cannot drift.
+- Shortcuts are declared once in `src/lib/shortcuts.ts`. The `window` handlers in `notes-page.tsx` and `note-editor.tsx` and the list in `shortcuts-dialog.tsx` all read from it, so the documented list cannot drift.
 - `isShortcut` must match `event.code` as well as `event.key`. On a Persian layout the physical S key reports `"س"`, so a key-only match leaves Ctrl+S and Ctrl+N inert while autosave fires 800 ms later and looks like the shortcut worked.
 - `isShortcut` takes the whole `Shortcut`, not a bare key, and compares `altKey`/`shiftKey` against the shortcut's own `alt`/`shift`. An absent field means the modifier must **not** be held. Windows reports AltGr as `ctrlKey: true` plus `altKey: true`, which is why a shortcut with no `alt` rejects it.
 - Toolbar commands register a runner through `useToolbarCommand` in `src/lib/toolbar-commands.ts`; `NoteBodyEditor` listens on `window` in the capture phase and calls `runToolbarCommand`. The capture phase matters — ProseMirror's own keymap for Ctrl+Z/Ctrl+B would otherwise run first and undo twice. The stale-runner guard in `registerToolbarCommand` is load-bearing: without it, one note's cleanup deletes a newer registration.
@@ -57,6 +57,7 @@ Measure before changing CSS. Read the computed DOM rather than guessing a paddin
 - `unwrapForeignMarkup` strips every element on input with `node.replaceWith(...node.childNodes)`, which _moves_ the existing text nodes so a caret inside one survives. Rebuilding `innerHTML` would drop it.
 - The title's emoji picker inserts with `document.execCommand("insertText", ...)`, never `insertHTML`. A span with a smaller font once made the emoji — and everything typed after it — render smaller, because Chromium carries a typing style at the caret.
 - Adding a block type means adding it to `isStoredHtml` in `src/lib/note-body.ts`, or saved headings reload as escaped text.
+- `created_at` and `updated_at` come back from SQLite as `"YYYY-MM-DD HH:MM:SS"` in UTC with no zone marker, so `parseSqliteTimestamp` in `src/lib/relative-time.ts` appends the `Z` before parsing. Drop it and every time silently shifts by the machine's offset.
 - Never put `scrollbar-thin` back on a scroller. It sets `scrollbar-width`, and a computed `scrollbar-width` other than `auto` makes Chromium ignore every `::-webkit-scrollbar-*` rule, which silently brings back the arrow buttons at both ends. The size lives in the `--scrollbar-thin-size` token in `src/index.css` instead.
 - oxlint runs `react(only-export-components)`, so a file cannot export both components and plain constants. `BLOCK_TYPES`, `setBlockType` and `isHeadingBlock` live in `src/lib/block-type.ts` for that reason; moving them back into `note-body-editor.tsx` fails the pre-commit hook.
 - oxlint runs `react-hooks/exhaustive-deps` and its warning fails the commit under `--deny-warnings`. A `window` keydown effect calling a component-local handler trips it; wrap the handler in `useCallback` with its real dependencies and depend on it rather than listing its inputs by hand.

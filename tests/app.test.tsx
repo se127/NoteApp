@@ -20,27 +20,47 @@ afterEach(() => {
 });
 
 describe("App routing", () => {
-  test("shows the welcome page at the root route", async () => {
+  test("shows the notes table at the root route", async () => {
     renderApp();
 
     expect(
-      await screen.findByText(
-        "یک یادداشت را انتخاب کنید یا یک یادداشت جدید بسازید",
-      ),
+      await screen.findByRole("button", { name: "یادداشت جدید" }),
     ).toBeDefined();
+    expect(screen.getByText("هیچ یادداشتی نیست")).toBeDefined();
   });
 
-  test("falls back to the welcome page for an unknown route", async () => {
+  test("falls back to the notes table for an unknown route", async () => {
     renderApp([makeNote({ id: 1 })], "/nothing/here");
 
     expect(
-      await screen.findByText(
-        "یک یادداشت را انتخاب کنید یا یک یادداشت جدید بسازید",
-      ),
+      await screen.findByRole("table", { name: "یادداشت‌ها" }),
     ).toBeDefined();
   });
 
-  test("lists notes from the database in the sidebar", async () => {
+  test("keeps the theme toggle and shortcuts on the notes page", async () => {
+    renderApp();
+
+    expect(
+      await screen.findByRole("button", { name: "تغییر پوسته" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "کلیدهای میان بر" }),
+    ).toBeDefined();
+  });
+
+  test("keeps the theme toggle and shortcuts on the editor page", async () => {
+    renderApp([makeNote({ id: 1, title: "یادداشت من" })], "/notes/1/edit");
+
+    expect(
+      await screen.findByRole("textbox", { name: "متن یادداشت" }),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "تغییر پوسته" })).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "کلیدهای میان بر" }),
+    ).toBeDefined();
+  });
+
+  test("lists notes from the database in the table", async () => {
     renderApp([makeNote({ id: 1, title: "یادداشت من" })]);
 
     expect(await screen.findByText("یادداشت من")).toBeDefined();

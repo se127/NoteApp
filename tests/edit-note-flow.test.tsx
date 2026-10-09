@@ -72,7 +72,7 @@ describe("creating a note end to end", () => {
     expect(bridge.notes[0]?.title).toBe("");
   });
 
-  test("a newly created note appears in the sidebar", async () => {
+  test("a newly created note appears in the table", async () => {
     renderWithProviders(<App />, { route: "/" });
 
     fireEvent.click(screen.getByRole("button", { name: "یادداشت جدید" }));
@@ -108,7 +108,7 @@ describe("deleting a note end to end", () => {
     renderWithProviders(<App />, { route: "/" });
 
     const trigger = await screen.findByRole("button", {
-      name: "گزینه‌های یادداشت حذف‌شدنی",
+      name: "گزینه های یادداشت حذف‌شدنی",
     });
     fireEvent.pointerDown(trigger, {
       button: 0,
@@ -128,7 +128,7 @@ describe("deleting a note end to end", () => {
     renderWithProviders(<App />, { route: "/" });
 
     const trigger = await screen.findByRole("button", {
-      name: "گزینه‌های یادداشت باقی‌مانده",
+      name: "گزینه های یادداشت باقی‌مانده",
     });
     fireEvent.pointerDown(trigger, {
       button: 0,
@@ -140,6 +140,76 @@ describe("deleting a note end to end", () => {
     fireEvent.click(await screen.findByRole("button", { name: "انصراف" }));
 
     expect(bridge.notes).toHaveLength(1);
+  });
+});
+
+describe("leaving the editor with the back button", () => {
+  const backButton = { name: "بازگشت به یادداشت ها" };
+
+  test("saves the pending title before the table appears", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "قدیمی" }));
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    const titleField = await screen.findByRole("textbox", { name: "عنوان" });
+    typeIntoTitle(titleField, "تازه");
+
+    await Bun.sleep(300);
+    expect(bridge.notes[0]?.title).toBe("قدیمی");
+
+    fireEvent.click(screen.getByRole("button", backButton));
+
+    await waitFor(() => expect(bridge.notes[0]?.title).toBe("تازه"), {
+      timeout: 2000,
+    });
+    expect(await screen.findByText("تازه")).toBeDefined();
+  });
+
+  test("stays in the editor when the save fails", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "قدیمی" }));
+    bridge.failUpdate(new Error("ذخیره ناموفق بود"));
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    const titleField = await screen.findByRole("textbox", { name: "عنوان" });
+    typeIntoTitle(titleField, "تازه");
+
+    fireEvent.click(screen.getByRole("button", backButton));
+
+    expect(await screen.findByText("ذخیره ناموفق بود")).toBeDefined();
+    expect(screen.getByRole("textbox", { name: "عنوان" })).toBeDefined();
+
+    typeIntoTitle(screen.getByRole("textbox", { name: "عنوان" }), "قدیمی");
+  });
+
+  test("writes nothing when the note was never touched", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "سالم" }));
+
+    let updateCalls = 0;
+    const bridgeUpdate = bridge.update;
+    bridge.update = async (id, note) => {
+      updateCalls += 1;
+      return bridgeUpdate(id, note);
+    };
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    fireEvent.click(screen.getByRole("button", backButton));
+
+    expect(
+      await screen.findByRole("table", { name: "یادداشت‌ها" }),
+    ).toBeDefined();
+    expect(updateCalls).toBe(0);
+  });
+
+  test("is absent on the notes page", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "سالم" }));
+
+    renderWithProviders(<App />, { route: "/" });
+    await screen.findByRole("table", { name: "یادداشت‌ها" });
+
+    expect(screen.queryByRole("button", backButton)).toBeNull();
   });
 });
 
