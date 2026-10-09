@@ -1122,7 +1122,7 @@ export function NoteBodyEditor({
       <div
         role="toolbar"
         aria-label="قالب‌بندی متن"
-        className="flex shrink-0 flex-wrap items-center gap-0.5 border-y border-border bg-black/5 px-6 py-2 dark:bg-muted/40"
+        className="flex shrink-0 flex-wrap items-center gap-x-0.5 gap-y-2 border-y border-border bg-black/5 px-6 py-2 dark:bg-muted/40"
       >
         {HISTORY_ACTIONS.map((action) => (
           <HistoryButton key={action.label} action={action} editor={editor} />
