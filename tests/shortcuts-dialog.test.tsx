@@ -53,6 +53,16 @@ describe("ShortcutsDialog", () => {
     expect(dialog).toContain("ویرایشگر آن را باز می‌ کند");
   });
 
+  test("lists the back to notes shortcut with its explanation", () => {
+    renderDialog();
+    openDialog();
+
+    const dialog = screen.getByRole("dialog").textContent ?? "";
+    expect(dialog).toContain("Ctrl + L");
+    expect(dialog).toContain("بازگشت به یادداشت ها");
+    expect(dialog).toContain("به فهرست یادداشت ها بر می‌ گردد");
+  });
+
   test("lists the save shortcut with its explanation", () => {
     renderDialog();
     openDialog();

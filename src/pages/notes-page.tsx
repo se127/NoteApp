@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { NotesTable } from "@/components/notes-table";
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import { useNotesStore } from "@/lib/notes-store";
 import { isShortcut, NEW_NOTE_SHORTCUT } from "@/lib/shortcuts";
@@ -49,10 +50,12 @@ export function NotesPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="px-6">
-        <Button onClick={handleNewNote} disabled={isCreating || isSaving}>
-          <Plus className="size-4" />
-          {isCreating ? "در حال ساخت..." : "یادداشت جدید"}
-        </Button>
+        <ShortcutTooltip shortcut={NEW_NOTE_SHORTCUT}>
+          <Button onClick={handleNewNote} disabled={isCreating || isSaving}>
+            <Plus className="size-4" />
+            {isCreating ? "در حال ساخت..." : NEW_NOTE_SHORTCUT.label}
+          </Button>
+        </ShortcutTooltip>
         {createError !== null && (
           <p role="alert" className="mt-2 text-sm text-destructive">
             {createError}

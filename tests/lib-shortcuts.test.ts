@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  BACK_TO_NOTES_SHORTCUT,
   isShortcut,
   NEW_NOTE_SHORTCUT,
   SAVE_NOTE_SHORTCUT,
@@ -19,6 +20,7 @@ describe("SHORTCUTS", () => {
     expect(SHORTCUTS.map((shortcut) => shortcut.combination)).toEqual([
       "Ctrl + N",
       "Ctrl + S",
+      "Ctrl + L",
       "Ctrl + Alt + G",
       "Ctrl + Z",
       "Ctrl + Y",
@@ -208,6 +210,22 @@ describe("isShortcut", () => {
   test("binds no toolbar shortcut to a bare digit", () => {
     for (const { shortcut } of TOOLBAR_SHORTCUTS) {
       expect(/^[0-9]$/.test(shortcut.key)).toBe(false);
+    }
+  });
+
+  test("matches the back to notes shortcut", () => {
+    const latin = keyEvent({ key: "l", code: "KeyL", ctrlKey: true });
+    const persian = keyEvent({ key: "ل", code: "KeyL", ctrlKey: true });
+
+    expect(isShortcut(latin, BACK_TO_NOTES_SHORTCUT)).toBe(true);
+    expect(isShortcut(persian, BACK_TO_NOTES_SHORTCUT)).toBe(true);
+  });
+
+  test("keeps the back to notes shortcut out of the body commands", () => {
+    const event = keyEvent({ key: "l", code: "KeyL", ctrlKey: true });
+
+    for (const { shortcut } of TOOLBAR_SHORTCUTS) {
+      expect(isShortcut(event, shortcut)).toBe(false);
     }
   });
 

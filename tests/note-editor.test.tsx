@@ -11,7 +11,9 @@ import { EMOJI_LABEL } from "@/components/emoji-grid";
 import { NoteEditor } from "@/components/note-editor";
 import { FREQUENT_EMOJI } from "@/lib/frequent-emoji";
 import type { Note } from "@/lib/notes";
+import { BACK_TO_NOTES_SHORTCUT } from "@/lib/shortcuts";
 import { createFakeStore } from "./helpers/fake-store";
+import { fireHover } from "./helpers/hover";
 import {
   bodyEditor,
   setBodyContent,
@@ -838,6 +840,85 @@ describe("NoteEditor Ctrl+S save", () => {
         ),
       { timeout: 2000 },
     );
+  });
+});
+
+describe("NoteEditor back to notes", () => {
+  test("names the back shortcut in the back button tooltip", async () => {
+    renderEditor();
+
+    fireHover(
+      screen.getByRole("button", { name: BACK_TO_NOTES_SHORTCUT.label }),
+    );
+
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+    expect(screen.getByRole("tooltip").textContent).toContain(
+      BACK_TO_NOTES_SHORTCUT.label,
+    );
+  });
+
+  test("puts the back combination in the tooltip kbd", async () => {
+    renderEditor();
+
+    fireHover(
+      screen.getByRole("button", { name: BACK_TO_NOTES_SHORTCUT.label }),
+    );
+
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+    expect(screen.getByRole("tooltip").querySelector("kbd")?.textContent).toBe(
+      BACK_TO_NOTES_SHORTCUT.combination,
+    );
+  });
+
+  test("flushes the pending save on the shortcut", async () => {
+    renderEditor();
+    typeIntoBody("متن تازه");
+
+    await Bun.sleep(300);
+    expect(updateCalls).toBe(0);
+
+    pressCtrl("l");
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
+    expect(updates[0]).toEqual({
+      id: 42,
+      title: "عنوان اولیه",
+      body: "<p>متن تازه</p>",
+    });
+  });
+
+  test("prevents the default window behavior", () => {
+    renderEditor();
+
+    expect(pressCtrl("l").defaultPrevented).toBe(true);
+  });
+
+  test("leaves an unchanged note unsaved", async () => {
+    renderEditor();
+
+    pressCtrl("l");
+
+    await Bun.sleep(300);
+    expect(updateCalls).toBe(0);
+  });
+
+  test("works on a persian keyboard layout", async () => {
+    renderEditor();
+    typeIntoBody("متن تازه");
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "ل",
+          code: BACK_TO_NOTES_SHORTCUT.code,
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    await waitFor(() => expect(updateCalls).toBe(1), { timeout: 2000 });
   });
 });
 

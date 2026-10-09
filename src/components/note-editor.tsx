@@ -9,12 +9,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { NoteBodyEditor, type BodyEditor } from "@/components/note-body-editor";
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { TitleEmojiPicker } from "@/components/title-emoji-picker";
 import { getNotesBridge, type Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
 import {
+  BACK_TO_NOTES_SHORTCUT,
   isShortcut,
   SAVE_NOTE_SHORTCUT,
   type ShortcutKeys,
@@ -26,7 +28,7 @@ import { cn } from "@/lib/utils";
 const SAVE_DELAY = 800;
 
 const SAVE_FAILED_MESSAGE = "ذخیره یادداشت ناموفق بود";
-const BACK_LABEL = "بازگشت به یادداشت ها";
+const BACK_LABEL = BACK_TO_NOTES_SHORTCUT.label;
 
 type NotePayload = { title: string; body: string };
 
@@ -254,6 +256,19 @@ export function NoteEditor({ note }: { note: Note }) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, BACK_TO_NOTES_SHORTCUT)) return;
+
+      event.preventDefault();
+      void handleBack();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [handleBack]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (!isShortcut(event, TITLE_EMOJI_SHORTCUT)) return;
 
       event.preventDefault();
@@ -325,17 +340,19 @@ export function NoteEditor({ note }: { note: Note }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden pb-8">
         <div className="flex items-center gap-2 px-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={(event) => {
-              event.preventDefault();
-              void handleBack();
-            }}
-          >
-            <ArrowRight className="size-4" />
-            {BACK_LABEL}
-          </Button>
+          <ShortcutTooltip shortcut={BACK_TO_NOTES_SHORTCUT}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={(event) => {
+                event.preventDefault();
+                void handleBack();
+              }}
+            >
+              <ArrowRight className="size-4" />
+              {BACK_LABEL}
+            </Button>
+          </ShortcutTooltip>
         </div>
         <div className="flex items-center gap-2 px-6 pb-2">
           <div

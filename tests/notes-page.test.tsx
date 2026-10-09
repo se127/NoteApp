@@ -3,7 +3,9 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 
 import type { Note } from "@/lib/notes";
 import { NotesPage } from "@/pages/notes-page";
+import { NEW_NOTE_SHORTCUT } from "@/lib/shortcuts";
 import { createFakeStore } from "./helpers/fake-store";
+import { fireHover } from "./helpers/hover";
 import { renderWithProviders } from "./helpers/render";
 
 type Store = ReturnType<typeof createFakeStore>;
@@ -131,6 +133,28 @@ function pressCtrl(key: string): KeyboardEvent {
   });
   return event;
 }
+
+describe("NotesPage new note tooltip", () => {
+  test("names the new note shortcut in its tooltip", async () => {
+    renderPage();
+
+    fireHover(screen.getByRole("button", { name: "یادداشت جدید" }));
+
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+    expect(screen.getByRole("tooltip").textContent).toContain("یادداشت جدید");
+  });
+
+  test("puts the combination in the tooltip kbd", async () => {
+    renderPage();
+
+    fireHover(screen.getByRole("button", { name: "یادداشت جدید" }));
+
+    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+    expect(screen.getByRole("tooltip").querySelector("kbd")?.textContent).toBe(
+      NEW_NOTE_SHORTCUT.combination,
+    );
+  });
+});
 
 describe("NotesPage Ctrl+N new note", () => {
   test("creates an empty note", async () => {

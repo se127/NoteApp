@@ -42,6 +42,15 @@ export const NEW_NOTE_SHORTCUT: Shortcut = {
   label: "یادداشت جدید",
 };
 
+export const BACK_TO_NOTES_SHORTCUT: Shortcut = {
+  code: "KeyL",
+  combination: "Ctrl + L",
+  description:
+    "یادداشت فعلی را بی‌ درنگ ذخیره می‌ کند و به فهرست یادداشت ها بر می‌ گردد.",
+  key: "l",
+  label: "بازگشت به یادداشت ها",
+};
+
 export const SAVE_NOTE_SHORTCUT: Shortcut = {
   code: "KeyS",
   combination: "Ctrl + S",
@@ -288,7 +297,7 @@ export const SHORTCUT_GROUPS: readonly {
 }[] = [
   {
     heading: "یادداشت",
-    shortcuts: [NEW_NOTE_SHORTCUT, SAVE_NOTE_SHORTCUT],
+    shortcuts: [NEW_NOTE_SHORTCUT, SAVE_NOTE_SHORTCUT, BACK_TO_NOTES_SHORTCUT],
   },
   {
     heading: "عنوان یادداشت",
