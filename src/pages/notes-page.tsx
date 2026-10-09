@@ -63,7 +63,7 @@ export function NotesPage() {
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto px-6 pt-4 pb-6">
+      <div className="mx-6 mt-4 mb-6 min-h-0 flex-1 overflow-auto">
         {error !== null ? (
           <p role="alert" className="text-sm text-destructive">
             {error}
