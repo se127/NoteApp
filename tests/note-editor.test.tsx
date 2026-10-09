@@ -118,6 +118,13 @@ function typeIntoBody(text: string): void {
   setBodyContent(`<p>${text}</p>`);
 }
 
+function appendToBody(text: string): void {
+  const editor = bodyEditor();
+  act(() => {
+    editor.commands.insertContentAt(editor.state.doc.content.size - 1, text);
+  });
+}
+
 function pressTitleEmojiShortcut(): void {
   act(() => {
     window.dispatchEvent(
@@ -613,6 +620,48 @@ describe("NoteEditor keyboard", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(selection?.anchorNode === textNode).toBe(true);
     expect(selection?.anchorOffset).toBe(5);
+  });
+
+  test("leaves Ctrl + Z to the title instead of undoing the body", () => {
+    renderEditor();
+
+    appendToBody(" تازه");
+    expect(bodyText()).toBe("متن اولیه تازه");
+
+    const event = new KeyboardEvent("keydown", {
+      key: "z",
+      code: "KeyZ",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      titleField().dispatchEvent(event);
+    });
+
+    expect(bodyText()).toBe("متن اولیه تازه");
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  test("still undoes the body on Ctrl + Z once the body has the caret", () => {
+    renderEditor();
+
+    appendToBody(" تازه");
+    expect(bodyText()).toBe("متن اولیه تازه");
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "z",
+          code: "KeyZ",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    expect(bodyText()).toBe("متن اولیه");
   });
 
   test("keeps the caret attached to its text when markup is unwrapped", () => {

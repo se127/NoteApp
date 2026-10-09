@@ -1060,6 +1060,15 @@ function FontSizePicker({
   );
 }
 
+const EDITABLE_SELECTOR = "input, textarea, [contenteditable]";
+
+function editsAnotherField(event: KeyboardEvent, editor: BodyEditor): boolean {
+  const target = event.target;
+  if (!(target instanceof Element)) return false;
+  if (editor.view.dom.contains(target)) return false;
+  return target.closest(EDITABLE_SELECTOR) !== null;
+}
+
 export function NoteBodyEditor({
   body,
   onChange,
@@ -1095,6 +1104,7 @@ export function NoteBodyEditor({
     const handleKeyDown = (event: KeyboardEvent) => {
       const command = findToolbarCommand(event);
       if (command === undefined) return;
+      if (editsAnotherField(event, editor)) return;
 
       event.preventDefault();
       runToolbarCommand(command);
