@@ -32,7 +32,7 @@ export function TitleEmojiPicker({
           <Button
             type="button"
             variant="outline"
-            size="icon-sm"
+            size="icon"
             aria-label={LABEL}
             onMouseDown={(event) => event.preventDefault()}
             className="bg-popover text-foreground"

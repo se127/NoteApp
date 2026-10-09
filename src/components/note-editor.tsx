@@ -8,6 +8,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
+import { NoteActionsMenu } from "@/components/note-actions-menu";
 import { NoteBodyEditor, type BodyEditor } from "@/components/note-body-editor";
 import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
@@ -125,7 +126,7 @@ const STATUS_ICONS: Record<SaveStatus, LucideIcon> = {
 
 export function NoteEditor({ note }: { note: Note }) {
   const navigate = useNavigate();
-  const { update, setIsSaving } = useNotesStore();
+  const { update, setIsSaving, isSaving } = useNotesStore();
 
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
@@ -353,6 +354,9 @@ export function NoteEditor({ note }: { note: Note }) {
               {BACK_LABEL}
             </Button>
           </ShortcutTooltip>
+          <div className="ms-auto">
+            <NoteActionsMenu note={note} disabled={isSaving} />
+          </div>
         </div>
         <div className="flex items-center gap-2 px-6 pb-2">
           <div

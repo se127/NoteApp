@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 
 import App from "@/App";
 import {
@@ -139,6 +145,199 @@ describe("deleting a note end to end", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "حذف" }));
     fireEvent.click(await screen.findByRole("button", { name: "انصراف" }));
 
+    expect(bridge.notes).toHaveLength(1);
+  });
+});
+
+async function openNoteMenuInEditor(title: string): Promise<HTMLElement> {
+  const trigger = await screen.findByRole("button", {
+    name: `گزینه های یادداشت ${title}`,
+  });
+
+  fireEvent.pointerDown(trigger, {
+    button: 0,
+    ctrlKey: false,
+    pointerType: "mouse",
+  });
+  fireEvent.click(trigger);
+  fireEvent.click(await screen.findByRole("menuitem", { name: "حذف" }));
+
+  return trigger;
+}
+
+describe("deleting from the editor menu", () => {
+  test("shows the options menu next to the back button", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    const trigger = await screen.findByRole("button", {
+      name: "گزینه های یادداشت از ویرایشگر",
+    });
+
+    const row = trigger.closest("div.flex.items-center");
+    expect(row?.querySelector("button")?.textContent).toContain(
+      "بازگشت به یادداشت ها",
+    );
+  });
+
+  test("gives the options button the outline style", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    const trigger = await screen.findByRole("button", {
+      name: "گزینه های یادداشت از ویرایشگر",
+    });
+
+    expect(trigger.getAttribute("data-variant")).toBe("outline");
+  });
+
+  test("sizes the options button to match the back button", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    const trigger = await screen.findByRole("button", {
+      name: "گزینه های یادداشت از ویرایشگر",
+    });
+    const back = screen.getByRole("button", { name: "بازگشت به یادداشت ها" });
+
+    expect(trigger.getAttribute("data-size")).toBe("icon");
+    expect(back.getAttribute("data-size")).toBe("default");
+    expect(trigger.className).toContain("size-8");
+    expect(back.className).toContain("h-8");
+  });
+
+  test("sizes the title emoji button to match the back button", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    const title = screen.getByRole("textbox", { name: "عنوان" });
+    const titleRow = title.parentElement as HTMLElement;
+    const emoji = within(titleRow).getByRole("button", {
+      name: "انتخاب ایموجی",
+    });
+
+    expect(emoji.getAttribute("data-size")).toBe("icon");
+    expect(emoji.className).toContain("size-8");
+  });
+
+  test("pushes the menu to the far end of the toolbar row", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    const trigger = await screen.findByRole("button", {
+      name: "گزینه های یادداشت از ویرایشگر",
+    });
+
+    const row = trigger.closest("div.flex.items-center") as HTMLElement;
+    const wrapper = trigger.parentElement as HTMLElement;
+
+    expect(row.lastElementChild === wrapper).toBe(true);
+    expect(wrapper.className).toContain("ms-auto");
+  });
+
+  test("asks for confirmation before deleting", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    await openNoteMenuInEditor("از ویرایشگر");
+
+    expect(
+      await screen.findByText("آیا از حذف این یادداشت مطمئن هستید؟"),
+    ).toBeDefined();
+    expect(bridge.notes).toHaveLength(1);
+  });
+
+  test("shows the note title inside the confirmation", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    await openNoteMenuInEditor("از ویرایشگر");
+
+    expect(
+      await screen.findByText(
+        "«از ویرایشگر» برای همیشه حذف می‌شود و قابل بازگشت نیست.",
+      ),
+    ).toBeDefined();
+  });
+
+  test("deletes the note and lands in the list", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    await openNoteMenuInEditor("از ویرایشگر");
+    fireEvent.click(await screen.findByRole("button", { name: "بله" }));
+
+    await waitFor(() => expect(bridge.notes).toHaveLength(0));
+    expect(
+      await screen.findByRole("button", { name: "یادداشت جدید" }),
+    ).toBeDefined();
+    expect(screen.queryByRole("textbox", { name: "متن یادداشت" })).toBeNull();
+  });
+
+  test("stays in the editor when the confirmation is cancelled", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    await openNoteMenuInEditor("از ویرایشگر");
+    fireEvent.click(await screen.findByRole("button", { name: "انصراف" }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("آیا از حذف این یادداشت مطمئن هستید؟"),
+      ).toBeNull(),
+    );
+    expect(bridge.notes).toHaveLength(1);
+    expect(
+      screen.getByRole("textbox", { name: "متن یادداشت", hidden: true }),
+    ).toBeDefined();
+  });
+
+  test("keeps the options menu open after the confirmation is cancelled", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    await openNoteMenuInEditor("از ویرایشگر");
+    fireEvent.click(await screen.findByRole("button", { name: "انصراف" }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("آیا از حذف این یادداشت مطمئن هستید؟"),
+      ).toBeNull(),
+    );
+    expect(screen.getByRole("menuitem", { name: "حذف" })).toBeDefined();
+  });
+
+  test("keeps the note in the editor when the delete fails", async () => {
+    bridge.notes.push(makeNote({ id: 4, title: "از ویرایشگر" }));
+    bridge.failRemove(new Error("حذف ناموفق بود"));
+
+    renderWithProviders(<App />, { route: "/notes/4/edit" });
+    await screen.findByRole("textbox", { name: "متن یادداشت" });
+
+    await openNoteMenuInEditor("از ویرایشگر");
+    fireEvent.click(await screen.findByRole("button", { name: "بله" }));
+
+    expect(await screen.findByText("حذف ناموفق بود")).toBeDefined();
     expect(bridge.notes).toHaveLength(1);
   });
 });

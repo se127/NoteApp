@@ -1,15 +1,6 @@
-import { Ellipsis, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { NavLink } from "react-router";
 
-import { DeleteNoteDialog } from "@/components/delete-note-dialog";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { NoteActionsMenu } from "@/components/note-actions-menu";
 import {
   Table,
   TableBody,
@@ -69,10 +60,6 @@ export function NotesTable({ notes }: { notes: Note[] }) {
 function NoteTableRow({ note }: { note: Note }) {
   const { isSaving } = useNotesStore();
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
   const title = noteTitle(note);
   const wasEdited = hasBeenEdited(note.createdAt, note.updatedAt);
 
@@ -129,48 +116,8 @@ function NoteTableRow({ note }: { note: Note }) {
       </TableCell>
 
       <TableCell className={cn("text-end align-top", ACTIONS_COLUMN)}>
-        <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <Tooltip open={isHovered && !isMenuOpen}>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={`گزینه های یادداشت ${title}`}
-                  disabled={isSaving}
-                  onPointerEnter={() => setIsHovered(true)}
-                  onPointerLeave={() => setIsHovered(false)}
-                >
-                  <Ellipsis />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>گزینه ها</TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent
-            side="bottom"
-            align="end"
-            onFocusOutside={(event) => event.preventDefault()}
-          >
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={(event) => {
-                event.preventDefault();
-                setIsDialogOpen(true);
-              }}
-            >
-              <Trash2 />
-              حذف
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NoteActionsMenu note={note} disabled={isSaving} />
       </TableCell>
-
-      <DeleteNoteDialog
-        note={note}
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-      />
     </TableRow>
   );
 }

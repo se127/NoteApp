@@ -192,6 +192,18 @@ async function openDeleteDialogFor(note: Note): Promise<void> {
 describe("NotesTable deleting a note", () => {
   const note = noteWith({ id: 7, title: "برای حذف" });
 
+  test("gives the options button the outline style", () => {
+    renderTable([note]);
+
+    const trigger = screen.getByRole("button", {
+      name: "گزینه های یادداشت برای حذف",
+    });
+
+    expect(trigger.getAttribute("data-variant")).toBe("outline");
+    expect(trigger.getAttribute("data-size")).toBe("icon");
+    expect(trigger.className).toContain("size-8");
+  });
+
   test("asks for confirmation before deleting", async () => {
     renderTable([note]);
 
@@ -236,6 +248,20 @@ describe("NotesTable deleting a note", () => {
       ).toBeNull(),
     );
     expect(removedIds).toHaveLength(0);
+  });
+
+  test("keeps the options menu open after the confirmation is cancelled", async () => {
+    renderTable([note]);
+
+    await openDeleteDialogFor(note);
+    fireEvent.click(await screen.findByRole("button", { name: "انصراف" }));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("آیا از حذف این یادداشت مطمئن هستید؟"),
+      ).toBeNull(),
+    );
+    expect(screen.getByRole("menuitem", { name: "حذف" })).toBeDefined();
   });
 
   test("keeps the dialog open and reports a delete failure", async () => {
