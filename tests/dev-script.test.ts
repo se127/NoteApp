@@ -3,8 +3,10 @@ import path from "node:path";
 
 import {
   createServerProbe,
+  DEFAULT_DEV_NOTE_COUNT,
   devUserDataDir,
   isRunning,
+  parseNoteCount,
   serverUrl,
   stopTree,
   viteArgs,
@@ -90,6 +92,44 @@ describe("viteArgs", () => {
     expect(
       viteArgs("127.0.0.1", 5173).filter((arg) => arg === "--port"),
     ).toHaveLength(1);
+  });
+});
+
+describe("parseNoteCount", () => {
+  test("seeds nothing when the flag is absent", () => {
+    expect(parseNoteCount([])).toBe(0);
+    expect(DEFAULT_DEV_NOTE_COUNT).toBe(0);
+  });
+
+  test("reads a count after the flag", () => {
+    expect(parseNoteCount(["--notes", "12"])).toBe(12);
+  });
+
+  test("reads a count joined to the flag with an equals sign", () => {
+    expect(parseNoteCount(["--notes=12"])).toBe(12);
+  });
+
+  test("reads zero when asked for zero", () => {
+    expect(parseNoteCount(["--notes", "0"])).toBe(0);
+  });
+
+  test("ignores unrelated flags around the count", () => {
+    expect(parseNoteCount(["--host", "0.0.0.0", "--notes", "7"])).toBe(7);
+  });
+
+  test("falls back to zero for a count that is not a whole number", () => {
+    expect(parseNoteCount(["--notes", "abc"])).toBe(0);
+    expect(parseNoteCount(["--notes", "2.5"])).toBe(0);
+    expect(parseNoteCount(["--notes", "-4"])).toBe(0);
+  });
+
+  test("falls back to zero when the flag carries no value", () => {
+    expect(parseNoteCount(["--notes"])).toBe(0);
+    expect(parseNoteCount(["--notes", "--host"])).toBe(0);
+  });
+
+  test("takes the first count when the flag is repeated", () => {
+    expect(parseNoteCount(["--notes", "3", "--notes", "9"])).toBe(3);
   });
 });
 

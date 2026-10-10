@@ -29,6 +29,12 @@ if (OVERRIDE_USER_DATA !== undefined) {
   app.setPath("userData", OVERRIDE_USER_DATA);
 }
 
+function devNoteTitles() {
+  const count = Number(process.env["NoteApp_DEV_NOTES"] ?? 0);
+  if (!Number.isInteger(count) || count < 0) return [];
+  return DEV_NOTE_TITLES.slice(0, count);
+}
+
 /** @type {BrowserWindow | null} */
 let mainWindow = null;
 
@@ -286,7 +292,7 @@ if (!app.requestSingleInstanceLock()) {
 
     openDatabase(app.getPath("userData"));
 
-    if (OVERRIDE_USER_DATA !== undefined) replaceAllNotes(DEV_NOTE_TITLES);
+    if (OVERRIDE_USER_DATA !== undefined) replaceAllNotes(devNoteTitles());
 
     createWindow();
 

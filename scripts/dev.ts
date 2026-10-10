@@ -11,6 +11,26 @@ const TIMEOUT_MS = 30_000;
 const POLL_MS = 250;
 const GRACE_MS = 1500;
 
+export const DEFAULT_DEV_NOTE_COUNT = 0;
+
+export function parseNoteCount(argv: string[]): number {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === undefined) continue;
+
+    const [flag, inlineValue] = arg.split("=", 2);
+    if (flag !== "--notes") continue;
+
+    const raw = inlineValue ?? argv[index + 1];
+    const count = Number(raw);
+    if (!Number.isInteger(count) || count < 0) return DEFAULT_DEV_NOTE_COUNT;
+
+    return count;
+  }
+
+  return DEFAULT_DEV_NOTE_COUNT;
+}
+
 export function devUserDataDir(
   appData: string | undefined,
   home: string,
@@ -170,10 +190,13 @@ if (isDirectRun) {
       (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     );
 
+    const noteCount = parseNoteCount(process.argv.slice(2));
+
     console.log("[dev] vite is up, launching electron");
     start("electron", "bunx", ["electron", "."], {
       VITE_DEV_SERVER_URL: SERVER_URL,
       NoteApp_USER_DATA: devUserDataDir(process.env["APPDATA"], os.homedir()),
+      NoteApp_DEV_NOTES: String(noteCount),
     });
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);

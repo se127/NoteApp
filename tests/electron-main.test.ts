@@ -24,6 +24,7 @@ afterEach(() => {
   harness = null;
   delete process.env["NoteApp_USER_DATA"];
   delete process.env["VITE_DEV_SERVER_URL"];
+  delete process.env["NoteApp_DEV_NOTES"];
 });
 
 function themeFile(dir: string): string {
@@ -246,6 +247,7 @@ describe("dev seed notes", () => {
   test("replaces every note when the dev user data directory is set", async () => {
     const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
     process.env["NoteApp_USER_DATA"] = override;
+    process.env["NoteApp_DEV_NOTES"] = String(DEV_NOTE_TITLES.length);
 
     harness = await loadMainProcess();
     harness.whenReady();
@@ -255,9 +257,66 @@ describe("dev seed notes", () => {
     rmSync(override, { force: true, recursive: true });
   });
 
+  test("seeds nothing without a note count", async () => {
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = override;
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.replacedNoteBatches).toEqual([[]]);
+
+    rmSync(override, { force: true, recursive: true });
+  });
+
+  test("seeds only as many titles as asked for", async () => {
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = override;
+    process.env["NoteApp_DEV_NOTES"] = "3";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.replacedNoteBatches).toEqual([
+      DEV_NOTE_TITLES.slice(0, 3),
+    ]);
+
+    rmSync(override, { force: true, recursive: true });
+  });
+
+  test("seeds every title when asked for more than exist", async () => {
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = override;
+    process.env["NoteApp_DEV_NOTES"] = "999";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.replacedNoteBatches).toEqual([DEV_NOTE_TITLES]);
+
+    rmSync(override, { force: true, recursive: true });
+  });
+
+  test.each(["abc", "-4", "1.5"])(
+    "seeds nothing for the unusable count %p",
+    async (count) => {
+      const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+      process.env["NoteApp_USER_DATA"] = override;
+      process.env["NoteApp_DEV_NOTES"] = count;
+
+      harness = await loadMainProcess();
+      harness.whenReady();
+
+      expect(harness.stub.replacedNoteBatches).toEqual([[]]);
+
+      rmSync(override, { force: true, recursive: true });
+    },
+  );
+
   test("seeds fifty Persian titles with no bodies", async () => {
     const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
     process.env["NoteApp_USER_DATA"] = override;
+    process.env["NoteApp_DEV_NOTES"] = "50";
 
     harness = await loadMainProcess();
     harness.whenReady();
@@ -273,6 +332,7 @@ describe("dev seed notes", () => {
   test("seeds short, medium and long titles", async () => {
     const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
     process.env["NoteApp_USER_DATA"] = override;
+    process.env["NoteApp_DEV_NOTES"] = "50";
 
     harness = await loadMainProcess();
     harness.whenReady();
