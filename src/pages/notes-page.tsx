@@ -24,7 +24,8 @@ const DEFAULT_DIRECTION: SortDirection = "desc";
 
 export function NotesPage() {
   const navigate = useNavigate();
-  const { notes, isLoading, error, create, isSaving } = useNotesStore();
+  const { notes, totalCount, isLoading, error, create, isSaving } =
+    useNotesStore();
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -32,7 +33,7 @@ export function NotesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [direction, setDirection] = useState<SortDirection>(DEFAULT_DIRECTION);
   const deleteSelectedLabel = `${DELETE_SELECTED_LABEL} (${formatPersianNumber(selectedIds.length)})`;
-  const notesHeading = `${LIST_LABEL} (${formatPersianNumber(notes.length)})`;
+  const notesHeading = `${LIST_LABEL} (${formatPersianNumber(totalCount)})`;
 
   const handleToggleSelectMode = useCallback(() => {
     setIsSelecting((previous) => !previous);

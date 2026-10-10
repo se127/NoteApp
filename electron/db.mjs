@@ -7,6 +7,8 @@ let db = null;
 /** @type {import("node:sqlite").StatementSync | null} */
 let listStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
+let countStatement = null;
+/** @type {import("node:sqlite").StatementSync | null} */
 let insertStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
 let deleteStatement = null;
@@ -100,6 +102,8 @@ export function openDatabase(userDataPath) {
       ORDER BY created_at DESC, id DESC`,
   );
 
+  countStatement = db.prepare("SELECT COUNT(*) AS total FROM notes");
+
   insertStatement = db.prepare(
     `INSERT INTO notes (title, body) VALUES (?, ?)
      RETURNING id, title, body, created_at AS createdAt, updated_at AS updatedAt`,
@@ -126,6 +130,11 @@ function requireDb() {
 export function listNotes() {
   requireDb();
   return /** @type {any} */ (listStatement).all();
+}
+
+export function countNotes() {
+  requireDb();
+  return Number(/** @type {any} */ (countStatement).get().total);
 }
 
 /** @returns {{id: number, title: string, body: string, createdAt: string, updatedAt: string}} */
@@ -188,6 +197,7 @@ export function closeDatabase() {
   db?.close();
   db = null;
   listStatement = null;
+  countStatement = null;
   insertStatement = null;
   deleteStatement = null;
   updateStatement = null;

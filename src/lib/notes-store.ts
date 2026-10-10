@@ -4,6 +4,7 @@ import type { NewNote, Note } from "@/lib/notes";
 
 export type NotesStore = {
   notes: Note[];
+  totalCount: number;
   isLoading: boolean;
   error: string | null;
   isSaving: boolean;

@@ -9,6 +9,7 @@ export type PreloadBridge = {
   };
   notes: {
     list: () => Promise<unknown>;
+    count: () => Promise<unknown>;
     create: (note: unknown) => Promise<unknown>;
     remove: (id: number) => Promise<unknown>;
     update: (id: number, note: unknown) => Promise<unknown>;

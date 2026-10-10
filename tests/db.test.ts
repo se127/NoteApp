@@ -93,6 +93,52 @@ describe("listNotes", () => {
   });
 });
 
+describe("countNotes", () => {
+  test("counts every note without loading them", () => {
+    database.create("اول", "");
+    database.create("دوم", "");
+    database.create("سوم", "");
+
+    expect(database.count()).toBe(3);
+  });
+
+  test("counts zero for an empty database", () => {
+    expect(database.count()).toBe(0);
+  });
+
+  test("counts a number larger than the list query returns", () => {
+    for (let index = 0; index < 50; index += 1) database.create("", "");
+
+    expect(database.list()).toHaveLength(50);
+    expect(database.count()).toBe(50);
+  });
+
+  test("drops as soon as a note is deleted", () => {
+    const first = database.create("اول", "");
+    database.create("دوم", "");
+
+    expect(database.remove(first.id)).toBe(true);
+
+    expect(database.count()).toBe(1);
+  });
+
+  test("is not moved by editing a note", () => {
+    const note = database.create("قدیمی", "متن");
+
+    database.update(note.id, "جدید", "متن جدید");
+
+    expect(database.count()).toBe(1);
+  });
+
+  test("follows a dev reseed", () => {
+    database.create("قدیمی", "");
+
+    database.replaceAll(["یک", "دو"]);
+
+    expect(database.count()).toBe(2);
+  });
+});
+
 describe("updateNote", () => {
   test("updates the note and advances updatedAt", async () => {
     const note = database.create("قدیمی", "متن قدیمی");

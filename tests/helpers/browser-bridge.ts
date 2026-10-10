@@ -5,8 +5,10 @@ type ChangeListener = () => void;
 
 export type FakeNotesBridge = NotesBridge & {
   notes: Note[];
+  setTotalCount: (total: number) => void;
   emitChanged: () => void;
   failList: (error: Error) => void;
+  failCount: (error: Error) => void;
   failCreate: (error: Error) => void;
   failUpdate: (error: Error) => void;
   failRemove: (error: Error) => void;
@@ -29,11 +31,14 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
   const listeners: ChangeListener[] = [];
 
   let listError: Error | null = null;
+  let countError: Error | null = null;
   let createError: Error | null = null;
   let updateError: Error | null = null;
   let removeError: Error | null = null;
 
   const syncedUpdates: Array<{ id: number; title: string; body: string }> = [];
+
+  let totalCountOverride: number | null = null;
 
   function guard(error: Error | null): void {
     if (error !== null) throw error;
@@ -42,8 +47,14 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
   const bridge: FakeNotesBridge = {
     notes,
     syncedUpdates,
+    setTotalCount: (total) => {
+      totalCountOverride = total;
+    },
     failList: (error) => {
       listError = error;
+    },
+    failCount: (error) => {
+      countError = error;
     },
     failCreate: (error) => {
       createError = error;
@@ -60,6 +71,10 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
     list: async () => {
       guard(listError);
       return notes.map((note) => ({ ...note }));
+    },
+    count: async () => {
+      guard(countError);
+      return totalCountOverride ?? notes.length;
     },
     create: async (note: NewNote) => {
       guard(createError);

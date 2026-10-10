@@ -5,6 +5,7 @@ import type { DatabaseSync } from "node:sqlite";
 
 import {
   closeDatabase,
+  countNotes,
   createNote,
   deleteNote,
   listNotes,
@@ -70,6 +71,7 @@ export type TestDatabase = {
   remove: (id: number) => boolean;
   update: (id: number, title: string, body: string) => Note | null;
   list: () => Note[];
+  count: () => number;
   replaceAll: (titles: string[]) => void;
   dispose: () => void;
 };
@@ -95,6 +97,7 @@ export function createTestDatabase(): TestDatabase {
     remove: (id) => deleteNote(id),
     update: (id, title, body) => updateNote(id, title, body) as Note | null,
     list: () => listNotes() as Note[],
+    count: () => countNotes(),
     replaceAll: (titles) => {
       replaceAllNotes(titles);
     },

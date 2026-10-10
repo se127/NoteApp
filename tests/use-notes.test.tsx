@@ -87,6 +87,70 @@ describe("useNotes with the electron bridge", () => {
     expect(result.current.notes[0]?.title).toBe("تازه");
   });
 
+  test("reads the total from the count query, not from the list length", async () => {
+    bridge.setTotalCount(1200);
+
+    const { result } = renderHook(() => useNotes());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.notes).toHaveLength(0);
+    expect(result.current.totalCount).toBe(1200);
+  });
+
+  test("counts every note once the list has loaded", async () => {
+    bridge.notes.push(makeNote({ id: 1 }), makeNote({ id: 2 }));
+
+    const { result } = renderHook(() => useNotes());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.totalCount).toBe(2);
+  });
+
+  test("follows the total when the main process broadcasts a change", async () => {
+    bridge.notes.push(makeNote({ id: 4 }));
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.totalCount).toBe(1));
+
+    act(() => {
+      bridge.notes.push(makeNote({ id: 5 }));
+      bridge.emitChanged();
+    });
+
+    await waitFor(() => expect(result.current.totalCount).toBe(2));
+  });
+
+  test("surfaces a count failure and stops loading", async () => {
+    bridge.failCount(new Error("شمارش ناموفق بود"));
+
+    const { result } = renderHook(() => useNotes());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe("شمارش ناموفق بود");
+  });
+
+  test("keeps the total in step with a create", async () => {
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.create({ title: "تازه", body: "متن" });
+    });
+
+    expect(result.current.totalCount).toBe(1);
+  });
+
+  test("keeps the total in step with a delete", async () => {
+    bridge.notes.push(makeNote({ id: 8 }));
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.totalCount).toBe(1));
+
+    await act(async () => {
+      await result.current.remove(8);
+    });
+
+    expect(result.current.totalCount).toBe(0);
+  });
+
   test("stops listening to broadcasts after unmount", async () => {
     const { result, unmount } = renderHook(() => useNotes());
     await waitFor(() => expect(result.current.isLoading).toBe(false));

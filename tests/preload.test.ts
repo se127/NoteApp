@@ -20,6 +20,7 @@ describe("preload bridge", () => {
     const preload = loadPreload();
 
     expect(Object.keys(preload.bridge.notes).sort()).toEqual([
+      "count",
       "create",
       "list",
       "onChanged",
@@ -101,6 +102,20 @@ describe("preload bridge", () => {
       channel: "notes:list",
       args: [],
     });
+  });
+
+  test("counts notes over its own channel", async () => {
+    const preload = loadPreload();
+
+    await preload.bridge.notes.count();
+
+    expect(preload.invokeCalls.at(-1)).toEqual({
+      channel: "notes:count",
+      args: [],
+    });
+    expect(
+      preload.invokeCalls.some((call) => call.channel === "notes:list"),
+    ).toBe(false);
   });
 
   test("creates a note with title and body", async () => {

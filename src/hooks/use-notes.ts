@@ -8,17 +8,29 @@ export function useNotes() {
   const bridge = useMemo(() => getNotesBridge(), []);
 
   const [notes, setNotes] = useState<Note[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(bridge !== null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(
     bridge === null ? UNAVAILABLE_MESSAGE : null,
   );
 
+  const reload = useCallback(async () => {
+    if (bridge === null) return;
+
+    const [listed, counted] = await Promise.all([
+      bridge.list(),
+      bridge.count(),
+    ]);
+    setNotes(listed);
+    setTotalCount(counted);
+  }, [bridge]);
+
   const refresh = useCallback(async () => {
     if (bridge === null) return;
 
     try {
-      setNotes(await bridge.list());
+      await reload();
       setError(null);
     } catch (cause) {
       setError(
@@ -27,7 +39,7 @@ export function useNotes() {
     } finally {
       setIsLoading(false);
     }
-  }, [bridge]);
+  }, [bridge, reload]);
 
   useEffect(() => {
     if (bridge === null) return;
@@ -44,10 +56,10 @@ export function useNotes() {
       }
 
       const created = await bridge.create(note);
-      setNotes(await bridge.list());
+      await reload();
       return created;
     },
-    [bridge],
+    [bridge, reload],
   );
 
   const remove = useCallback(
@@ -57,10 +69,10 @@ export function useNotes() {
       }
 
       const deleted = await bridge.remove(id);
-      setNotes(await bridge.list());
+      await reload();
       return deleted;
     },
-    [bridge],
+    [bridge, reload],
   );
 
   const update = useCallback(
@@ -70,14 +82,15 @@ export function useNotes() {
       }
 
       const updated = await bridge.update(id, note);
-      setNotes(await bridge.list());
+      await reload();
       return updated;
     },
-    [bridge],
+    [bridge, reload],
   );
 
   return {
     notes,
+    totalCount,
     isLoading,
     isSaving,
     setIsSaving,

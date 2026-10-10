@@ -39,9 +39,13 @@ function buildStore(overrides: Partial<Store> = {}): Store {
   return { ...base, ...overrides };
 }
 
-function renderPage(store = buildStore(), notes: Note[] = []) {
+function renderPage(
+  store = buildStore(),
+  notes: Note[] = [],
+  totalCount = notes.length,
+) {
   return renderWithProviders(<NotesPage />, {
-    store: { ...store, notes },
+    store: { ...store, notes, totalCount },
   });
 }
 
@@ -446,21 +450,31 @@ describe("NotesPage heading", () => {
     ).toBeDefined();
   });
 
-  test("groups a four digit count with the persian separator", () => {
-    const many: Note[] = Array.from({ length: 1000 }, (_unused, index) => ({
-      id: index + 1,
-      title: "",
-      body: "",
-      createdAt: "",
-      updatedAt: "",
-    }));
+  test("shows the total from the count query rather than the page length", () => {
+    renderPage(buildStore(), NOTES, 1375);
 
-    renderPage(buildStore(), many);
+    expect(
+      screen.getByRole("heading", { name: "یادداشت ها (۱٬۳۷۵)" }),
+    ).toBeDefined();
+  });
+
+  test("keeps the total while the table shows a single row", () => {
+    renderPage(buildStore(), [NOTES[0]!], 42);
+
+    expect(
+      screen.getByRole("heading", { name: "یادداشت ها (۴۲)" }),
+    ).toBeDefined();
+    expect(screen.getByRole("link", { name: "اول" })).toBeDefined();
+  });
+
+  test("shows a total of one thousand with an empty table", () => {
+    renderPage(buildStore(), [], 1000);
 
     expect(
       screen.getByRole("heading", { name: "یادداشت ها (۱٬۰۰۰)" }),
     ).toBeDefined();
-  }, 20_000);
+    expect(screen.getByText("هیچ یادداشتی نیست")).toBeDefined();
+  });
 
   test("carries a real heading size", () => {
     renderPage(buildStore(), NOTES);

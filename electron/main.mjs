@@ -5,6 +5,7 @@ import path from "node:path";
 
 import {
   closeDatabase,
+  countNotes,
   createNote,
   deleteNote,
   listNotes,
@@ -91,6 +92,8 @@ ipcMain.on("accent:set", (_event, accent) => {
 });
 
 ipcMain.handle("notes:list", () => listNotes());
+
+ipcMain.handle("notes:count", () => countNotes());
 
 function broadcastNotesChanged() {
   for (const window of BrowserWindow.getAllWindows()) {

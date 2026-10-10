@@ -11,6 +11,7 @@ export function createFakeStore(
 
   return {
     notes: [],
+    totalCount: 0,
     isLoading: false,
     error: null,
     isSaving: false,

@@ -377,6 +377,7 @@ describe("notes ipc", () => {
     harness = await loadMainProcess();
 
     expect([...harness.stub.ipcHandlers.keys()].sort()).toEqual([
+      "notes:count",
       "notes:create",
       "notes:delete",
       "notes:list",
@@ -388,6 +389,13 @@ describe("notes ipc", () => {
     harness = await loadMainProcess();
 
     expect(harness.getIpcHandler("notes:list")?.()).toEqual([]);
+  });
+
+  test("counts notes on a channel of its own", async () => {
+    harness = await loadMainProcess();
+    harness.stub.countNotesResult = 137;
+
+    expect(harness.getIpcHandler("notes:count")?.()).toBe(137);
   });
 
   test("creates a note from a title and body", async () => {

@@ -11,6 +11,7 @@ const api = {
   },
   notes: {
     list: () => ipcRenderer.invoke("notes:list"),
+    count: () => ipcRenderer.invoke("notes:count"),
     create: (note) => ipcRenderer.invoke("notes:create", note),
     remove: (id) => ipcRenderer.invoke("notes:delete", id),
     update: (id, note) => ipcRenderer.invoke("notes:update", { id, ...note }),
