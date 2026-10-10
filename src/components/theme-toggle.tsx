@@ -1,10 +1,11 @@
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ThemeAnimationType,
   useModeAnimation,
 } from "react-theme-switch-animation";
 
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,16 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   readSystemTheme,
   resolveTheme,
   useTheme,
   type Theme,
 } from "@/lib/theme";
+import { isShortcut, THEME_SHORTCUT } from "@/lib/shortcuts";
 
 const OPTIONS = [
   { value: "light", label: "روشن", icon: Sun },
@@ -39,6 +36,24 @@ export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const intentRef = useRef<Theme | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen((wasOpen) => !wasOpen);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, THEME_SHORTCUT)) return;
+
+      event.preventDefault();
+      toggleMenu();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [toggleMenu]);
 
   const { ref, toggleSwitchTheme } = useModeAnimation({
     animationType: ThemeAnimationType.CIRCLE,
@@ -64,30 +79,25 @@ export function ThemeToggle() {
   };
 
   return (
-    <DropdownMenu>
-      <Tooltip open={isHovered}>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              ref={ref}
-              variant="outline"
-              size="icon"
-              aria-label="تغییر پوسته"
-              onPointerEnter={() => setIsHovered(true)}
-              onPointerLeave={() => setIsHovered(false)}
-            >
-              {resolvedTheme === "dark" ? (
-                <Moon className="size-4" />
-              ) : (
-                <Sun className="size-4" />
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" align="end">
-          تغییر پوسته
-        </TooltipContent>
-      </Tooltip>
+    <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+      <ShortcutTooltip shortcut={THEME_SHORTCUT} open={isHovered}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            ref={ref}
+            variant="outline"
+            size="icon"
+            aria-label="تغییر پوسته"
+            onPointerEnter={() => setIsHovered(true)}
+            onPointerLeave={() => setIsHovered(false)}
+          >
+            {resolvedTheme === "dark" ? (
+              <Moon className="size-4" />
+            ) : (
+              <Sun className="size-4" />
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+      </ShortcutTooltip>
       <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup value={theme} onValueChange={handleValueChange}>
           {OPTIONS.map((option) => (

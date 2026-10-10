@@ -19,10 +19,15 @@ function keyEvent(init: KeyboardEventInit): KeyboardEvent {
 describe("SHORTCUTS", () => {
   test("documents every bound shortcut", () => {
     expect(SHORTCUTS.map((shortcut) => shortcut.combination)).toEqual([
+      "Ctrl + Shift + P",
+      "Ctrl + Shift + A",
+      "Ctrl + Shift + K",
       "Ctrl + N",
+      "Ctrl + Shift + E",
+      "Ctrl + Alt + S",
       "Ctrl + S",
       "Ctrl + L",
-      "Ctrl + Shift + E",
+      "Ctrl + Shift + M",
       "Ctrl + Alt + G",
       "Ctrl + Z",
       "Ctrl + Y",

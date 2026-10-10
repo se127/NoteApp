@@ -3,7 +3,11 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 
 import type { Note } from "@/lib/notes";
 import { NotesPage } from "@/pages/notes-page";
-import { NEW_NOTE_SHORTCUT, SELECT_MODE_SHORTCUT } from "@/lib/shortcuts";
+import {
+  DELETE_SELECTED_SHORTCUT,
+  NEW_NOTE_SHORTCUT,
+  SELECT_MODE_SHORTCUT,
+} from "@/lib/shortcuts";
 import { createFakeStore } from "./helpers/fake-store";
 import { fireHover } from "./helpers/hover";
 import { renderWithProviders } from "./helpers/render";
@@ -236,7 +240,7 @@ describe("NotesPage deleting selected notes", () => {
     );
   });
 
-  test("shows no tooltip on the delete button", async () => {
+  test("shows only the delete shortcut on its tooltip", async () => {
     renderSelectable();
 
     fireEvent.click(
@@ -245,8 +249,61 @@ describe("NotesPage deleting selected notes", () => {
     fireEvent.click(screen.getByRole("button", { name: "اول" }));
     fireHover(screen.getByRole("button", { name: DELETE_NAME }));
 
-    await Bun.sleep(200);
-    expect(screen.queryByRole("tooltip")).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip").textContent).toBe(
+        DELETE_SELECTED_SHORTCUT.combination,
+      ),
+    );
+  });
+
+  test("opens the confirmation with the delete shortcut", async () => {
+    renderSelectable();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: DELETE_SELECTED_SHORTCUT.key,
+          code: DELETE_SELECTED_SHORTCUT.code,
+          ctrlKey: true,
+          altKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    expect(
+      await screen.findByText(
+        "۱ یادداشت برای همیشه حذف می شوند و قابل بازگشت نیستند.",
+      ),
+    ).toBeDefined();
+  });
+
+  test("leaves the delete shortcut inert while nothing is selected", () => {
+    renderSelectable();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+
+    const event = new KeyboardEvent("keydown", {
+      key: DELETE_SELECTED_SHORTCUT.key,
+      code: DELETE_SELECTED_SHORTCUT.code,
+      ctrlKey: true,
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(event.defaultPrevented).toBe(false);
   });
 
   test("says how many notes are about to be deleted", async () => {

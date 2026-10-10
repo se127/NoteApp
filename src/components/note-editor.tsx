@@ -19,6 +19,7 @@ import { useNotesStore } from "@/lib/notes-store";
 import {
   BACK_TO_NOTES_SHORTCUT,
   isShortcut,
+  NOTE_ACTIONS_SHORTCUT,
   SAVE_NOTE_SHORTCUT,
   type ShortcutKeys,
   TITLE_EMOJI_SHORTCUT,
@@ -355,7 +356,11 @@ export function NoteEditor({ note }: { note: Note }) {
             </Button>
           </ShortcutTooltip>
           <div className="ms-auto">
-            <NoteActionsMenu note={note} disabled={isSaving} />
+            <NoteActionsMenu
+              note={note}
+              disabled={isSaving}
+              shortcut={NOTE_ACTIONS_SHORTCUT}
+            />
           </div>
         </div>
         <div className="flex items-center gap-2 px-6 pb-2">

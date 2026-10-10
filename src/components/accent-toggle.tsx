@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,40 +9,49 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { ACCENTS, ACCENT_LABELS, useTheme } from "@/lib/theme";
+import { ACCENT_SHORTCUT, isShortcut } from "@/lib/shortcuts";
 
 export function AccentToggle() {
   const { accent, setAccent } = useTheme();
   const [isHovered, setIsHovered] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen((wasOpen) => !wasOpen);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, ACCENT_SHORTCUT)) return;
+
+      event.preventDefault();
+      toggleMenu();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [toggleMenu]);
 
   return (
-    <DropdownMenu>
-      <Tooltip open={isHovered}>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="تغییر رنگ"
-              onPointerEnter={() => setIsHovered(true)}
-              onPointerLeave={() => setIsHovered(false)}
-            >
-              <span
-                data-accent={accent}
-                className="size-4 rounded-full bg-sidebar-primary"
-              />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" align="end">
-          تغییر رنگ
-        </TooltipContent>
-      </Tooltip>
+    <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+      <ShortcutTooltip shortcut={ACCENT_SHORTCUT} open={isHovered}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="تغییر رنگ"
+            onPointerEnter={() => setIsHovered(true)}
+            onPointerLeave={() => setIsHovered(false)}
+          >
+            <span
+              data-accent={accent}
+              className="size-4 rounded-full bg-sidebar-primary"
+            />
+          </Button>
+        </DropdownMenuTrigger>
+      </ShortcutTooltip>
       <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup
           value={accent}

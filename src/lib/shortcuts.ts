@@ -6,6 +6,7 @@ export type Shortcut = {
   key: string;
   label: string;
   shift?: boolean;
+  tooltipLabel?: string;
 };
 
 export type ToolbarCommand =
@@ -67,6 +68,53 @@ export const SELECT_MODE_SHORTCUT: Shortcut = {
     "حالت انتخاب را روشن یا خاموش می‌ کند و کنار عنوان هر یادداشت یک چک باکس می‌ آورد.",
   key: "e",
   label: "حالت انتخاب برای یادداشت ها",
+  shift: true,
+};
+
+export const NOTE_ACTIONS_SHORTCUT: Shortcut = {
+  code: "KeyM",
+  combination: "Ctrl + Shift + M",
+  description: "فهرست گزینه های یادداشت فعلی را باز می‌ کند.",
+  key: "m",
+  label: "گزینه های یادداشت فعلی",
+  shift: true,
+  tooltipLabel: "گزینه ها",
+};
+
+export const DELETE_SELECTED_SHORTCUT: Shortcut = {
+  alt: true,
+  code: "KeyS",
+  combination: "Ctrl + Alt + S",
+  description:
+    "همه ی یادداشت های انتخاب شده را با یک پرسش پیش از حذف پاک می‌ کند.",
+  key: "s",
+  label: "حذف یادداشت های انتخاب شده",
+};
+
+export const THEME_SHORTCUT: Shortcut = {
+  code: "KeyP",
+  combination: "Ctrl + Shift + P",
+  description: "فهرست پوسته ی روشن ، تاریک یا پیروی از سیستم را باز می‌ کند.",
+  key: "p",
+  label: "تغییر پوسته",
+  shift: true,
+};
+
+export const ACCENT_SHORTCUT: Shortcut = {
+  code: "KeyA",
+  combination: "Ctrl + Shift + A",
+  description: "فهرست رنگ برنامه را باز می‌ کند تا رنگ دلخواه را انتخاب کنید.",
+  key: "a",
+  label: "تغییر رنگ",
+  shift: true,
+};
+
+export const SHORTCUTS_DIALOG_SHORTCUT: Shortcut = {
+  code: "KeyK",
+  combination: "Ctrl + Shift + K",
+  description: "همین فهرست را باز می‌ کند و با زدن دوباره می‌ بندد.",
+  key: "k",
+  label: "کلیدهای میان بر",
   shift: true,
 };
 
@@ -306,12 +354,23 @@ export const SHORTCUT_GROUPS: readonly {
   shortcuts: readonly Shortcut[];
 }[] = [
   {
-    heading: "یادداشت",
+    heading: "برنامه",
+    shortcuts: [THEME_SHORTCUT, ACCENT_SHORTCUT, SHORTCUTS_DIALOG_SHORTCUT],
+  },
+  {
+    heading: "صفحه ی اصلی",
     shortcuts: [
       NEW_NOTE_SHORTCUT,
+      SELECT_MODE_SHORTCUT,
+      DELETE_SELECTED_SHORTCUT,
+    ],
+  },
+  {
+    heading: "یادداشت",
+    shortcuts: [
       SAVE_NOTE_SHORTCUT,
       BACK_TO_NOTES_SHORTCUT,
-      SELECT_MODE_SHORTCUT,
+      NOTE_ACTIONS_SHORTCUT,
     ],
   },
   {

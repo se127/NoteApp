@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useNotesStore } from "@/lib/notes-store";
 import { formatPersianNumber } from "@/lib/persian-number";
 import {
+  DELETE_SELECTED_SHORTCUT,
   isShortcut,
   NEW_NOTE_SHORTCUT,
   SELECT_MODE_SHORTCUT,
@@ -71,6 +72,14 @@ export function NotesPage() {
         return;
       }
 
+      if (isShortcut(event, DELETE_SELECTED_SHORTCUT)) {
+        if (selectedIds.length === 0 || isSaving) return;
+
+        event.preventDefault();
+        setIsDeleteDialogOpen(true);
+        return;
+      }
+
       if (!isShortcut(event, NEW_NOTE_SHORTCUT)) return;
 
       event.preventDefault();
@@ -80,7 +89,7 @@ export function NotesPage() {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () =>
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [handleNewNote, handleToggleSelectMode]);
+  }, [handleNewNote, handleToggleSelectMode, isSaving, selectedIds.length]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -129,13 +138,18 @@ export function NotesPage() {
               </ShortcutTooltip>
 
               {selectedIds.length > 0 && (
-                <Button
-                  variant="destructive"
-                  onClick={() => setIsDeleteDialogOpen(true)}
+                <ShortcutTooltip
+                  shortcut={DELETE_SELECTED_SHORTCUT}
+                  combinationOnly
                 >
-                  <Trash2 className="size-4" />
-                  {deleteSelectedLabel}
-                </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="size-4" />
+                    {deleteSelectedLabel}
+                  </Button>
+                </ShortcutTooltip>
               )}
             </div>
 

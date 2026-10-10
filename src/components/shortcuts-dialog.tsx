@@ -1,5 +1,7 @@
 import { Keyboard } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,34 +12,47 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { SHORTCUT_GROUPS } from "@/lib/shortcuts";
+  SHORTCUT_GROUPS,
+  SHORTCUTS_DIALOG_SHORTCUT,
+  isShortcut,
+} from "@/lib/shortcuts";
 
-const SHORTCUTS_LABEL = "کلیدهای میان بر";
+const TRIGGER_LABEL = SHORTCUTS_DIALOG_SHORTCUT.label;
 const CLOSE_HINT = "برای بستن این پنجره کلید Esc را بزنید.";
 
 export function ShortcutsDialog() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleDialog = useCallback(() => {
+    setIsOpen((wasOpen) => !wasOpen);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isShortcut(event, SHORTCUTS_DIALOG_SHORTCUT)) return;
+
+      event.preventDefault();
+      toggleDialog();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [toggleDialog]);
+
   return (
-    <Dialog>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="icon" aria-label={SHORTCUTS_LABEL}>
-              <Keyboard className="size-4" />
-            </Button>
-          </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" align="end">
-          {SHORTCUTS_LABEL}
-        </TooltipContent>
-      </Tooltip>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <ShortcutTooltip shortcut={SHORTCUTS_DIALOG_SHORTCUT}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon" aria-label={TRIGGER_LABEL}>
+            <Keyboard className="size-4" />
+          </Button>
+        </DialogTrigger>
+      </ShortcutTooltip>
 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{SHORTCUTS_LABEL}</DialogTitle>
+          <DialogTitle>{TRIGGER_LABEL}</DialogTitle>
           <DialogDescription>{CLOSE_HINT}</DialogDescription>
         </DialogHeader>
 
@@ -61,7 +76,10 @@ export function ShortcutsDialog() {
                         {shortcut.description}
                       </span>
                     </span>
-                    <kbd className="shrink-0 rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs whitespace-nowrap">
+                    <kbd
+                      dir="ltr"
+                      className="shrink-0 rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs whitespace-nowrap"
+                    >
                       {shortcut.combination}
                     </kbd>
                   </li>

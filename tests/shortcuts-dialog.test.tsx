@@ -3,7 +3,15 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { ShortcutsDialog } from "@/components/shortcuts-dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SHORTCUT_GROUPS } from "@/lib/shortcuts";
+import {
+  ACCENT_SHORTCUT,
+  DELETE_SELECTED_SHORTCUT,
+  NEW_NOTE_SHORTCUT,
+  SELECT_MODE_SHORTCUT,
+  SHORTCUT_GROUPS,
+  SHORTCUTS_DIALOG_SHORTCUT,
+  THEME_SHORTCUT,
+} from "@/lib/shortcuts";
 
 const TRIGGER_LABEL = "کلیدهای میان بر";
 
@@ -100,6 +108,41 @@ describe("ShortcutsDialog", () => {
     for (const heading of headings) {
       expect(screen.getByRole("heading", { name: heading })).toBeDefined();
     }
+  });
+
+  test("orders the sections from the app down to the note text", () => {
+    renderDialog();
+    openDialog();
+
+    expect(SHORTCUT_GROUPS.map(({ heading }) => heading)).toEqual([
+      "برنامه",
+      "صفحه ی اصلی",
+      "یادداشت",
+      "عنوان یادداشت",
+      "متن یادداشت",
+    ]);
+  });
+
+  test("puts only the list page shortcuts under the main page heading", () => {
+    const mainPage = SHORTCUT_GROUPS.find(
+      ({ heading }) => heading === "صفحه ی اصلی",
+    );
+
+    expect(mainPage?.shortcuts).toEqual([
+      NEW_NOTE_SHORTCUT,
+      SELECT_MODE_SHORTCUT,
+      DELETE_SELECTED_SHORTCUT,
+    ]);
+  });
+
+  test("lists the theme, accent and shortcut keys under the app heading", () => {
+    const app = SHORTCUT_GROUPS.find(({ heading }) => heading === "برنامه");
+
+    expect(app?.shortcuts).toEqual([
+      THEME_SHORTCUT,
+      ACCENT_SHORTCUT,
+      SHORTCUTS_DIALOG_SHORTCUT,
+    ]);
   });
 
   test("documents the body emoji shortcut apart from the new note one", () => {
