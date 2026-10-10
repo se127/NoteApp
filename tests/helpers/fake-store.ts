@@ -12,7 +12,6 @@ export function createFakeStore(
   return {
     notes: [],
     totalCount: 0,
-    listScrollTop: { current: 0 },
     hasMore: false,
     isLoading: false,
     isLoadingMore: false,

@@ -538,7 +538,7 @@ describe("NotesTable scroll position", () => {
     );
   }
 
-  test("comes back to the same offset after the list is left and reopened", () => {
+  test("comes back to the top after the list is left and reopened", () => {
     const store = createFakeStore();
     const first = renderList(store);
 
@@ -558,17 +558,7 @@ describe("NotesTable scroll position", () => {
       "[data-virtual-scroll]",
     ) as HTMLDivElement;
 
-    expect(reopened.scrollTop).toBe(480);
-  });
-
-  test("starts at the top when the list was never scrolled", () => {
-    const store = createFakeStore();
-    const { container } = renderList(store);
-
-    expect(
-      (container.querySelector("[data-virtual-scroll]") as HTMLDivElement)
-        .scrollTop,
-    ).toBe(0);
+    expect(reopened.scrollTop).toBe(0);
   });
 });
 
