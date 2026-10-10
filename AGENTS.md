@@ -10,6 +10,15 @@ Run `bun run build` (`tsc -b && vite build`, so it covers the type check) and `b
 
 Do not run `bun run lint` or `bun run format`. The husky hook runs lint-staged over staged files with `prettier --write` and `oxlint --fix --deny-warnings`, and it is stricter than the standalone commands. Use `bun run lint` / `bun run format:check` only to check the whole working tree.
 
+## Tests and docs travel with the change
+
+Every change is an add, a remove, or both — editing existing code does both at once — and every one of them ends with a passing suite and an accurate `README.md` and this file. Two cases, same rule:
+
+- **Added**: write the test before you commit. Mutate the value it guards to confirm it goes red, then revert. If it passed before the code existed, it is not testing the new code.
+- **Removed**: delete the tests of what you removed, and check the ones that stay still mean something. A test left behind either fails forever or, worse, keeps passing against a stub and hides the removal.
+
+Between the green suite and the commit, check whether `README.md` and this file are now wrong, and fix them in the same commit. `README.md` is Persian and describes user-visible behavior, so any change a user could notice belongs there — one bullet in `رفتار برنامه`, not a new section. This file documents the traps, not the feature list: add a rule only when the change creates a way to waste a round, and never restate what a test or the README already says. Both files are meant to stay short; growth is the bug.
+
 ## Never run the dev server
 
 Do not run `bun run dev`, `bun run dev:web`, `scripts/dev.ts`, or anything else on port 5173 — not to "check" a change, not in the background. Ask the user to run it and tell them what to look for. A server you leave running holds port 5173 and blocks the user's own `bun run dev` plus the Electron profile lock.
