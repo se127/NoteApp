@@ -27,7 +27,7 @@ import {
 } from "./helpers/note-body";
 import { renderWithProviders } from "./helpers/render";
 
-const TOOLBAR_LABEL = "قالب‌بندی متن";
+const TOOLBAR_LABEL = "قالب بندی متن";
 const BLOCK_TYPE_LABEL = "سبک متن";
 const MARK_LABELS = ["ضخیم", "مورب", "زیرخط", "خط خورده"];
 const LIST_LABELS = ["لیست نقطه ای", "لیست شماره دار"];

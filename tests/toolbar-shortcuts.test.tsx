@@ -379,7 +379,7 @@ describe("every toolbar command is bound", () => {
     const labels = new Set(
       [
         ...screen
-          .getByRole("toolbar", { name: "قالب‌بندی متن" })
+          .getByRole("toolbar", { name: "قالب بندی متن" })
           .querySelectorAll("button, [role='combobox']"),
       ].map((element) => element.getAttribute("aria-label")),
     );

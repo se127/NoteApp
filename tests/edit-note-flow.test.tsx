@@ -109,12 +109,12 @@ describe("creating a note end to end", () => {
 
 describe("deleting a note end to end", () => {
   test("removes the note from the database after confirmation", async () => {
-    bridge.notes.push(makeNote({ id: 5, title: "حذف‌شدنی" }));
+    bridge.notes.push(makeNote({ id: 5, title: "حذف شدنی" }));
 
     renderWithProviders(<App />, { route: "/" });
 
     const trigger = await screen.findByRole("button", {
-      name: "گزینه های یادداشت حذف‌شدنی",
+      name: "گزینه های یادداشت حذف شدنی",
     });
     fireEvent.pointerDown(trigger, {
       button: 0,
@@ -129,12 +129,12 @@ describe("deleting a note end to end", () => {
   });
 
   test("keeps the note when the confirmation is cancelled", async () => {
-    bridge.notes.push(makeNote({ id: 5, title: "باقی‌مانده" }));
+    bridge.notes.push(makeNote({ id: 5, title: "باقی مانده" }));
 
     renderWithProviders(<App />, { route: "/" });
 
     const trigger = await screen.findByRole("button", {
-      name: "گزینه های یادداشت باقی‌مانده",
+      name: "گزینه های یادداشت باقی مانده",
     });
     fireEvent.pointerDown(trigger, {
       button: 0,
@@ -537,10 +537,10 @@ describe("reflecting a broadcast from the main process", () => {
   });
 
   test("removes a note another window deleted", async () => {
-    bridge.notes.push(makeNote({ id: 8, title: "حذف‌شده بیرونی" }));
+    bridge.notes.push(makeNote({ id: 8, title: "حذف شده بیرونی" }));
 
     renderWithProviders(<App />, { route: "/" });
-    await screen.findByText("حذف‌شده بیرونی");
+    await screen.findByText("حذف شده بیرونی");
 
     act(() => {
       bridge.notes.length = 0;

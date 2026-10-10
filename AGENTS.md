@@ -86,6 +86,16 @@ Measure before changing CSS. Read the computed DOM rather than guessing a paddin
 - `src/components/ui/**` is vendored shadcn/ui. Do not hand-edit it, and do not format or lint it. Change its args or config, or re-run the CLI via `bunx shadcn@latest`, and keep `rtl: true` in `components.json` so it emits RTL-safe classes.
 - Never add comments to code. Use a self-documenting name or a well-named extracted helper. Existing comments in `electron/db.mjs`, `scripts/build.ts`, `vite.config.ts` and `electron-builder.yml` are not a licence to add more.
 
+## Persian spacing
+
+Wherever Persian orthography requires a half-space (ZWNJ), write a regular space (U+0020) instead. Never output U+200C, and never glue the parts together. This covers every stem + attached-part boundary: the verb prefixes می/نمی, plural and comparative suffixes (ها، های، تر، ترین), attached endings (ام، ات، اش، مان، تان، شان، ای), derivational prefixes and suffixes, and compound words. Apply it by principle, not just to listed examples.
+
+Exception: if the stem's last letter doesn't connect (ا د ذ ر ز ژ و), write it joined with no space (کارها، دانشجویان).
+
+Examples: می شوند، نمی دانم، یادداشت ها، بزرگ تر، خانه ام، بی نهایت، کتاب خانه.
+
+When editing existing text, replace any U+200C with a regular space.
+
 ## Never commit without asking
 
 Never run `git commit` when a task is finished. Leave the changes staged or unstaged and report what changed. "Done" or a thumbs-up is not approval to commit — only an explicit instruction to. Never amend, revert, or rewrite commits to tidy up unless asked.

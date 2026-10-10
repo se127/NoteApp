@@ -38,7 +38,7 @@ export type ToolbarShortcut = {
 export const NEW_NOTE_SHORTCUT: Shortcut = {
   code: "KeyN",
   combination: "Ctrl + N",
-  description: "یادداشت تازه‌ ای می‌ سازد و ویرایشگر آن را باز می‌ کند.",
+  description: "یادداشت تازه ای می سازد و ویرایشگر آن را باز می کند.",
   key: "n",
   label: "یادداشت جدید",
 };
@@ -47,7 +47,7 @@ export const BACK_TO_NOTES_SHORTCUT: Shortcut = {
   code: "KeyL",
   combination: "Ctrl + L",
   description:
-    "یادداشت فعلی را بی‌ درنگ ذخیره می‌ کند و به فهرست یادداشت ها بر می‌ گردد.",
+    "یادداشت فعلی را بی درنگ ذخیره می کند و به فهرست یادداشت ها بر می گردد.",
   key: "l",
   label: "بازگشت به یادداشت ها",
 };
@@ -56,7 +56,7 @@ export const SAVE_NOTE_SHORTCUT: Shortcut = {
   code: "KeyS",
   combination: "Ctrl + S",
   description:
-    "یادداشت را بی‌ درنگ ذخیره می‌ کند و ذخیره خودکار معطل را لغو می‌ کند.",
+    "یادداشت را بی درنگ ذخیره می کند و ذخیره خودکار معطل را لغو می کند.",
   key: "s",
   label: "ذخیره ی یادداشت فعلی",
 };
@@ -65,7 +65,7 @@ export const SELECT_MODE_SHORTCUT: Shortcut = {
   code: "KeyE",
   combination: "Ctrl + Shift + E",
   description:
-    "حالت انتخاب را روشن یا خاموش می‌ کند و کنار عنوان هر یادداشت یک چک باکس می‌ آورد.",
+    "حالت انتخاب را روشن یا خاموش می کند و کنار عنوان هر یادداشت یک چک باکس می آورد.",
   key: "e",
   label: "حالت انتخاب برای یادداشت ها",
   shift: true,
@@ -74,7 +74,7 @@ export const SELECT_MODE_SHORTCUT: Shortcut = {
 export const NOTE_ACTIONS_SHORTCUT: Shortcut = {
   code: "KeyM",
   combination: "Ctrl + Shift + M",
-  description: "فهرست گزینه های یادداشت فعلی را باز می‌ کند.",
+  description: "فهرست گزینه های یادداشت فعلی را باز می کند.",
   key: "m",
   label: "گزینه های یادداشت فعلی",
   shift: true,
@@ -86,7 +86,7 @@ export const DELETE_SELECTED_SHORTCUT: Shortcut = {
   code: "KeyS",
   combination: "Ctrl + Alt + S",
   description:
-    "همه ی یادداشت های انتخاب شده را با یک پرسش پیش از حذف پاک می‌ کند.",
+    "همه ی یادداشت های انتخاب شده را با یک پرسش پیش از حذف پاک می کند.",
   key: "s",
   label: "حذف یادداشت های انتخاب شده",
 };
@@ -94,7 +94,7 @@ export const DELETE_SELECTED_SHORTCUT: Shortcut = {
 export const THEME_SHORTCUT: Shortcut = {
   code: "KeyP",
   combination: "Ctrl + Shift + P",
-  description: "فهرست پوسته ی روشن ، تاریک یا پیروی از سیستم را باز می‌ کند.",
+  description: "فهرست پوسته ی روشن ، تاریک یا پیروی از سیستم را باز می کند.",
   key: "p",
   label: "تغییر پوسته",
   shift: true,
@@ -103,7 +103,7 @@ export const THEME_SHORTCUT: Shortcut = {
 export const ACCENT_SHORTCUT: Shortcut = {
   code: "KeyA",
   combination: "Ctrl + Shift + A",
-  description: "فهرست رنگ برنامه را باز می‌ کند تا رنگ دلخواه را انتخاب کنید.",
+  description: "فهرست رنگ برنامه را باز می کند تا رنگ دلخواه را انتخاب کنید.",
   key: "a",
   label: "تغییر رنگ",
   shift: true,
@@ -112,7 +112,7 @@ export const ACCENT_SHORTCUT: Shortcut = {
 export const SHORTCUTS_DIALOG_SHORTCUT: Shortcut = {
   code: "KeyK",
   combination: "Ctrl + Shift + K",
-  description: "همین فهرست را باز می‌ کند و با زدن دوباره می‌ بندد.",
+  description: "همین فهرست را باز می کند و با زدن دوباره می بندد.",
   key: "k",
   label: "کلیدهای میان بر",
   shift: true,
@@ -123,7 +123,7 @@ export const TITLE_EMOJI_SHORTCUT: Shortcut = {
   code: "KeyG",
   combination: "Ctrl + Alt + G",
   description:
-    "انتخابگر ایموجی عنوان را از هر جایی باز می‌ کند و با زدن دوباره می‌ بندد.",
+    "انتخابگر ایموجی عنوان را از هر جایی باز می کند و با زدن دوباره می بندد.",
   key: "g",
   label: "انتخاب ایموجی",
 };
@@ -134,7 +134,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyZ",
       combination: "Ctrl + Z",
-      description: "آخرین تغییر متن یادداشت را بر می‌ گرداند.",
+      description: "آخرین تغییر متن یادداشت را بر می گرداند.",
       key: "z",
       label: "برگرداندن",
     },
@@ -144,7 +144,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyY",
       combination: "Ctrl + Y",
-      description: "تغییری را که برگردانده اید دوباره اجرا می‌ کند.",
+      description: "تغییری را که برگردانده اید دوباره اجرا می کند.",
       key: "y",
       label: "بازگرداندن",
     },
@@ -155,7 +155,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       alt: true,
       code: "KeyD",
       combination: "Ctrl + Alt + D",
-      description: "فهرست جهت متن را باز می‌ کند.",
+      description: "فهرست جهت متن را باز می کند.",
       key: "d",
       label: "جهت متن",
     },
@@ -166,7 +166,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       alt: true,
       code: "KeyT",
       combination: "Ctrl + Alt + T",
-      description: "فهرست سبک متن را باز می‌ کند.",
+      description: "فهرست سبک متن را باز می کند.",
       key: "t",
       label: "سبک متن",
     },
@@ -177,7 +177,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       alt: true,
       code: "KeyF",
       combination: "Ctrl + Alt + F",
-      description: "فهرست اندازه ی متن را باز می‌ کند.",
+      description: "فهرست اندازه ی متن را باز می کند.",
       key: "f",
       label: "اندازه ی متن",
     },
@@ -187,7 +187,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyB",
       combination: "Ctrl + B",
-      description: "متن انتخابی را ضخیم می‌ کند.",
+      description: "متن انتخابی را ضخیم می کند.",
       key: "b",
       label: "ضخیم",
     },
@@ -197,7 +197,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyI",
       combination: "Ctrl + I",
-      description: "متن انتخابی را مورب می‌ کند.",
+      description: "متن انتخابی را مورب می کند.",
       key: "i",
       label: "مورب",
     },
@@ -207,7 +207,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyU",
       combination: "Ctrl + U",
-      description: "متن انتخابی را زیرخط می‌ کند.",
+      description: "متن انتخابی را زیرخط می کند.",
       key: "u",
       label: "زیرخط",
     },
@@ -217,7 +217,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyX",
       combination: "Ctrl + Shift + X",
-      description: "متن انتخابی را خط خورده می‌ کند.",
+      description: "متن انتخابی را خط خورده می کند.",
       key: "x",
       label: "خط خورده",
       shift: true,
@@ -229,7 +229,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       alt: true,
       code: "KeyC",
       combination: "Ctrl + Alt + C",
-      description: "فهرست رنگ متن را باز می‌ کند.",
+      description: "فهرست رنگ متن را باز می کند.",
       key: "c",
       label: "رنگ متن",
     },
@@ -240,7 +240,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       alt: true,
       code: "KeyH",
       combination: "Ctrl + Alt + H",
-      description: "فهرست رنگ پس زمینه را باز می‌ کند.",
+      description: "فهرست رنگ پس زمینه را باز می کند.",
       key: "h",
       label: "رنگ پس زمینه",
     },
@@ -250,7 +250,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyU",
       combination: "Ctrl + Shift + U",
-      description: "بلوک فعلی را به فهرست نقطه ای تبدیل می‌ کند.",
+      description: "بلوک فعلی را به فهرست نقطه ای تبدیل می کند.",
       key: "u",
       label: "لیست نقطه ای",
       shift: true,
@@ -261,7 +261,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyO",
       combination: "Ctrl + Shift + O",
-      description: "بلوک فعلی را به فهرست شماره دار تبدیل می‌ کند.",
+      description: "بلوک فعلی را به فهرست شماره دار تبدیل می کند.",
       key: "o",
       label: "لیست شماره دار",
       shift: true,
@@ -273,7 +273,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       alt: true,
       code: "KeyA",
       combination: "Ctrl + Alt + A",
-      description: "فهرست تراز متن را باز می‌ کند.",
+      description: "فهرست تراز متن را باز می کند.",
       key: "a",
       label: "تراز متن",
     },
@@ -285,7 +285,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       code: "KeyP",
       combination: "Ctrl + Alt + P",
       description:
-        "فهرست موقعیت متن را باز می‌ کند تا متن را معمولی ، زیرنویس یا بالانویس کنید.",
+        "فهرست موقعیت متن را باز می کند تا متن را معمولی ، زیرنویس یا بالانویس کنید.",
       key: "p",
       label: "موقعیت متن",
     },
@@ -297,7 +297,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       code: "KeyK",
       combination: "Ctrl + Alt + K",
       description:
-        "فهرست زبان های بلوک کد را باز می‌ کند تا کد ساده یا کد هایلایت دار درج کنید.",
+        "فهرست زبان های بلوک کد را باز می کند تا کد ساده یا کد هایلایت دار درج کنید.",
       key: "k",
       label: "بلاک کد",
     },
@@ -307,7 +307,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyQ",
       combination: "Ctrl + Shift + Q",
-      description: "بلوک فعلی را داخل نقل قول می‌ برد.",
+      description: "بلوک فعلی را داخل نقل قول می برد.",
       key: "q",
       label: "نقل قول",
       shift: true,
@@ -318,7 +318,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
     shortcut: {
       code: "KeyH",
       combination: "Ctrl + Shift + H",
-      description: "زیر بلوک فعلی یک خط افقی می‌ گذارد.",
+      description: "زیر بلوک فعلی یک خط افقی می گذارد.",
       key: "h",
       label: "خط افقی",
       shift: true,
@@ -330,7 +330,7 @@ export const TOOLBAR_SHORTCUTS: readonly ToolbarShortcut[] = [
       alt: true,
       code: "KeyE",
       combination: "Ctrl + Alt + E",
-      description: "انتخابگر ایموجی را برای متن یادداشت باز می‌ کند.",
+      description: "انتخابگر ایموجی را برای متن یادداشت باز می کند.",
       key: "e",
       label: "انتخاب ایموجی",
     },

@@ -30,7 +30,7 @@ describe("bodyToHtml", () => {
   });
 
   test("passes stored html through untouched", () => {
-    expect(bodyToHtml("<p>قالب‌دار</p>")).toBe("<p>قالب‌دار</p>");
+    expect(bodyToHtml("<p>قالب دار</p>")).toBe("<p>قالب دار</p>");
     expect(bodyToHtml("<p><strong>پررنگ</strong></p>")).toBe(
       "<p><strong>پررنگ</strong></p>",
     );

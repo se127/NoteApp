@@ -1121,7 +1121,7 @@ export function NoteBodyEditor({
     <Tiptap editor={editor}>
       <div
         role="toolbar"
-        aria-label="قالب‌بندی متن"
+        aria-label="قالب بندی متن"
         className="flex shrink-0 flex-wrap items-center gap-x-0.5 gap-y-2 border-y border-border bg-black/5 px-6 py-2 dark:bg-muted/40"
       >
         {HISTORY_ACTIONS.map((action) => (

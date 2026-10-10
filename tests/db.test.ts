@@ -120,7 +120,7 @@ describe("updateNote", () => {
 
 describe("deleteNote", () => {
   test("removes the note and reports success", () => {
-    const note = database.create("حذف‌شونده", "");
+    const note = database.create("حذف شونده", "");
 
     expect(database.remove(note.id)).toBe(true);
     expect(database.list()).toEqual([]);
@@ -152,12 +152,12 @@ describe("replaceAllNotes", () => {
   });
 
   test("lists the titles in the order they were given", () => {
-    database.replaceAll(["جدیدترین", "میانی", "قدیمی‌ترین"]);
+    database.replaceAll(["جدیدترین", "میانی", "قدیمی ترین"]);
 
     expect(database.list().map((note) => note.title)).toEqual([
       "جدیدترین",
       "میانی",
-      "قدیمی‌ترین",
+      "قدیمی ترین",
     ]);
   });
 
@@ -190,7 +190,7 @@ describe("replaceAllNotes", () => {
   });
 
   test("spaces the timestamps so the newest note sorts first", () => {
-    database.replaceAll(["جدیدترین", "قدیمی‌ترین"]);
+    database.replaceAll(["جدیدترین", "قدیمی ترین"]);
 
     const [newest, oldest] = database.list();
 

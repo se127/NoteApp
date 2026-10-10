@@ -58,7 +58,7 @@ describe("ShortcutsDialog", () => {
     const dialog = screen.getByRole("dialog").textContent ?? "";
     expect(dialog).toContain("Ctrl + N");
     expect(dialog).toContain("یادداشت جدید");
-    expect(dialog).toContain("ویرایشگر آن را باز می‌ کند");
+    expect(dialog).toContain("ویرایشگر آن را باز می کند");
   });
 
   test("lists the back to notes shortcut with its explanation", () => {
@@ -68,7 +68,7 @@ describe("ShortcutsDialog", () => {
     const dialog = screen.getByRole("dialog").textContent ?? "";
     expect(dialog).toContain("Ctrl + L");
     expect(dialog).toContain("بازگشت به یادداشت ها");
-    expect(dialog).toContain("به فهرست یادداشت ها بر می‌ گردد");
+    expect(dialog).toContain("به فهرست یادداشت ها بر می گردد");
   });
 
   test("lists the save shortcut with its explanation", () => {
@@ -78,7 +78,7 @@ describe("ShortcutsDialog", () => {
     const dialog = screen.getByRole("dialog").textContent ?? "";
     expect(dialog).toContain("Ctrl + S");
     expect(dialog).toContain("ذخیره ی یادداشت فعلی");
-    expect(dialog).toContain("ذخیره خودکار معطل را لغو می‌ کند");
+    expect(dialog).toContain("ذخیره خودکار معطل را لغو می کند");
   });
 
   test("scrolls the list without opting into the platform scrollbar", () => {
