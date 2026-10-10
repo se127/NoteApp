@@ -12,6 +12,8 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const DAYS_IN_MONTH = 30;
 const MONTHS_IN_YEAR = 12;
+const JUST_NOW_BELOW = 10 * SECOND;
+const JUST_NOW = "همین الان";
 const DATE_FORMATTER = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
   weekday: "long",
   day: "numeric",
@@ -25,7 +27,13 @@ const TIME_FORMATTER = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
 });
 const DATE_TIME_SEPARATOR = " ، ";
 const IN_PREFIX = "در ";
-const AGO_SUFFIX = " ی پیش";
+const AGO_SUFFIX = " پیش";
+const EZAFE = " ی";
+
+function agoLabel(count: number, unit: string, ezafe: boolean): string {
+  const label = `${formatPersianNumber(count)} ${unit}`;
+  return `${label}${ezafe ? EZAFE : ""}${AGO_SUFFIX}`;
+}
 
 function partValue(
   parts: Intl.DateTimeFormatPart[],
@@ -39,29 +47,56 @@ function parseSqliteTimestamp(value: string): dayjs.Dayjs {
   return dayjs(iso.endsWith("Z") ? iso : `${iso}Z`);
 }
 
-function elapsedParts(
-  elapsed: number,
-  months: number,
-): {
-  count: number;
-  unit: string;
-} {
+type Elapsed =
+  | { justNow: true }
+  | { justNow: false; count: number; unit: string; ezafe: boolean };
+
+function elapsedParts(elapsed: number): Elapsed {
+  if (elapsed < JUST_NOW_BELOW) return { justNow: true };
+
   if (elapsed < MINUTE) {
-    return { count: Math.floor(elapsed / SECOND), unit: "ثانیه" };
+    return {
+      justNow: false,
+      count: Math.floor(elapsed / SECOND),
+      unit: "ثانیه",
+      ezafe: true,
+    };
   }
   if (elapsed < HOUR) {
-    return { count: Math.floor(elapsed / MINUTE), unit: "دقیقه" };
+    return {
+      justNow: false,
+      count: Math.floor(elapsed / MINUTE),
+      unit: "دقیقه",
+      ezafe: true,
+    };
   }
   if (elapsed < DAY) {
-    return { count: Math.floor(elapsed / HOUR), unit: "ساعت" };
+    return {
+      justNow: false,
+      count: Math.floor(elapsed / HOUR),
+      unit: "ساعت",
+      ezafe: false,
+    };
   }
-  if (elapsed < DAYS_IN_MONTH * DAY) {
-    return { count: Math.floor(elapsed / DAY), unit: "روز" };
+
+  const months = Math.floor(elapsed / (DAYS_IN_MONTH * DAY));
+  if (months < 1) {
+    return {
+      justNow: false,
+      count: Math.floor(elapsed / DAY),
+      unit: "روز",
+      ezafe: false,
+    };
   }
   if (months < MONTHS_IN_YEAR) {
-    return { count: months, unit: "ماه" };
+    return { justNow: false, count: months, unit: "ماه", ezafe: false };
   }
-  return { count: Math.floor(months / MONTHS_IN_YEAR), unit: "سال" };
+  return {
+    justNow: false,
+    count: Math.floor(months / MONTHS_IN_YEAR),
+    unit: "سال",
+    ezafe: false,
+  };
 }
 
 export function formatRelativeTime(value: string): string {
@@ -70,13 +105,12 @@ export function formatRelativeTime(value: string): string {
 
   const now = dayjs();
   const isFuture = date.isAfter(now);
-  const { count, unit } = elapsedParts(
-    Math.abs(date.diff(now)),
-    Math.abs(date.diff(now, "month")),
-  );
-  const elapsed = `${formatPersianNumber(count)} ${unit}`;
+  const elapsed = elapsedParts(Math.abs(date.diff(now)));
 
-  return isFuture ? `${IN_PREFIX}${elapsed}` : `${elapsed}${AGO_SUFFIX}`;
+  if (elapsed.justNow) return JUST_NOW;
+  if (isFuture)
+    return `${IN_PREFIX}${formatPersianNumber(elapsed.count)} ${elapsed.unit}`;
+  return agoLabel(elapsed.count, elapsed.unit, elapsed.ezafe);
 }
 
 export function hasBeenEdited(createdAt: string, updatedAt: string): boolean {
