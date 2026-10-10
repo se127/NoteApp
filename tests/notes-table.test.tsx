@@ -311,7 +311,7 @@ describe("NotesTable deleting a note", () => {
 
     expect(
       await screen.findByText(
-        "«برای حذف» برای همیشه حذف می‌شود و قابل بازگشت نیست.",
+        "«برای حذف» برای همیشه حذف می شود و قابل بازگشت نیست.",
       ),
     ).toBeDefined();
   });

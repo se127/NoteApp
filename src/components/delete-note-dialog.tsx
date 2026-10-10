@@ -16,7 +16,7 @@ import { useNotesStore } from "@/lib/notes-store";
 import { noteTitle } from "@/lib/note-title";
 
 const QUESTION = "آیا از حذف این یادداشت مطمئن هستید؟";
-const WARNING = "برای همیشه حذف می‌شود و قابل بازگشت نیست.";
+const WARNING = "برای همیشه حذف می شود و قابل بازگشت نیست.";
 const DELETE_FAILED_MESSAGE = "حذف یادداشت ناموفق بود";
 
 export function DeleteNoteDialog({

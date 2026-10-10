@@ -269,7 +269,7 @@ describe("deleting from the editor menu", () => {
 
     expect(
       await screen.findByText(
-        "«از ویرایشگر» برای همیشه حذف می‌شود و قابل بازگشت نیست.",
+        "«از ویرایشگر» برای همیشه حذف می شود و قابل بازگشت نیست.",
       ),
     ).toBeDefined();
   });
