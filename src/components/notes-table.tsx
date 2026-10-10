@@ -1,5 +1,12 @@
+import { Loader2 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { NavLink } from "react-router";
 
 import { NoteActionsMenu } from "@/components/note-actions-menu";
@@ -43,6 +50,9 @@ const HEAD_ROW = "[&_tr]:border-0!";
 const ROW_ESTIMATED_HEIGHT = 48;
 const ROW_OVERSCAN = 8;
 const COLUMN_COUNT = 3;
+const NEAR_END_ROWS = 3;
+const LOADER_LABEL = "در حال بارگذاری یادداشت های بیشتر...";
+const LOADER_CELL = "py-4 text-center text-sm text-muted-foreground";
 const LIST_SCROLLER =
   "h-full overflow-auto [&>[data-slot=table-container]]:overflow-x-visible";
 
@@ -62,6 +72,7 @@ export function NotesTable({
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const { hasMore, isLoadingMore, loadMore } = useNotesStore();
 
   useLayoutEffect(() => {
     setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
@@ -84,6 +95,14 @@ export function NotesTable({
 
   const items = rows.getVirtualItems();
   const lastItem = items.at(-1);
+  const lastIndex = lastItem?.index;
+
+  useEffect(() => {
+    if (lastIndex === undefined || !hasMore || isLoadingMore) return;
+    if (lastIndex < notes.length - NEAR_END_ROWS) return;
+
+    void loadMore();
+  }, [hasMore, isLoadingMore, lastIndex, loadMore, notes.length]);
 
   return (
     <div ref={scrollRef} data-virtual-scroll className={LIST_SCROLLER}>
@@ -125,9 +144,27 @@ export function NotesTable({
               height={rows.getTotalSize() - headerHeight - lastItem.end}
             />
           )}
+          {isLoadingMore && <LoaderRow />}
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function LoaderRow() {
+  return (
+    <TableRow data-loading-more>
+      <TableCell colSpan={COLUMN_COUNT} className={LOADER_CELL}>
+        <span
+          role="status"
+          aria-live="polite"
+          className="flex items-center justify-center gap-2"
+        >
+          <Loader2 className="size-4 animate-spin" />
+          {LOADER_LABEL}
+        </span>
+      </TableCell>
+    </TableRow>
   );
 }
 

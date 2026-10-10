@@ -17,6 +17,7 @@ let updateStatement = null;
 
 const BUSY_TIMEOUT_MS = 5000;
 const MMAP_SIZE_BYTES = 268435456;
+const ALL_ROWS = -1;
 
 const MIGRATIONS = [
   {
@@ -99,7 +100,8 @@ export function openDatabase(userDataPath) {
   listStatement = db.prepare(
     `SELECT id, title, body, created_at AS createdAt, updated_at AS updatedAt
        FROM notes
-      ORDER BY created_at DESC, id DESC`,
+      ORDER BY created_at DESC, id DESC
+      LIMIT ? OFFSET ?`,
   );
 
   countStatement = db.prepare("SELECT COUNT(*) AS total FROM notes");
@@ -127,9 +129,13 @@ function requireDb() {
 }
 
 /** @returns {Array<{id: number, title: string, body: string, createdAt: string, updatedAt: string}>} */
-export function listNotes() {
+export function listNotes(limit = ALL_ROWS, offset = 0) {
   requireDb();
-  return /** @type {any} */ (listStatement).all();
+
+  const rows = Number.isInteger(limit) && limit >= 0 ? limit : ALL_ROWS;
+  const start = Number.isInteger(offset) && offset >= 0 ? offset : 0;
+
+  return /** @type {any} */ (listStatement).all(rows, start);
 }
 
 export function countNotes() {

@@ -12,10 +12,13 @@ export function createFakeStore(
   return {
     notes: [],
     totalCount: 0,
+    hasMore: false,
     isLoading: false,
+    isLoadingMore: false,
     error: null,
     isSaving: false,
     setIsSaving: () => {},
+    loadMore: async () => {},
     create: notImplemented,
     remove: async () => false,
     update: async () => null,

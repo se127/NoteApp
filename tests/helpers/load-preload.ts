@@ -8,7 +8,7 @@ export type PreloadBridge = {
     accent: { get: () => unknown; set: (accent: string) => void };
   };
   notes: {
-    list: () => Promise<unknown>;
+    list: (limit?: number, offset?: number) => Promise<unknown>;
     count: () => Promise<unknown>;
     create: (note: unknown) => Promise<unknown>;
     remove: (id: number) => Promise<unknown>;

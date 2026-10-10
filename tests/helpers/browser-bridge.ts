@@ -12,7 +12,10 @@ export type FakeNotesBridge = NotesBridge & {
   failCreate: (error: Error) => void;
   failUpdate: (error: Error) => void;
   failRemove: (error: Error) => void;
+  clearFailures: () => void;
   syncedUpdates: Array<{ id: number; title: string; body: string }>;
+  requestedLimits: number[];
+  requestedOffsets: number[];
 };
 
 export function makeNote(overrides: Partial<Note> = {}): Note {
@@ -37,6 +40,8 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
   let removeError: Error | null = null;
 
   const syncedUpdates: Array<{ id: number; title: string; body: string }> = [];
+  const requestedLimits: number[] = [];
+  const requestedOffsets: number[] = [];
 
   let totalCountOverride: number | null = null;
 
@@ -47,6 +52,8 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
   const bridge: FakeNotesBridge = {
     notes,
     syncedUpdates,
+    requestedLimits,
+    requestedOffsets,
     setTotalCount: (total) => {
       totalCountOverride = total;
     },
@@ -65,12 +72,23 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
     failRemove: (error) => {
       removeError = error;
     },
+    clearFailures: () => {
+      listError = null;
+      countError = null;
+      createError = null;
+      updateError = null;
+      removeError = null;
+    },
     emitChanged: () => {
       for (const listener of [...listeners]) listener();
     },
-    list: async () => {
+    list: async (limit: number, offset = 0) => {
       guard(listError);
-      return notes.map((note) => ({ ...note }));
+      requestedLimits.push(limit);
+      requestedOffsets.push(offset);
+      return notes
+        .slice(offset, limit < 0 ? undefined : offset + limit)
+        .map((note) => ({ ...note }));
     },
     count: async () => {
       guard(countError);

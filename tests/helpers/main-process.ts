@@ -77,6 +77,7 @@ export type MainProcessStub = {
   databaseCloseCount: number;
   menuRemoved: boolean;
   countNotesResult: number;
+  listNotesCalls: Array<[number, number]>;
   createNoteResult: unknown;
   deleteNoteResult: boolean;
   updateNoteResult: unknown;
@@ -310,7 +311,10 @@ function installMocksOnce(): void {
     closeDatabase: () => {
       if (active !== null) active.databaseCloseCount += 1;
     },
-    listNotes: () => [],
+    listNotes: (limit?: number, offset?: number) => {
+      active?.listNotesCalls.push([limit ?? -1, offset ?? 0]);
+      return [];
+    },
     countNotes: () => active?.countNotesResult ?? 0,
     createNote: () => active?.createNoteResult ?? null,
     updateNote: () => {
@@ -352,6 +356,7 @@ export function createMainProcessHarness(
     databaseCloseCount: 0,
     menuRemoved: false,
     countNotesResult: 0,
+    listNotesCalls: [],
     createNoteResult: { id: 1, title: "t", body: "b" },
     deleteNoteResult: true,
     updateNoteResult: { id: 1 },

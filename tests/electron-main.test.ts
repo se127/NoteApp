@@ -388,7 +388,58 @@ describe("notes ipc", () => {
   test("lists notes", async () => {
     harness = await loadMainProcess();
 
-    expect(harness.getIpcHandler("notes:list")?.()).toEqual([]);
+    expect(await harness.getIpcHandler("notes:list")?.()).toEqual([]);
+  });
+
+  test("passes the page size and offset through to the list query", async () => {
+    harness = await loadMainProcess();
+    harness.stub.listNotesCalls = [];
+
+    await harness.getIpcHandler("notes:list")?.({}, { limit: 15, offset: 30 });
+
+    expect(harness.stub.listNotesCalls).toEqual([[15, 30]]);
+  });
+
+  test("reads every note from the first row when the page size is missing", async () => {
+    harness = await loadMainProcess();
+    harness.stub.listNotesCalls = [];
+
+    await harness.getIpcHandler("notes:list")?.({});
+
+    expect(harness.stub.listNotesCalls).toEqual([[-1, 0]]);
+  });
+
+  test.each([-5, 2.5, Number.NaN, null])(
+    "falls back to every note for the page size %p",
+    async (limit) => {
+      harness = await loadMainProcess();
+      harness.stub.listNotesCalls = [];
+
+      await harness.getIpcHandler("notes:list")?.({}, { limit, offset: 30 });
+
+      expect(harness.stub.listNotesCalls).toEqual([[-1, 30]]);
+    },
+  );
+
+  test.each([-5, 2.5, Number.NaN, null, undefined])(
+    "starts at the first row for the offset %p",
+    async (offset) => {
+      harness = await loadMainProcess();
+      harness.stub.listNotesCalls = [];
+
+      await harness.getIpcHandler("notes:list")?.({}, { limit: 15, offset });
+
+      expect(harness.stub.listNotesCalls).toEqual([[15, 0]]);
+    },
+  );
+
+  test("passes a page size larger than the table through untouched", async () => {
+    harness = await loadMainProcess();
+    harness.stub.listNotesCalls = [];
+
+    await harness.getIpcHandler("notes:list")?.({}, { limit: 1_000_000 });
+
+    expect(harness.stub.listNotesCalls).toEqual([[1_000_000, 0]]);
   });
 
   test("counts notes on a channel of its own", async () => {

@@ -100,7 +100,29 @@ describe("preload bridge", () => {
 
     expect(preload.invokeCalls.at(-1)).toEqual({
       channel: "notes:list",
-      args: [],
+      args: [{ limit: undefined, offset: 0 }],
+    });
+  });
+
+  test("passes the page size and offset to the list channel", async () => {
+    const preload = loadPreload();
+
+    await preload.bridge.notes.list(15, 30);
+
+    expect(preload.invokeCalls.at(-1)).toEqual({
+      channel: "notes:list",
+      args: [{ limit: 15, offset: 30 }],
+    });
+  });
+
+  test("starts every page at the first row when no offset is given", async () => {
+    const preload = loadPreload();
+
+    await preload.bridge.notes.list(15);
+
+    expect(preload.invokeCalls.at(-1)).toEqual({
+      channel: "notes:list",
+      args: [{ limit: 15, offset: 0 }],
     });
   });
 

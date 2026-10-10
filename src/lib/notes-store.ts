@@ -5,10 +5,13 @@ import type { NewNote, Note } from "@/lib/notes";
 export type NotesStore = {
   notes: Note[];
   totalCount: number;
+  hasMore: boolean;
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: string | null;
   isSaving: boolean;
   setIsSaving: (saving: boolean) => void;
+  loadMore: () => Promise<void>;
   create: (note: NewNote) => Promise<Note>;
   remove: (id: number) => Promise<boolean>;
   update: (id: number, note: NewNote) => Promise<Note | null>;

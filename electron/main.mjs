@@ -47,6 +47,7 @@ const THEME_FILE = path.join(app.getPath("userData"), "theme.json");
 const THEMES = ["light", "dark", "system"];
 const ACCENTS = ["blue", "green", "orange"];
 const DEFAULT_APPEARANCE = { theme: "system", accent: "blue" };
+const ALL_NOTES = -1;
 
 function readStoredAppearance() {
   try {
@@ -91,7 +92,17 @@ ipcMain.on("accent:set", (_event, accent) => {
   if (ACCENTS.includes(accent)) writeStoredAppearance({ accent });
 });
 
-ipcMain.handle("notes:list", () => listNotes());
+ipcMain.handle("notes:list", (_event, { limit, offset } = {}) =>
+  listNotes(readNotesLimit(limit), readNotesOffset(offset)),
+);
+
+function readNotesLimit(limit) {
+  return Number.isInteger(limit) && limit >= 0 ? limit : ALL_NOTES;
+}
+
+function readNotesOffset(offset) {
+  return Number.isInteger(offset) && offset > 0 ? offset : 0;
+}
 
 ipcMain.handle("notes:count", () => countNotes());
 

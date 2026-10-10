@@ -12,7 +12,7 @@ export type NewNote = {
 };
 
 export type NotesBridge = {
-  list: () => Promise<Note[]>;
+  list: (limit: number, offset?: number) => Promise<Note[]>;
   count: () => Promise<number>;
   create: (note: NewNote) => Promise<Note>;
   remove: (id: number) => Promise<boolean>;

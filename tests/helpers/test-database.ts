@@ -70,7 +70,7 @@ export type TestDatabase = {
   create: (title: string, body: string) => Note;
   remove: (id: number) => boolean;
   update: (id: number, title: string, body: string) => Note | null;
-  list: () => Note[];
+  list: (limit?: number, offset?: number) => Note[];
   count: () => number;
   replaceAll: (titles: string[]) => void;
   dispose: () => void;
@@ -96,7 +96,8 @@ export function createTestDatabase(): TestDatabase {
     create: (title, body) => createNote(title, body) as Note,
     remove: (id) => deleteNote(id),
     update: (id, title, body) => updateNote(id, title, body) as Note | null,
-    list: () => listNotes() as Note[],
+    list: (limit?: number, offset?: number) =>
+      listNotes(limit, offset) as Note[],
     count: () => countNotes(),
     replaceAll: (titles) => {
       replaceAllNotes(titles);

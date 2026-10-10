@@ -10,7 +10,8 @@ const api = {
     },
   },
   notes: {
-    list: () => ipcRenderer.invoke("notes:list"),
+    list: (limit, offset = 0) =>
+      ipcRenderer.invoke("notes:list", { limit, offset }),
     count: () => ipcRenderer.invoke("notes:count"),
     create: (note) => ipcRenderer.invoke("notes:create", note),
     remove: (id) => ipcRenderer.invoke("notes:delete", id),

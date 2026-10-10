@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
-import { useNotes } from "@/hooks/use-notes";
+import { NOTES_PAGE_SIZE, useNotes } from "@/hooks/use-notes";
 import type { Note } from "@/lib/notes";
 import {
   createFakeNotesBridge,
@@ -249,5 +249,299 @@ describe("useNotes with the electron bridge", () => {
     expect(result.current.isSaving).toBe(false);
     act(() => result.current.setIsSaving(true));
     expect(result.current.isSaving).toBe(true);
+  });
+});
+
+describe("useNotes paging", () => {
+  const PAGE = 15;
+  let bridge: FakeNotesBridge;
+
+  function seed(count: number): Note[] {
+    const seeded = Array.from({ length: count }, (_, index) =>
+      makeNote({ id: count - index, title: `یادداشت ${count - index}` }),
+    );
+    bridge.notes.push(...seeded);
+    return seeded;
+  }
+
+  function ids(notes: Note[]): number[] {
+    return notes.map((note) => note.id);
+  }
+
+  beforeEach(() => {
+    bridge = installNotesBridge(createFakeNotesBridge());
+  });
+
+  afterEach(removeBridge);
+
+  test("reads the first page on mount", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(bridge.requestedLimits[0]).toBe(PAGE);
+    expect(bridge.requestedOffsets[0]).toBe(0);
+    expect(result.current.notes).toHaveLength(PAGE);
+    expect(result.current.totalCount).toBe(50);
+  });
+
+  test("reports that more notes wait behind the first page", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.hasMore).toBe(true);
+  });
+
+  test("asks for only the rows past the end, never the ones already held", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    expect(bridge.requestedOffsets.at(-1)).toBe(PAGE);
+    expect(bridge.requestedLimits.at(-1)).toBe(PAGE);
+  });
+
+  test("appends the next page in order with no row repeated or skipped", async () => {
+    const seeded = seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    expect(ids(result.current.notes)).toEqual(
+      seeded.slice(0, PAGE * 2).map((note) => note.id),
+    );
+  });
+
+  test("keeps every row unique across many pages", async () => {
+    const seeded = seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    await act(async () => {
+      await result.current.loadMore();
+      await result.current.loadMore();
+    });
+
+    const loaded = ids(result.current.notes);
+
+    expect(loaded).toEqual(seeded.slice(0, PAGE * 3).map((note) => note.id));
+    expect(new Set(loaded).size).toBe(loaded.length);
+  });
+
+  test("grows by exactly one page per trigger", async () => {
+    seed(200);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    const sizes: number[] = [];
+    for (let step = 0; step < 4; step += 1) {
+      await act(async () => {
+        await result.current.loadMore();
+      });
+      sizes.push(result.current.notes.length);
+    }
+
+    expect(sizes).toEqual([30, 45, 60, 75]);
+  });
+
+  test("reads each page from a different offset", async () => {
+    seed(200);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    await act(async () => {
+      await result.current.loadMore();
+      await result.current.loadMore();
+    });
+
+    expect(bridge.requestedOffsets.slice(-2)).toEqual([PAGE, PAGE * 2]);
+  });
+
+  test("drops a page that arrives after the list was refreshed", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    const read = bridge.list;
+    let resolvePage = () => {};
+    let pageRequested = false;
+
+    bridge.list = async (limit: number, offset = 0) => {
+      if (!pageRequested) {
+        pageRequested = true;
+        await new Promise<void>((resolve) => {
+          resolvePage = resolve;
+        });
+      }
+      return read(limit, offset);
+    };
+
+    let pending: Promise<void> = Promise.resolve();
+    act(() => {
+      pending = result.current.loadMore();
+    });
+
+    await waitFor(() => expect(pageRequested).toBe(true));
+
+    act(() => {
+      bridge.emitChanged();
+    });
+
+    resolvePage();
+    await pending;
+
+    await waitFor(() => expect(result.current.isLoadingMore).toBe(false));
+
+    expect(result.current.notes).toHaveLength(PAGE);
+  });
+
+  test("ignores further triggers while a page is still on its way", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    const read = bridge.list;
+    const pending: Array<() => void> = [];
+    let callsWhilePending = 0;
+
+    bridge.list = async (limit: number, offset = 0) => {
+      callsWhilePending += 1;
+      await new Promise<void>((resolve) => {
+        pending.push(resolve);
+      });
+      return read(limit, offset);
+    };
+
+    await act(async () => {
+      const first = result.current.loadMore();
+      await result.current.loadMore();
+      await result.current.loadMore();
+
+      for (const resolve of pending) resolve();
+      await first;
+    });
+
+    expect(callsWhilePending).toBe(1);
+    expect(result.current.notes).toHaveLength(PAGE * 2);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
+  test("re-reads the rows already held after a change instead of appending", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    act(() => {
+      bridge.emitChanged();
+    });
+
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE * 2));
+
+    expect(bridge.requestedOffsets.at(-1)).toBe(0);
+    expect(bridge.requestedLimits.at(-1)).toBe(PAGE * 2);
+  });
+
+  test("stops asking once every note is loaded", async () => {
+    seed(20);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    expect(result.current.notes).toHaveLength(20);
+    expect(result.current.hasMore).toBe(false);
+
+    const requestsSoFar = bridge.requestedOffsets.length;
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    expect(bridge.requestedOffsets).toHaveLength(requestsSoFar);
+  });
+
+  test("keeps the rows already loaded when a page fails", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    bridge.failList(new Error("دیتابیس قفل است"));
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    expect(result.current.error).toBe("دیتابیس قفل است");
+    expect(result.current.isLoadingMore).toBe(false);
+    expect(result.current.notes).toHaveLength(PAGE);
+
+    bridge.clearFailures();
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    expect(result.current.notes).toHaveLength(PAGE * 2);
+  });
+
+  test("refuses to page without the bridge", async () => {
+    removeBridge();
+
+    const { result } = renderHook(() => useNotes());
+
+    await result.current.loadMore();
+
+    expect(result.current.notes).toHaveLength(0);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
+  test("keeps the loaded size after a new note is created", async () => {
+    seed(50);
+
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.notes).toHaveLength(PAGE));
+
+    await act(async () => {
+      await result.current.loadMore();
+    });
+
+    await act(async () => {
+      await result.current.create({ title: "تازه", body: "" });
+    });
+
+    expect(result.current.notes).toHaveLength(PAGE * 2);
+    expect(bridge.requestedOffsets.at(-1)).toBe(0);
+  });
+});
+
+describe("useNotes page size", () => {
+  test("loads fifteen notes at a time", () => {
+    expect(NOTES_PAGE_SIZE).toBe(15);
   });
 });

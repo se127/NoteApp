@@ -91,6 +91,108 @@ describe("listNotes", () => {
       first.id,
     ]);
   });
+
+  test("returns every note when no limit is given", () => {
+    for (let index = 0; index < 50; index += 1) database.create("", "");
+
+    expect(database.list()).toHaveLength(50);
+  });
+
+  describe("with a limit", () => {
+    function seed(count: number): number[] {
+      return Array.from({ length: count }, () => database.create("", "")).map(
+        (note) => note.id,
+      );
+    }
+
+    test("reads the newest notes only", () => {
+      const ids = seed(50);
+
+      const listed = database.list(15);
+
+      expect(listed).toHaveLength(15);
+      expect(listed.map((note) => note.id)).toEqual(ids.slice(-15).reverse());
+    });
+
+    test("counts the limit from the first row, so a wider limit extends the same page", () => {
+      const ids = seed(50);
+
+      expect(database.list(30).map((note) => note.id)).toEqual(
+        ids.slice(-30).reverse(),
+      );
+    });
+
+    test("never repeats a row when the same limit is read twice", () => {
+      seed(50);
+
+      const first = database.list(30);
+      const second = database.list(30);
+
+      expect(second.map((note) => note.id)).toEqual(
+        first.map((note) => note.id),
+      );
+    });
+
+    test("returns a short page when fewer notes exist than the limit", () => {
+      seed(4);
+
+      expect(database.list(15)).toHaveLength(4);
+    });
+
+    test("reads the page that starts at the offset", () => {
+      const ids = seed(50);
+
+      expect(database.list(15, 15).map((note) => note.id)).toEqual(
+        ids.slice(-30, -15).reverse(),
+      );
+    });
+
+    test("hands out consecutive pages with no row in two of them", () => {
+      const ids = seed(50);
+
+      const first = database.list(15, 0).map((note) => note.id);
+      const second = database.list(15, 15).map((note) => note.id);
+
+      expect(first).toHaveLength(15);
+      expect(second).toHaveLength(15);
+      expect(first.filter((id) => second.includes(id))).toEqual([]);
+      expect([...first, ...second]).toEqual(ids.slice(-30).reverse());
+    });
+
+    test("returns a short page past the last note", () => {
+      seed(10);
+
+      expect(database.list(15, 8)).toHaveLength(2);
+    });
+
+    test("returns nothing past the end of the table", () => {
+      seed(10);
+
+      expect(database.list(15, 50)).toEqual([]);
+    });
+
+    test("returns nothing when the limit is zero", () => {
+      seed(5);
+
+      expect(database.list(0)).toEqual([]);
+    });
+
+    test.each([-1, 1.5, Number.NaN])(
+      "falls back to every note for the limit %p",
+      (limit) => {
+        seed(5);
+
+        expect(database.list(limit)).toHaveLength(5);
+      },
+    );
+
+    test("leaves the total count above the page size", () => {
+      seed(50);
+
+      expect(database.list(15)).toHaveLength(15);
+      expect(database.count()).toBe(50);
+    });
+  });
 });
 
 describe("countNotes", () => {
