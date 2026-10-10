@@ -519,6 +519,59 @@ describe("NotesTable infinite scrolling", () => {
   });
 });
 
+describe("NotesTable scroll position", () => {
+  function manyNotes(count: number): Note[] {
+    return Array.from({ length: count }, (_, index) =>
+      noteWith({ id: index + 1, title: `یادداشت ${index + 1}` }),
+    );
+  }
+
+  function renderList(store: ReturnType<typeof createFakeStore>) {
+    return renderWithProviders(
+      <NotesTable
+        notes={manyNotes(60)}
+        isSelecting={false}
+        selectedIds={[]}
+        onToggleSelect={() => {}}
+      />,
+      { store },
+    );
+  }
+
+  test("comes back to the same offset after the list is left and reopened", () => {
+    const store = createFakeStore();
+    const first = renderList(store);
+
+    const scroller = first.container.querySelector(
+      "[data-virtual-scroll]",
+    ) as HTMLDivElement;
+
+    act(() => {
+      scroller.scrollTop = 480;
+      fireEvent.scroll(scroller);
+    });
+
+    first.unmount();
+
+    const second = renderList(store);
+    const reopened = second.container.querySelector(
+      "[data-virtual-scroll]",
+    ) as HTMLDivElement;
+
+    expect(reopened.scrollTop).toBe(480);
+  });
+
+  test("starts at the top when the list was never scrolled", () => {
+    const store = createFakeStore();
+    const { container } = renderList(store);
+
+    expect(
+      (container.querySelector("[data-virtual-scroll]") as HTMLDivElement)
+        .scrollTop,
+    ).toBe(0);
+  });
+});
+
 describe("NotesTable edited time", () => {
   function editedNote(): Note {
     return noteWith({

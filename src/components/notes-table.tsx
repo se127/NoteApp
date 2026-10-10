@@ -72,7 +72,7 @@ export function NotesTable({
   const scrollRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const { hasMore, isLoadingMore, loadMore } = useNotesStore();
+  const { hasMore, isLoadingMore, listScrollTop, loadMore } = useNotesStore();
 
   useLayoutEffect(() => {
     setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
@@ -91,7 +91,12 @@ export function NotesTable({
     estimateSize: () => ROW_ESTIMATED_HEIGHT,
     overscan: ROW_OVERSCAN,
     scrollMargin: headerHeight,
+    initialOffset: listScrollTop.current,
   });
+
+  const handleScroll = useCallback(() => {
+    listScrollTop.current = scrollRef.current?.scrollTop ?? 0;
+  }, [listScrollTop]);
 
   const items = rows.getVirtualItems();
   const lastItem = items.at(-1);
@@ -105,7 +110,12 @@ export function NotesTable({
   }, [hasMore, isLoadingMore, lastIndex, loadMore, notes.length]);
 
   return (
-    <div ref={scrollRef} data-virtual-scroll className={LIST_SCROLLER}>
+    <div
+      ref={scrollRef}
+      data-virtual-scroll
+      onScroll={handleScroll}
+      className={LIST_SCROLLER}
+    >
       <Table aria-label={LIST_LABEL} className={TABLE_WIDTH}>
         <TableHeader ref={headerRef} className={HEAD_ROW}>
           <TableRow>

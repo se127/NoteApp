@@ -1,8 +1,9 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, type RefObject } from "react";
 
 import type { NewNote, Note } from "@/lib/notes";
 
 export type NotesStore = {
+  listScrollTop: RefObject<number>;
   notes: Note[];
   totalCount: number;
   hasMore: boolean;

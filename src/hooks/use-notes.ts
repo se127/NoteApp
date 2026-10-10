@@ -19,6 +19,7 @@ export function useNotes() {
     bridge === null ? UNAVAILABLE_MESSAGE : null,
   );
 
+  const listScrollTop = useRef(0);
   const notesRef = useRef<Note[]>([]);
   const totalCountRef = useRef(0);
   const generationRef = useRef(0);
@@ -144,6 +145,7 @@ export function useNotes() {
   return {
     notes,
     totalCount,
+    listScrollTop,
     hasMore: notes.length < totalCount,
     isLoading,
     isLoadingMore,
