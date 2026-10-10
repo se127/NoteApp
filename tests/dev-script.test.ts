@@ -3,9 +3,11 @@ import path from "node:path";
 
 import {
   createServerProbe,
+  DEFAULT_DEV_DB_DELAY,
   DEFAULT_DEV_NOTE_COUNT,
   devUserDataDir,
   isRunning,
+  parseDbDelay,
   parseNoteCount,
   serverUrl,
   stopTree,
@@ -130,6 +132,49 @@ describe("parseNoteCount", () => {
 
   test("takes the first count when the flag is repeated", () => {
     expect(parseNoteCount(["--notes", "3", "--notes", "9"])).toBe(3);
+  });
+});
+
+describe("parseDbDelay", () => {
+  test("adds no delay when the flag is absent", () => {
+    expect(parseDbDelay([])).toBe(0);
+    expect(DEFAULT_DEV_DB_DELAY).toBe(0);
+  });
+
+  test("reads a delay joined to the flag with an equals sign", () => {
+    expect(parseDbDelay(["db-delay=1000"])).toBe(1000);
+  });
+
+  test("reads a delay after the flag", () => {
+    expect(parseDbDelay(["db-delay", "250"])).toBe(250);
+  });
+
+  test("accepts the double dash spelling too", () => {
+    expect(parseDbDelay(["--db-delay=750"])).toBe(750);
+  });
+
+  test("reads zero when asked for zero", () => {
+    expect(parseDbDelay(["db-delay=0"])).toBe(0);
+  });
+
+  test("ignores the note count while reading the delay", () => {
+    expect(parseDbDelay(["--notes=5000", "db-delay=1000"])).toBe(1000);
+    expect(parseNoteCount(["--notes=5000", "db-delay=1000"])).toBe(5000);
+  });
+
+  test("falls back to zero for a delay that is not a whole number", () => {
+    expect(parseDbDelay(["db-delay=abc"])).toBe(0);
+    expect(parseDbDelay(["db-delay=1.5"])).toBe(0);
+    expect(parseDbDelay(["db-delay=-400"])).toBe(0);
+  });
+
+  test("falls back to zero when the flag carries no value", () => {
+    expect(parseDbDelay(["db-delay"])).toBe(0);
+    expect(parseDbDelay(["db-delay", "--notes"])).toBe(0);
+  });
+
+  test("takes the first delay when the flag is repeated", () => {
+    expect(parseDbDelay(["db-delay=100", "db-delay=900"])).toBe(100);
   });
 });
 

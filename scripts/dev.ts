@@ -12,6 +12,7 @@ const POLL_MS = 250;
 const GRACE_MS = 1500;
 
 export const DEFAULT_DEV_NOTE_COUNT = 0;
+export const DEFAULT_DEV_DB_DELAY = 0;
 
 export function parseNoteCount(argv: string[]): number {
   for (let index = 0; index < argv.length; index += 1) {
@@ -29,6 +30,24 @@ export function parseNoteCount(argv: string[]): number {
   }
 
   return DEFAULT_DEV_NOTE_COUNT;
+}
+
+export function parseDbDelay(argv: string[]): number {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === undefined) continue;
+
+    const [flag, inlineValue] = arg.split("=", 2);
+    if (flag !== "db-delay" && flag !== "--db-delay") continue;
+
+    const raw = inlineValue ?? argv[index + 1];
+    const delay = Number(raw);
+    if (!Number.isInteger(delay) || delay < 0) return DEFAULT_DEV_DB_DELAY;
+
+    return delay;
+  }
+
+  return DEFAULT_DEV_DB_DELAY;
 }
 
 export function devUserDataDir(
@@ -191,12 +210,14 @@ if (isDirectRun) {
     );
 
     const noteCount = parseNoteCount(process.argv.slice(2));
+    const dbDelay = parseDbDelay(process.argv.slice(2));
 
     console.log("[dev] vite is up, launching electron");
     start("electron", "bunx", ["electron", "."], {
       VITE_DEV_SERVER_URL: SERVER_URL,
       NoteApp_USER_DATA: devUserDataDir(process.env["APPDATA"], os.homedir()),
       NoteApp_DEV_NOTES: String(noteCount),
+      NoteApp_DB_DELAY: String(dbDelay),
     });
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);

@@ -31,7 +31,7 @@ A change under `electron/` needs a full app restart — Vite HMR reloads the ren
 
 `%APPDATA%\NoteApp` on Windows is the packaged app's live database. Never read, edit, move, or delete it. Dev runs against `%APPDATA%\NoteApp-dev`, set by `scripts/dev.ts` through `NoteApp_USER_DATA`.
 
-`NoteApp_USER_DATA` is also the only signal that reseeds the dev notes on startup (`replaceAllNotes` in `electron/db.mjs`, titles in `electron/dev-notes.mjs`). Do not key that off `VITE_DEV_SERVER_URL` or `app.isPackaged` alone: `bun run dev:web` plus a bare `bunx electron .` has a dev server and no override, so it would empty `%APPDATA%\NoteApp`.
+`NoteApp_USER_DATA` is also the only signal that reseeds the dev notes on startup (`replaceAllNotes` in `electron/db.mjs`, titles in `electron/dev-notes.mjs`). Do not key that off `VITE_DEV_SERVER_URL` or `app.isPackaged` alone: `bun run dev:web` plus a bare `bunx electron .` has a dev server and no override, so it would empty `%APPDATA%\NoteApp`. It is equally the only signal that arms `db-delay`, the artificial per-query latency `bun run dev db-delay=1000` sets, so a packaged build can never be slowed. `devNoteTitles` guards on it itself rather than relying on its one call site; `tests/electron-main.test.ts` pins both refusals (5000 seeded notes, and a delayed query) with the flag set but no override, so deleting either guard turns a test red.
 
 ## Tests
 

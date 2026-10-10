@@ -370,6 +370,15 @@ describe("dev seed notes", () => {
 
     expect(harness.stub.replacedNoteBatches).toEqual([]);
   });
+
+  test("never seeds a packaged run that asks for thousands of notes", async () => {
+    process.env["NoteApp_DEV_NOTES"] = "5000";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.replacedNoteBatches).toEqual([]);
+  });
 });
 
 describe("notes ipc", () => {
@@ -495,6 +504,129 @@ describe("notes ipc", () => {
     });
 
     expect(event).toEqual({ returnValue: null });
+  });
+});
+
+describe("dev db delay", () => {
+  afterEach(() => {
+    delete process.env["NoteApp_DB_DELAY"];
+  });
+
+  function overrideUserData(): string {
+    const dir = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = dir;
+    return dir;
+  }
+
+  test("holds a notes channel back for the asked number of milliseconds", async () => {
+    overrideUserData();
+    process.env["NoteApp_DB_DELAY"] = "120";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const startedAt = Date.now();
+    await harness.getIpcHandler("notes:list")?.();
+    const elapsed = Date.now() - startedAt;
+
+    expect(elapsed).toBeGreaterThanOrEqual(100);
+  });
+
+  test("delays the count channel as well as the list channel", async () => {
+    overrideUserData();
+    process.env["NoteApp_DB_DELAY"] = "120";
+
+    harness = await loadMainProcess();
+
+    const listStart = Date.now();
+    await harness.getIpcHandler("notes:list")?.();
+    const listElapsed = Date.now() - listStart;
+
+    const countStart = Date.now();
+    await harness.getIpcHandler("notes:count")?.();
+    const countElapsed = Date.now() - countStart;
+
+    expect(listElapsed).toBeGreaterThanOrEqual(100);
+    expect(countElapsed).toBeGreaterThanOrEqual(100);
+  });
+
+  test.each(["notes:create", "notes:delete", "notes:update"])(
+    "delays the %s channel",
+    async (channel) => {
+      overrideUserData();
+      process.env["NoteApp_DB_DELAY"] = "120";
+
+      harness = await loadMainProcess();
+      harness.whenReady();
+
+      const startedAt = Date.now();
+      await harness.getIpcHandler(channel)?.(
+        {},
+        { id: 1, title: "t", body: "b" },
+      );
+      const elapsed = Date.now() - startedAt;
+
+      expect(elapsed).toBeGreaterThanOrEqual(100);
+    },
+  );
+
+  test("answers straight away with no delay configured", async () => {
+    overrideUserData();
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const startedAt = Date.now();
+    await harness.getIpcHandler("notes:list")?.();
+    const elapsed = Date.now() - startedAt;
+
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  test("never delays a packaged run even when the flag is set", async () => {
+    process.env["NoteApp_DB_DELAY"] = "1000";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const startedAt = Date.now();
+    await harness.getIpcHandler("notes:list")?.();
+    const elapsed = Date.now() - startedAt;
+
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  test("falls back to no delay for an unusable value", async () => {
+    overrideUserData();
+    process.env["NoteApp_DB_DELAY"] = "abc";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const startedAt = Date.now();
+    await harness.getIpcHandler("notes:list")?.();
+    const elapsed = Date.now() - startedAt;
+
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  test("keeps the close flush immediate so the last edit is never lost", async () => {
+    overrideUserData();
+    process.env["NoteApp_DB_DELAY"] = "1000";
+
+    harness = await loadMainProcess();
+    const event = {} as Record<string, unknown>;
+
+    const startedAt = Date.now();
+    harness.getIpcListener("notes:update-sync")?.(event, {
+      id: 3,
+      title: "t",
+      body: "b",
+    });
+    const elapsed = Date.now() - startedAt;
+
+    expect(event).toEqual({ returnValue: null });
+    expect(elapsed).toBeLessThan(100);
   });
 });
 

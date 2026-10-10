@@ -31,12 +31,30 @@ if (OVERRIDE_USER_DATA !== undefined) {
 }
 
 function devNoteTitles() {
+  if (OVERRIDE_USER_DATA === undefined) return [];
+
   const count = Number(process.env["NoteApp_DEV_NOTES"] ?? 0);
   if (!Number.isInteger(count) || count < 0) return [];
   return Array.from({ length: count }, (_unused, index) => {
     const title = DEV_NOTE_TITLES[index % DEV_NOTE_TITLES.length];
     const cycle = Math.floor(index / DEV_NOTE_TITLES.length);
     return cycle === 0 ? title : `${title} (${cycle + 1})`;
+  });
+}
+
+function readDevDbDelay() {
+  if (OVERRIDE_USER_DATA === undefined) return 0;
+
+  const delay = Number(process.env["NoteApp_DB_DELAY"] ?? 0);
+  return Number.isInteger(delay) && delay > 0 ? delay : 0;
+}
+
+const DEV_DB_DELAY_MS = readDevDbDelay();
+
+function withDevDbDelay(run) {
+  if (DEV_DB_DELAY_MS === 0) return run();
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(run()), DEV_DB_DELAY_MS);
   });
 }
 
@@ -93,7 +111,9 @@ ipcMain.on("accent:set", (_event, accent) => {
 });
 
 ipcMain.handle("notes:list", (_event, { limit, offset } = {}) =>
-  listNotes(readNotesLimit(limit), readNotesOffset(offset)),
+  withDevDbDelay(() =>
+    listNotes(readNotesLimit(limit), readNotesOffset(offset)),
+  ),
 );
 
 function readNotesLimit(limit) {
@@ -104,7 +124,7 @@ function readNotesOffset(offset) {
   return Number.isInteger(offset) && offset > 0 ? offset : 0;
 }
 
-ipcMain.handle("notes:count", () => countNotes());
+ipcMain.handle("notes:count", () => withDevDbDelay(() => countNotes()));
 
 function broadcastNotesChanged() {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -112,23 +132,29 @@ function broadcastNotesChanged() {
   }
 }
 
-ipcMain.handle("notes:create", (_event, { title, body } = {}) => {
-  const note = createNote(title, body);
-  broadcastNotesChanged();
-  return note;
-});
+ipcMain.handle("notes:create", (_event, { title, body } = {}) =>
+  withDevDbDelay(() => {
+    const note = createNote(title, body);
+    broadcastNotesChanged();
+    return note;
+  }),
+);
 
-ipcMain.handle("notes:delete", (_event, id) => {
-  const deleted = deleteNote(id);
-  if (deleted) broadcastNotesChanged();
-  return deleted;
-});
+ipcMain.handle("notes:delete", (_event, id) =>
+  withDevDbDelay(() => {
+    const deleted = deleteNote(id);
+    if (deleted) broadcastNotesChanged();
+    return deleted;
+  }),
+);
 
-ipcMain.handle("notes:update", (_event, { id, title, body } = {}) => {
-  const note = updateNote(id, title, body);
-  if (note !== null) broadcastNotesChanged();
-  return note;
-});
+ipcMain.handle("notes:update", (_event, { id, title, body } = {}) =>
+  withDevDbDelay(() => {
+    const note = updateNote(id, title, body);
+    if (note !== null) broadcastNotesChanged();
+    return note;
+  }),
+);
 
 ipcMain.on("notes:update-sync", (event, { id, title, body } = {}) => {
   try {
