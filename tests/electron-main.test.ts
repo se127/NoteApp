@@ -284,15 +284,20 @@ describe("dev seed notes", () => {
     rmSync(override, { force: true, recursive: true });
   });
 
-  test("seeds every title when asked for more than exist", async () => {
+  test("cycles the titles when asked for more than exist", async () => {
     const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
     process.env["NoteApp_USER_DATA"] = override;
-    process.env["NoteApp_DEV_NOTES"] = "999";
+    const total = DEV_NOTE_TITLES.length * 2 + 1;
+    process.env["NoteApp_DEV_NOTES"] = String(total);
 
     harness = await loadMainProcess();
     harness.whenReady();
 
-    expect(harness.stub.replacedNoteBatches).toEqual([DEV_NOTE_TITLES]);
+    const [titles] = harness.stub.replacedNoteBatches;
+    expect(titles).toHaveLength(total);
+    expect(titles.slice(0, DEV_NOTE_TITLES.length)).toEqual(DEV_NOTE_TITLES);
+    expect(titles[DEV_NOTE_TITLES.length]).toBe(`${DEV_NOTE_TITLES[0]} (2)`);
+    expect(new Set(titles).size).toBe(total);
 
     rmSync(override, { force: true, recursive: true });
   });

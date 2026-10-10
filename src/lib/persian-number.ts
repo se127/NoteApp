@@ -1,5 +1,6 @@
-const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+const PERSIAN_NUMBER_FORMAT = new Intl.NumberFormat("fa-IR");
 
 export function formatPersianNumber(value: number): string {
-  return String(value).replace(/\d/g, (digit) => PERSIAN_DIGITS[Number(digit)]);
+  if (value < 0) return `-${PERSIAN_NUMBER_FORMAT.format(-value)}`;
+  return PERSIAN_NUMBER_FORMAT.format(value);
 }

@@ -32,7 +32,11 @@ if (OVERRIDE_USER_DATA !== undefined) {
 function devNoteTitles() {
   const count = Number(process.env["NoteApp_DEV_NOTES"] ?? 0);
   if (!Number.isInteger(count) || count < 0) return [];
-  return DEV_NOTE_TITLES.slice(0, count);
+  return Array.from({ length: count }, (_unused, index) => {
+    const title = DEV_NOTE_TITLES[index % DEV_NOTE_TITLES.length];
+    const cycle = Math.floor(index / DEV_NOTE_TITLES.length);
+    return cycle === 0 ? title : `${title} (${cycle + 1})`;
+  });
 }
 
 /** @type {BrowserWindow | null} */

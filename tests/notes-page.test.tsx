@@ -446,6 +446,22 @@ describe("NotesPage heading", () => {
     ).toBeDefined();
   });
 
+  test("groups a four digit count with the persian separator", () => {
+    const many: Note[] = Array.from({ length: 1000 }, (_unused, index) => ({
+      id: index + 1,
+      title: "",
+      body: "",
+      createdAt: "",
+      updatedAt: "",
+    }));
+
+    renderPage(buildStore(), many);
+
+    expect(
+      screen.getByRole("heading", { name: "یادداشت ها (۱٬۰۰۰)" }),
+    ).toBeDefined();
+  }, 20_000);
+
   test("carries a real heading size", () => {
     renderPage(buildStore(), NOTES);
 
