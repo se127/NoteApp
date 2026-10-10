@@ -13,6 +13,9 @@ let deleteStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
 let updateStatement = null;
 
+const BUSY_TIMEOUT_MS = 5000;
+const MMAP_SIZE_BYTES = 268435456;
+
 const MIGRATIONS = [
   {
     version: 1,
@@ -37,6 +40,15 @@ const MIGRATIONS = [
         "CREATE INDEX IF NOT EXISTS notes_created_at_idx ON notes (created_at DESC)",
       );
       db.exec("DROP INDEX IF EXISTS notes_updated_at_idx");
+    },
+  },
+  {
+    version: 3,
+    up: (db) => {
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS notes_created_at_id_idx ON notes (created_at DESC, id DESC)",
+      );
+      db.exec("DROP INDEX IF EXISTS notes_created_at_idx");
     },
   },
 ];
@@ -68,10 +80,17 @@ export function openDatabase(userDataPath) {
   if (db) return db;
 
   mkdirSync(userDataPath, { recursive: true });
-  db = new DatabaseSync(path.join(userDataPath, "notes.db"));
+  db = new DatabaseSync(path.join(userDataPath, "notes.db"), {
+    timeout: BUSY_TIMEOUT_MS,
+  });
 
   db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA synchronous = NORMAL");
   db.exec("PRAGMA foreign_keys = ON");
+  db.exec("PRAGMA temp_store = MEMORY");
+  db.exec("PRAGMA cache_size = -8192");
+  db.exec(`PRAGMA mmap_size = ${MMAP_SIZE_BYTES}`);
+  db.exec("PRAGMA journal_size_limit = 67108864");
 
   migrate(db);
 

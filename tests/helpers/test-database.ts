@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import type { DatabaseSync } from "node:sqlite";
 
 import {
   closeDatabase,
@@ -63,6 +64,8 @@ function removeQuietly(target: string): void {
 
 export type TestDatabase = {
   userDataPath: string;
+  connection: DatabaseSync;
+  pragma: (name: string) => number | string;
   create: (title: string, body: string) => Note;
   remove: (id: number) => boolean;
   update: (id: number, title: string, body: string) => Note | null;
@@ -75,10 +78,19 @@ export function createTestDatabase(): TestDatabase {
   const userDataPath = mkdtempSync(path.join(ensureTestRoot(), "case-"));
   assertIsolated(userDataPath);
 
-  openDatabase(userDataPath);
+  const connection = openDatabase(userDataPath);
 
   return {
     userDataPath,
+    connection,
+    pragma: (name) => {
+      const row = connection.prepare(`PRAGMA ${name}`).get() as Record<
+        string,
+        number | string
+      >;
+
+      return Object.values(row)[0]!;
+    },
     create: (title, body) => createNote(title, body) as Note,
     remove: (id) => deleteNote(id),
     update: (id, title, body) => updateNote(id, title, body) as Note | null,
