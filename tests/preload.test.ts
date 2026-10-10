@@ -29,6 +29,25 @@ describe("preload bridge", () => {
     ]);
   });
 
+  test("exposes the theme methods the renderer relies on", () => {
+    const preload = loadPreload();
+
+    expect(Object.keys(preload.bridge.theme).sort()).toEqual([
+      "accent",
+      "get",
+      "set",
+    ]);
+  });
+
+  test("exposes the accent methods the renderer relies on", () => {
+    const preload = loadPreload();
+
+    expect(Object.keys(preload.bridge.theme.accent).sort()).toEqual([
+      "get",
+      "set",
+    ]);
+  });
+
   test("reads the theme over a synchronous channel", () => {
     const preload = loadPreload();
     preload.setSyncReply("dark");
@@ -48,6 +67,28 @@ describe("preload bridge", () => {
     expect(preload.sendCalls.at(-1)).toEqual({
       channel: "theme:set",
       args: ["light"],
+    });
+  });
+
+  test("reads the accent over a synchronous channel", () => {
+    const preload = loadPreload();
+    preload.setSyncReply("orange");
+
+    expect(preload.bridge.theme.accent.get()).toBe("orange");
+    expect(preload.syncCalls.at(-1)).toEqual({
+      channel: "accent:get",
+      args: [],
+    });
+  });
+
+  test("writes the accent over the asynchronous channel", () => {
+    const preload = loadPreload();
+
+    preload.bridge.theme.accent.set("green");
+
+    expect(preload.sendCalls.at(-1)).toEqual({
+      channel: "accent:set",
+      args: ["green"],
     });
   });
 

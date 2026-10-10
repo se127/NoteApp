@@ -4,6 +4,10 @@ const api = {
   theme: {
     get: () => ipcRenderer.sendSync("theme:get"),
     set: (theme) => ipcRenderer.send("theme:set", theme),
+    accent: {
+      get: () => ipcRenderer.sendSync("accent:get"),
+      set: (accent) => ipcRenderer.send("accent:set", accent),
+    },
   },
   notes: {
     list: () => ipcRenderer.invoke("notes:list"),

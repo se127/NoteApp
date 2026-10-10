@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  ACCENT_ATTRIBUTE,
   DARK_QUERY,
+  DEFAULT_ACCENT,
   ThemeContext,
+  persistAccent,
   persistTheme,
+  readStoredAccent,
   readStoredTheme,
   readSystemTheme,
   resolveTheme,
+  type Accent,
   type ResolvedTheme,
   type Theme,
   type ThemeContextValue,
@@ -21,6 +26,9 @@ export function ThemeProvider({
 }) {
   const [theme, setThemeState] = useState<Theme>(
     () => readStoredTheme() ?? defaultTheme,
+  );
+  const [accent, setAccentState] = useState<Accent>(
+    () => readStoredAccent() ?? DEFAULT_ACCENT,
   );
   const [systemPreference, setSystemPreference] =
     useState<ResolvedTheme>(readSystemTheme);
@@ -41,14 +49,23 @@ export function ThemeProvider({
     document.documentElement.style.colorScheme = resolvedTheme;
   }, [resolvedTheme]);
 
+  useEffect(() => {
+    document.documentElement.setAttribute(ACCENT_ATTRIBUTE, accent);
+  }, [accent]);
+
   const setTheme = useCallback((next: Theme) => {
     persistTheme(next);
     setThemeState(next);
   }, []);
 
+  const setAccent = useCallback((next: Accent) => {
+    persistAccent(next);
+    setAccentState(next);
+  }, []);
+
   const value = useMemo<ThemeContextValue>(
-    () => ({ theme, resolvedTheme, setTheme }),
-    [theme, resolvedTheme, setTheme],
+    () => ({ theme, resolvedTheme, setTheme, accent, setAccent }),
+    [theme, resolvedTheme, setTheme, accent, setAccent],
   );
 
   return (

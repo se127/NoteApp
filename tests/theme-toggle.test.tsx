@@ -28,6 +28,8 @@ function renderToggle(initial: Theme = "system") {
     setTheme: (theme) => {
       chosen.push(theme);
     },
+    accent: "blue",
+    setAccent: () => {},
   };
 
   render(

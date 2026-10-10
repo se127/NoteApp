@@ -1,5 +1,5 @@
 import type { NewNote, Note, NotesBridge } from "../../src/lib/notes";
-import type { Theme } from "../../src/lib/theme";
+import type { Accent, Theme } from "../../src/lib/theme";
 
 type ChangeListener = () => void;
 
@@ -107,15 +107,29 @@ export function installNotesBridge(bridge: FakeNotesBridge): FakeNotesBridge {
   return bridge;
 }
 
-export function installThemeBridge(initial: Theme = "system"): {
+export function installThemeBridge(
+  initial: Theme = "system",
+  initialAccent: Accent = "blue",
+): {
   get: () => Theme;
   set: (theme: Theme) => void;
+  accent: {
+    get: () => Accent;
+    set: (accent: Accent) => void;
+  };
 } {
   let current = initial;
+  let currentAccent = initialAccent;
   const theme = {
     get: () => current,
     set: (next: Theme) => {
       current = next;
+    },
+    accent: {
+      get: () => currentAccent,
+      set: (next: Accent) => {
+        currentAccent = next;
+      },
     },
   };
 

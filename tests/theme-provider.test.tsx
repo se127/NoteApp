@@ -142,3 +142,76 @@ describe("ThemeProvider", () => {
     expect(result.current.resolvedTheme).toBe("light");
   });
 });
+
+describe("ThemeProvider accent", () => {
+  function currentAccent(): string | null {
+    return document.documentElement.getAttribute("data-accent");
+  }
+
+  test("defaults to blue", () => {
+    useSystemTheme(false);
+
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ThemeProvider,
+    });
+
+    expect(result.current.accent).toBe("blue");
+    expect(currentAccent()).toBe("blue");
+  });
+
+  test("sets the accent attribute on the document element", () => {
+    useSystemTheme(false);
+    installThemeBridge("system", "orange");
+
+    render(
+      <ThemeProvider>
+        <span>child</span>
+      </ThemeProvider>,
+    );
+
+    expect(currentAccent()).toBe("orange");
+  });
+
+  test("persists an accent chosen through the context", () => {
+    useSystemTheme(false);
+    const bridge = installThemeBridge("system");
+
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ThemeProvider,
+    });
+
+    act(() => result.current.setAccent("green"));
+
+    expect(bridge.accent.get()).toBe("green");
+    expect(result.current.accent).toBe("green");
+    expect(currentAccent()).toBe("green");
+  });
+
+  test("keeps the accent when the theme changes", () => {
+    useSystemTheme(false);
+    installThemeBridge("system", "orange");
+
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ThemeProvider,
+    });
+
+    act(() => result.current.setTheme("dark"));
+
+    expect(result.current.accent).toBe("orange");
+    expect(currentAccent()).toBe("orange");
+  });
+
+  test("keeps the theme when the accent changes", () => {
+    useSystemTheme(false);
+    const bridge = installThemeBridge("dark", "blue");
+
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ThemeProvider,
+    });
+
+    act(() => result.current.setAccent("orange"));
+
+    expect(result.current.theme).toBe("dark");
+    expect(bridge.get()).toBe("dark");
+  });
+});

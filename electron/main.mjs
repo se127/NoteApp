@@ -31,30 +31,50 @@ let mainWindow = null;
 
 const THEME_FILE = path.join(app.getPath("userData"), "theme.json");
 const THEMES = ["light", "dark", "system"];
+const ACCENTS = ["blue", "green", "orange"];
+const DEFAULT_APPEARANCE = { theme: "system", accent: "blue" };
 
-function readStoredTheme() {
+function readStoredAppearance() {
   try {
-    const { theme } = JSON.parse(readFileSync(THEME_FILE, "utf8"));
-    return THEMES.includes(theme) ? theme : "system";
+    const stored = JSON.parse(readFileSync(THEME_FILE, "utf8"));
+    return {
+      theme: THEMES.includes(stored.theme)
+        ? stored.theme
+        : DEFAULT_APPEARANCE.theme,
+      accent: ACCENTS.includes(stored.accent)
+        ? stored.accent
+        : DEFAULT_APPEARANCE.accent,
+    };
   } catch {
-    return "system";
+    return { ...DEFAULT_APPEARANCE };
   }
 }
 
-function writeStoredTheme(theme) {
+function writeStoredAppearance(patch) {
   try {
-    writeFileSync(THEME_FILE, JSON.stringify({ theme }));
+    writeFileSync(
+      THEME_FILE,
+      JSON.stringify({ ...readStoredAppearance(), ...patch }),
+    );
   } catch (error) {
     console.error("[main] could not persist theme:", error);
   }
 }
 
 ipcMain.on("theme:get", (event) => {
-  event.returnValue = readStoredTheme();
+  event.returnValue = readStoredAppearance().theme;
 });
 
 ipcMain.on("theme:set", (_event, theme) => {
-  if (THEMES.includes(theme)) writeStoredTheme(theme);
+  if (THEMES.includes(theme)) writeStoredAppearance({ theme });
+});
+
+ipcMain.on("accent:get", (event) => {
+  event.returnValue = readStoredAppearance().accent;
+});
+
+ipcMain.on("accent:set", (_event, accent) => {
+  if (ACCENTS.includes(accent)) writeStoredAppearance({ accent });
 });
 
 ipcMain.handle("notes:list", () => listNotes());

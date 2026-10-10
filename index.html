@@ -87,6 +87,11 @@
               window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.toggle("dark", dark);
           document.documentElement.style.colorScheme = dark ? "dark" : "light";
+          const accent =
+            window.NoteApp?.theme?.accent?.get() ??
+            localStorage.getItem("NoteApp-accent") ??
+            "blue";
+          document.documentElement.setAttribute("data-accent", accent);
         } catch {}
       })();
     </script>

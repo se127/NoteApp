@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router";
 
+import { AccentToggle } from "@/components/accent-toggle";
 import { NotesProvider } from "@/components/notes-provider";
 import { ShortcutsDialog } from "@/components/shortcuts-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -19,7 +20,10 @@ function AppShell() {
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       <div className="flex shrink-0 items-center justify-between gap-2 px-6 pt-4 pb-3">
         <ShortcutsDialog />
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <AccentToggle />
+          <ThemeToggle />
+        </div>
       </div>
 
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4">

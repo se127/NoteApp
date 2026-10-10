@@ -1,11 +1,16 @@
 import { afterEach, describe, expect, test } from "bun:test";
 
 import {
+  ACCENT_LABELS,
+  ACCENTS,
   DARK_QUERY,
+  persistAccent,
   persistTheme,
+  readStoredAccent,
   readStoredTheme,
   readSystemTheme,
   resolveTheme,
+  type Accent,
   type ResolvedTheme,
   type Theme,
 } from "@/lib/theme";
@@ -125,5 +130,101 @@ describe("theme resolution across sources", () => {
     const system: ResolvedTheme = "dark";
 
     expect(resolveTheme("light", system)).toBe("light");
+  });
+});
+
+describe("accents", () => {
+  test("offers blue, green and orange with Persian labels", () => {
+    expect(ACCENTS).toEqual(["blue", "green", "orange"]);
+    expect(ACCENT_LABELS).toEqual({
+      blue: "آبی",
+      green: "سبز",
+      orange: "نارنجی",
+    });
+  });
+
+  test("labels every accent", () => {
+    for (const accent of ACCENTS) {
+      expect(ACCENT_LABELS[accent].length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("readStoredAccent", () => {
+  test("prefers the electron bridge over local storage", () => {
+    installThemeBridge("system", "orange");
+    window.localStorage.setItem("NoteApp-accent", "green");
+
+    expect(readStoredAccent()).toBe("orange");
+  });
+
+  test("returns null when the bridge reports an unknown accent", () => {
+    installThemeBridge();
+    const bridge = installThemeBridge();
+    bridge.accent.get = () => "neon" as Accent;
+
+    expect(readStoredAccent()).toBeNull();
+  });
+
+  test("falls back to local storage when there is no bridge", () => {
+    window.localStorage.setItem("NoteApp-accent", "green");
+
+    expect(readStoredAccent()).toBe("green");
+  });
+
+  test("returns null when local storage holds an unknown accent", () => {
+    window.localStorage.setItem("NoteApp-accent", "neon");
+
+    expect(readStoredAccent()).toBeNull();
+  });
+
+  test("returns null when nothing was stored", () => {
+    expect(readStoredAccent()).toBeNull();
+  });
+
+  test("falls back to local storage when the bridge has no accent namespace", () => {
+    window.localStorage.setItem("NoteApp-accent", "orange");
+    (globalThis as unknown as Record<string, unknown>)["NoteApp"] = {
+      theme: { get: () => "system", set: () => {} },
+    };
+
+    expect(readStoredAccent()).toBe("orange");
+  });
+});
+
+describe("persistAccent", () => {
+  test("writes to the electron bridge when present", () => {
+    const bridge = installThemeBridge("system");
+
+    persistAccent("green");
+
+    expect(bridge.accent.get()).toBe("green");
+    expect(window.localStorage.getItem("NoteApp-accent")).toBeNull();
+  });
+
+  test("writes to local storage when there is no bridge", () => {
+    persistAccent("orange");
+
+    expect(window.localStorage.getItem("NoteApp-accent")).toBe("orange");
+  });
+
+  test("does not throw when local storage is unavailable", () => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => {
+      throw new Error("quota exceeded");
+    };
+
+    expect(() => persistAccent("green")).not.toThrow();
+
+    Storage.prototype.setItem = original;
+  });
+
+  test("does not overwrite the stored theme", () => {
+    persistTheme("dark");
+
+    persistAccent("green");
+
+    expect(window.localStorage.getItem("NoteApp-theme")).toBe("dark");
+    expect(window.localStorage.getItem("NoteApp-accent")).toBe("green");
   });
 });

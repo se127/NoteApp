@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 export type PreloadBridge = {
-  theme: { get: () => unknown; set: (theme: string) => void };
+  theme: {
+    get: () => unknown;
+    set: (theme: string) => void;
+    accent: { get: () => unknown; set: (accent: string) => void };
+  };
   notes: {
     list: () => Promise<unknown>;
     create: (note: unknown) => Promise<unknown>;

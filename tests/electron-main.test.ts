@@ -47,6 +47,7 @@ describe("theme persistence", () => {
 
     expect(JSON.parse(readFileSync(themeFile(dir), "utf8"))).toEqual({
       theme: "dark",
+      accent: "blue",
     });
   });
 
@@ -99,6 +100,115 @@ describe("theme persistence", () => {
   });
 });
 
+describe("accent persistence", () => {
+  function accentReply(h: MainProcessHarness): unknown {
+    const event = { returnValue: undefined as unknown };
+    h.getIpcListener("accent:get")?.(event);
+    return event.returnValue;
+  }
+
+  test("reports blue when no theme file exists", async () => {
+    harness = await loadMainProcess();
+
+    expect(accentReply(harness)).toBe("blue");
+  });
+
+  test("writes a known accent to theme.json", async () => {
+    harness = await loadMainProcess();
+    const dir = harness.stub.userDataPath as string;
+
+    harness.getIpcListener("accent:set")?.({}, "orange");
+
+    expect(JSON.parse(readFileSync(themeFile(dir), "utf8"))).toEqual({
+      theme: "system",
+      accent: "orange",
+    });
+  });
+
+  test("reads a persisted accent back", async () => {
+    harness = await loadMainProcess();
+    harness.getIpcListener("accent:set")?.({}, "green");
+
+    const second = await loadMainProcess({
+      userDataPath: harness.stub.userDataPath as string,
+    });
+
+    expect(accentReply(second)).toBe("green");
+  });
+
+  test("refuses to persist an unknown accent", async () => {
+    harness = await loadMainProcess();
+    const dir = harness.stub.userDataPath as string;
+
+    harness.getIpcListener("accent:set")?.({}, "neon");
+
+    expect(existsSync(themeFile(dir))).toBe(false);
+  });
+
+  test("falls back to blue for an unknown stored accent", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "NoteApp-accent-"));
+    writeFileSync(themeFile(dir), JSON.stringify({ accent: "neon" }));
+
+    harness = await loadMainProcess({ userDataPath: dir });
+
+    expect(accentReply(harness)).toBe("blue");
+
+    rmSync(dir, { force: true, recursive: true });
+  });
+
+  test("keeps the theme when only the accent is written", async () => {
+    harness = await loadMainProcess();
+    harness.getIpcListener("theme:set")?.({}, "dark");
+
+    harness.getIpcListener("accent:set")?.({}, "orange");
+
+    const themeEvent = { returnValue: undefined as unknown };
+    harness.getIpcListener("theme:get")?.(themeEvent);
+    expect(themeEvent.returnValue).toBe("dark");
+    expect(accentReply(harness)).toBe("orange");
+  });
+
+  test("keeps the accent when only the theme is written", async () => {
+    harness = await loadMainProcess();
+    harness.getIpcListener("accent:set")?.({}, "green");
+
+    harness.getIpcListener("theme:set")?.({}, "light");
+
+    expect(accentReply(harness)).toBe("green");
+  });
+
+  test("keeps an accent written by an older single-key theme file", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "NoteApp-accent-"));
+    writeFileSync(themeFile(dir), JSON.stringify({ theme: "dark" }));
+
+    harness = await loadMainProcess({ userDataPath: dir });
+
+    expect(accentReply(harness)).toBe("blue");
+    harness.getIpcListener("accent:set")?.({}, "green");
+
+    const themeEvent = { returnValue: undefined as unknown };
+    harness.getIpcListener("theme:get")?.(themeEvent);
+    expect(themeEvent.returnValue).toBe("dark");
+
+    rmSync(dir, { force: true, recursive: true });
+  });
+
+  test("keeps the accent inside the overridden directory", async () => {
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    const defaultDir = mkdtempSync(path.join(tmpdir(), "NoteApp-default-"));
+    process.env["NoteApp_USER_DATA"] = override;
+
+    harness = await loadMainProcess({ userDataPath: defaultDir });
+    harness.getIpcListener("accent:set")?.({}, "orange");
+
+    expect(accentReply(harness)).toBe("orange");
+    expect(existsSync(themeFile(defaultDir))).toBe(false);
+
+    rmSync(override, { force: true, recursive: true });
+    rmSync(defaultDir, { force: true, recursive: true });
+  });
+});
+
 describe("NoteApp_USER_DATA override", () => {
   test("points the app at the overridden directory", async () => {
     const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
@@ -123,6 +233,7 @@ describe("NoteApp_USER_DATA override", () => {
 
     expect(JSON.parse(readFileSync(themeFile(override), "utf8"))).toEqual({
       theme: "dark",
+      accent: "blue",
     });
 
     rmSync(override, { force: true, recursive: true });
