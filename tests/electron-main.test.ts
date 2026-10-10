@@ -455,6 +455,40 @@ describe("window lifecycle", () => {
     expect(webPreferences["sandbox"]).toBe(true);
   });
 
+  test("refuses to be resized below 800x600", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const { minWidth, minHeight } = harness.firstWindow().options as Record<
+      string,
+      unknown
+    >;
+
+    expect(minWidth).toBe(800);
+    expect(minHeight).toBe(600);
+  });
+
+  test("never sets an upper size limit", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const options = harness.firstWindow().options;
+
+    expect(options["maxWidth"]).toBeUndefined();
+    expect(options["maxHeight"]).toBeUndefined();
+  });
+
+  test("opens at a size that already clears the minimum", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const { width, height, minWidth, minHeight } = harness.firstWindow()
+      .options as Record<string, unknown>;
+
+    expect(width as number).toBeGreaterThanOrEqual(minWidth as number);
+    expect(height as number).toBeGreaterThanOrEqual(minHeight as number);
+  });
+
   test("removes the application menu", async () => {
     harness = await loadMainProcess();
     harness.whenReady();
