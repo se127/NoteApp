@@ -1,6 +1,9 @@
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from "lucide-react";
+import { useMemo } from "react";
 import { NavLink } from "react-router";
 
 import { NoteActionsMenu } from "@/components/note-actions-menu";
+import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -18,10 +21,13 @@ import {
 import type { Note } from "@/lib/notes";
 import { useNotesStore } from "@/lib/notes-store";
 import { noteTitle } from "@/lib/note-title";
+import { SORT_NOTES_SHORTCUT } from "@/lib/shortcuts";
 import {
   formatAbsoluteTime,
   formatRelativeTime,
   hasBeenEdited,
+  sortNotesByCreatedAt,
+  type SortDirection,
 } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 
@@ -36,12 +42,16 @@ const ACTIONS_COLUMN = "w-1/4";
 const TABLE_WIDTH = "w-full table-fixed";
 const CHECKBOX_LABEL = "انتخاب یادداشت";
 const HEAD_CELL = "sticky top-0 z-10 bg-background";
+const ASCENDING_LABEL = "مرتب سازی از قدیم به جدید";
+const DESCENDING_LABEL = "مرتب سازی از جدید به قدیم";
 
-type NotesTableProps = {
-  notes: Note[];
+export type NotesTableProps = {
+  direction: SortDirection;
   isSelecting: boolean;
-  selectedIds: number[];
+  notes: Note[];
+  onToggleDirection: () => void;
   onToggleSelect: (id: number) => void;
+  selectedIds: number[];
 };
 
 export function NotesTable({
@@ -49,7 +59,14 @@ export function NotesTable({
   isSelecting,
   selectedIds,
   onToggleSelect,
+  direction,
+  onToggleDirection,
 }: NotesTableProps) {
+  const sortedNotes = useMemo(
+    () => sortNotesByCreatedAt(notes, direction),
+    [notes, direction],
+  );
+
   return (
     <Table aria-label={LIST_LABEL} className={TABLE_WIDTH}>
       <TableHeader>
@@ -57,8 +74,30 @@ export function NotesTable({
           <TableHead className={cn(TITLE_COLUMN, HEAD_CELL)}>
             {TITLE_HEADING}
           </TableHead>
-          <TableHead className={cn(CREATED_COLUMN, "text-center", HEAD_CELL)}>
-            {CREATED_HEADING}
+          <TableHead
+            className={cn(CREATED_COLUMN, "text-center", HEAD_CELL)}
+            aria-sort={direction === "asc" ? "ascending" : "descending"}
+          >
+            <ShortcutTooltip
+              shortcut={SORT_NOTES_SHORTCUT}
+              side="bottom"
+              tooltipText={
+                direction === "asc" ? DESCENDING_LABEL : ASCENDING_LABEL
+              }
+            >
+              <button
+                type="button"
+                onClick={onToggleDirection}
+                className="mx-auto inline-flex cursor-pointer items-center gap-1 outline-none focus-visible:underline"
+              >
+                {CREATED_HEADING}
+                {direction === "asc" ? (
+                  <ArrowUpNarrowWide className="size-4" aria-hidden />
+                ) : (
+                  <ArrowDownWideNarrow className="size-4" aria-hidden />
+                )}
+              </button>
+            </ShortcutTooltip>
           </TableHead>
           <TableHead className={cn(ACTIONS_COLUMN, HEAD_CELL)}>
             <span className="sr-only">{ACTIONS_HEADING}</span>
@@ -66,7 +105,7 @@ export function NotesTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {notes.map((note) => (
+        {sortedNotes.map((note) => (
           <NoteTableRow
             key={note.id}
             note={note}

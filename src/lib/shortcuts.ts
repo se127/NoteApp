@@ -81,6 +81,16 @@ export const NOTE_ACTIONS_SHORTCUT: Shortcut = {
   tooltipLabel: "گزینه ها",
 };
 
+export const SORT_NOTES_SHORTCUT: Shortcut = {
+  code: "KeyD",
+  combination: "Ctrl + Shift + D",
+  description:
+    "ترتیب یادداشت ها را بین جدید به قدیم و قدیم به جدید عوض می کند.",
+  key: "d",
+  label: "ترتیب زمان ایجاد",
+  shift: true,
+};
+
 export const DELETE_SELECTED_SHORTCUT: Shortcut = {
   alt: true,
   code: "KeyS",
@@ -362,6 +372,7 @@ export const SHORTCUT_GROUPS: readonly {
     shortcuts: [
       NEW_NOTE_SHORTCUT,
       SELECT_MODE_SHORTCUT,
+      SORT_NOTES_SHORTCUT,
       DELETE_SELECTED_SHORTCUT,
     ],
   },

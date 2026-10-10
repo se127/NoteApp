@@ -1,6 +1,9 @@
 import dayjs from "dayjs";
 
+import type { Note } from "@/lib/notes";
 import { formatPersianNumber } from "@/lib/persian-number";
+
+export type SortDirection = "asc" | "desc";
 
 const MISSING_VALUE = "—";
 const SECOND = 1000;
@@ -85,6 +88,27 @@ export function hasBeenEdited(createdAt: string, updatedAt: string): boolean {
   }
 
   return updated.valueOf() !== created.valueOf();
+}
+
+function createdValue(note: Note): number {
+  const created = parseSqliteTimestamp(note.createdAt);
+  return created.isValid() ? created.valueOf() : Number.NaN;
+}
+
+export function sortNotesByCreatedAt(
+  notes: Note[],
+  direction: SortDirection,
+): Note[] {
+  const factor = direction === "asc" ? 1 : -1;
+
+  return [...notes].sort((first, second) => {
+    const difference = createdValue(first) - createdValue(second);
+
+    return (
+      (Number.isNaN(difference) ? 0 : difference * factor) ||
+      (first.id - second.id) * factor
+    );
+  });
 }
 
 export function formatAbsoluteTime(value: string): string {
