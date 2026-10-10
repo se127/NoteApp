@@ -10,7 +10,6 @@ import {
   SELECT_MODE_SHORTCUT,
   SHORTCUT_GROUPS,
   SHORTCUTS_DIALOG_SHORTCUT,
-  SORT_NOTES_SHORTCUT,
   THEME_SHORTCUT,
 } from "@/lib/shortcuts";
 
@@ -132,7 +131,6 @@ describe("ShortcutsDialog", () => {
     expect(mainPage?.shortcuts).toEqual([
       NEW_NOTE_SHORTCUT,
       SELECT_MODE_SHORTCUT,
-      SORT_NOTES_SHORTCUT,
       DELETE_SELECTED_SHORTCUT,
     ]);
   });

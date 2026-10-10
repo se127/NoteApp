@@ -1,11 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
 
 import { NotesTable } from "@/components/notes-table";
 import type { Note } from "@/lib/notes";
-import type { SortDirection } from "@/lib/relative-time";
-import { SORT_NOTES_SHORTCUT } from "@/lib/shortcuts";
 import { createFakeStore } from "./helpers/fake-store";
 import { renderWithProviders } from "./helpers/render";
 
@@ -24,29 +21,14 @@ function buildStore() {
 }
 
 function renderTable(notes: Note[], store = buildStore()) {
-  return renderWithProviders(<SortingHarness notes={notes} />, { store });
-}
-
-function SortingHarness({
-  notes,
-  initialDirection = "desc",
-}: {
-  notes: Note[];
-  initialDirection?: SortDirection;
-}) {
-  const [direction, setDirection] = useState<SortDirection>(initialDirection);
-
-  return (
+  return renderWithProviders(
     <NotesTable
       notes={notes}
       isSelecting={false}
       selectedIds={[]}
       onToggleSelect={() => {}}
-      direction={direction}
-      onToggleDirection={() =>
-        setDirection((previous) => (previous === "desc" ? "asc" : "desc"))
-      }
-    />
+    />,
+    { store },
   );
 }
 
@@ -233,193 +215,6 @@ describe("NotesTable edited time", () => {
   });
 });
 
-describe("NotesTable created time sorting", () => {
-  const notes = [
-    noteWith({ id: 1, title: "تازه", createdAt: "2026-03-01 10:00:00" }),
-    noteWith({ id: 2, title: "میانی", createdAt: "2026-02-01 10:00:00" }),
-    noteWith({ id: 3, title: "قدیمی", createdAt: "2026-01-01 10:00:00" }),
-  ];
-
-  function renderedTitles(): (string | null)[] {
-    return screen.getAllByRole("link").map((link) => link.textContent);
-  }
-
-  function sortButton(): HTMLElement {
-    return screen.getByRole("button", { name: "زمان ایجاد" });
-  }
-
-  test("keeps the newest note first on the default descending order", () => {
-    renderTable(notes);
-
-    expect(renderedTitles()).toEqual(["تازه", "میانی", "قدیمی"]);
-  });
-
-  test("puts the oldest note first once the header is clicked", () => {
-    renderTable(notes);
-
-    fireEvent.click(sortButton());
-
-    expect(renderedTitles()).toEqual(["قدیمی", "میانی", "تازه"]);
-  });
-
-  test("goes back to the newest first on a second click", () => {
-    renderTable(notes);
-
-    fireEvent.click(sortButton());
-    fireEvent.click(sortButton());
-
-    expect(renderedTitles()).toEqual(["تازه", "میانی", "قدیمی"]);
-  });
-
-  test("keeps the newest first after an even number of clicks", () => {
-    renderTable(notes);
-
-    fireEvent.click(sortButton());
-    fireEvent.click(sortButton());
-    fireEvent.click(sortButton());
-    fireEvent.click(sortButton());
-
-    expect(renderedTitles()).toEqual(["تازه", "میانی", "قدیمی"]);
-  });
-
-  test("names the coming descending order in the tooltip", async () => {
-    renderTable(notes);
-
-    fireHover(sortButton());
-
-    await waitFor(() =>
-      expect(screen.getByRole("tooltip").textContent).toStartWith(
-        "مرتب سازی از قدیم به جدید",
-      ),
-    );
-  });
-
-  test("names the coming ascending order in the tooltip after a click", async () => {
-    renderTable(notes);
-
-    fireEvent.click(sortButton());
-    fireHover(sortButton());
-
-    await waitFor(() =>
-      expect(screen.getByRole("tooltip").textContent).toStartWith(
-        "مرتب سازی از جدید به قدیم",
-      ),
-    );
-  });
-
-  test("names the combination in the tooltip kbd", async () => {
-    renderTable(notes);
-
-    fireHover(sortButton());
-
-    await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
-    expect(screen.getByRole("tooltip").querySelector("kbd")?.textContent).toBe(
-      SORT_NOTES_SHORTCUT.combination,
-    );
-  });
-
-  test("reports the descending order on the column header", () => {
-    renderTable(notes);
-
-    expect(
-      screen
-        .getByRole("columnheader", { name: "زمان ایجاد" })
-        .getAttribute("aria-sort"),
-    ).toBe("descending");
-  });
-
-  test("reports the ascending order on the column header after a click", () => {
-    renderTable(notes);
-
-    fireEvent.click(sortButton());
-
-    expect(
-      screen
-        .getByRole("columnheader", { name: "زمان ایجاد" })
-        .getAttribute("aria-sort"),
-    ).toBe("ascending");
-  });
-
-  test("points the icon down while the newest note comes first", () => {
-    const { container } = renderTable(notes);
-
-    expect(
-      container.querySelector(
-        "th[aria-sort='descending'] .lucide-arrow-down-wide-narrow",
-      ),
-    ).not.toBeNull();
-  });
-
-  test("points the icon up once the order is flipped", () => {
-    const { container } = renderTable(notes);
-
-    fireEvent.click(sortButton());
-
-    expect(
-      container.querySelector(
-        "th[aria-sort='ascending'] .lucide-arrow-up-narrow-wide",
-      ),
-    ).not.toBeNull();
-  });
-
-  test("drops the other icon so only one shows", () => {
-    const { container } = renderTable(notes);
-
-    expect(container.querySelector(".lucide-arrow-up-narrow-wide")).toBeNull();
-
-    fireEvent.click(sortButton());
-
-    expect(
-      container.querySelector(".lucide-arrow-down-wide-narrow"),
-    ).toBeNull();
-  });
-
-  test("holds the icon after the heading inside the button", () => {
-    renderTable(notes);
-
-    expect(sortButton().textContent).toStartWith("زمان ایجاد");
-  });
-
-  test("shows a pointer cursor so the header reads as clickable", () => {
-    renderTable(notes);
-
-    expect(sortButton().className).toContain("cursor-pointer");
-  });
-
-  test("has no native title tooltip to compete with", () => {
-    renderTable(notes);
-
-    expect(sortButton().getAttribute("title")).toBeNull();
-  });
-
-  test("leaves the props array alone", () => {
-    renderTable(notes);
-
-    fireEvent.click(sortButton());
-
-    expect(notes.map((note) => note.title)).toEqual(["تازه", "میانی", "قدیمی"]);
-  });
-
-  const tiedNotes = [
-    noteWith({ id: 1, title: "کمتر", createdAt: "2026-01-01 10:00:00" }),
-    noteWith({ id: 2, title: "بیشتر", createdAt: "2026-01-01 10:00:00" }),
-  ];
-
-  test("breaks a tie on the created time by id, newest first", () => {
-    renderTable(tiedNotes);
-
-    expect(renderedTitles()).toEqual(["بیشتر", "کمتر"]);
-  });
-
-  test("breaks a tie on the created time by id, oldest first", () => {
-    renderTable(tiedNotes);
-
-    fireEvent.click(sortButton());
-
-    expect(renderedTitles()).toEqual(["کمتر", "بیشتر"]);
-  });
-});
-
 describe("NotesTable select mode", () => {
   const notes = [
     noteWith({ id: 1, title: "اول" }),
@@ -436,8 +231,6 @@ describe("NotesTable select mode", () => {
         isSelecting
         selectedIds={selectedIds}
         onToggleSelect={onToggleSelect}
-        direction="desc"
-        onToggleDirection={() => {}}
       />,
       { store: buildStore() },
     );

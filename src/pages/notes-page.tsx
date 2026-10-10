@@ -8,19 +8,16 @@ import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import { useNotesStore } from "@/lib/notes-store";
 import { formatPersianNumber } from "@/lib/persian-number";
-import type { SortDirection } from "@/lib/relative-time";
 import {
   DELETE_SELECTED_SHORTCUT,
   isShortcut,
   NEW_NOTE_SHORTCUT,
   SELECT_MODE_SHORTCUT,
-  SORT_NOTES_SHORTCUT,
 } from "@/lib/shortcuts";
 
 const EMPTY_MESSAGE = "هیچ یادداشتی نیست";
 const CREATE_FAILED_MESSAGE = "ساخت یادداشت ناموفق بود";
 const DELETE_SELECTED_LABEL = "حذف یادداشت های انتخاب شده";
-const DEFAULT_DIRECTION: SortDirection = "desc";
 
 export function NotesPage() {
   const navigate = useNavigate();
@@ -31,7 +28,6 @@ export function NotesPage() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [direction, setDirection] = useState<SortDirection>(DEFAULT_DIRECTION);
   const deleteSelectedLabel = `${DELETE_SELECTED_LABEL} (${formatPersianNumber(selectedIds.length)})`;
   const notesHeading = `${LIST_LABEL} (${formatPersianNumber(totalCount)})`;
 
@@ -46,10 +42,6 @@ export function NotesPage() {
         ? previous.filter((selected) => selected !== id)
         : [...previous, id],
     );
-  }, []);
-
-  const handleToggleDirection = useCallback(() => {
-    setDirection((previous) => (previous === "desc" ? "asc" : "desc"));
   }, []);
 
   const handleDeleted = useCallback(() => {
@@ -82,12 +74,6 @@ export function NotesPage() {
         return;
       }
 
-      if (isShortcut(event, SORT_NOTES_SHORTCUT)) {
-        event.preventDefault();
-        handleToggleDirection();
-        return;
-      }
-
       if (isShortcut(event, DELETE_SELECTED_SHORTCUT)) {
         if (selectedIds.length === 0 || isSaving) return;
 
@@ -105,13 +91,7 @@ export function NotesPage() {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () =>
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [
-    handleNewNote,
-    handleToggleDirection,
-    handleToggleSelectMode,
-    isSaving,
-    selectedIds.length,
-  ]);
+  }, [handleNewNote, handleToggleSelectMode, isSaving, selectedIds.length]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -185,8 +165,6 @@ export function NotesPage() {
             isSelecting={isSelecting}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
-            direction={direction}
-            onToggleDirection={handleToggleDirection}
           />
         )}
       </div>

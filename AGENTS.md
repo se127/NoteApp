@@ -93,9 +93,7 @@ Measure before changing CSS. Read the computed DOM rather than guessing a paddin
 - `src/components/ui/**` is vendored shadcn/ui. Do not hand-edit it, and do not format or lint it. Change its args or config, or re-run the CLI via `bunx shadcn@latest`, and keep `rtl: true` in `components.json` so it emits RTL-safe classes.
 - Never add comments to code. Use a self-documenting name or a well-named extracted helper. Existing comments in `electron/db.mjs`, `scripts/build.ts`, `vite.config.ts` and `electron-builder.yml` are not a licence to add more.
 
-- A sort control's tooltip names the order the **click** produces, not the order currently on screen: while the list is newest first, `notes-table.tsx` says «مرتب سازی از قدیم به جدید», because that is what the click will do. Asserting the tooltip against the current direction passes for the wrong reason and hides a swapped conditional. That text changes with state, so it goes through `ShortcutTooltip`'s `tooltipText` override rather than the shortcut's own `label`, which the dialog needs to stay static.
 - The heading's count comes from the `notes:count` query, not from `notes.length`. Once the list is paginated the two differ, and a page that derives the total from the rows it happens to hold reads «۲۰» instead of «۱٬۳۷۵». `useNotes` fetches both in one `Promise.all` inside `reload`, so every path that refreshes the notes refreshes the count too.
-- The sort direction lives in `notes-page.tsx`, not in `notes-table.tsx`, because the page owns the `window` keydown handler and cannot reach state the table holds privately. `notes-table.tsx` takes `direction` and `onToggleDirection` as props for the same reason.
 
 ## Persian spacing
 

@@ -12,14 +12,12 @@ export function ShortcutTooltip({
   side = "top",
   open,
   combinationOnly = false,
-  tooltipText,
   children,
 }: {
   shortcut: Shortcut;
   side?: "bottom" | "left" | "right" | "top";
   open?: boolean;
   combinationOnly?: boolean;
-  tooltipText?: string;
   children: ReactNode;
 }) {
   return (
@@ -27,7 +25,7 @@ export function ShortcutTooltip({
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side={side}>
         {!combinationOnly && (
-          <span>{tooltipText ?? shortcut.tooltipLabel ?? shortcut.label}</span>
+          <span>{shortcut.tooltipLabel ?? shortcut.label}</span>
         )}
         <kbd
           data-slot="kbd"
