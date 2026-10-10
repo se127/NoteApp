@@ -12,6 +12,10 @@ import {
 
 let database: TestDatabase;
 
+function toEpochSeconds(sqliteTimestamp: string): number {
+  return Date.parse(`${sqliteTimestamp.replace(" ", "T")}Z`) / 1000;
+}
+
 beforeEach(() => {
   database = createTestDatabase();
 });
@@ -128,6 +132,77 @@ describe("deleteNote", () => {
 
   test.each([0, -1, 1.5, Number.NaN])("rejects the id %p", (id) => {
     expect(() => database.remove(id)).toThrow("شناسه یادداشت نامعتبر است");
+  });
+});
+
+describe("replaceAllNotes", () => {
+  test("drops every existing note", () => {
+    database.create("قدیمی", "متن");
+    database.create("دیگر", "");
+
+    database.replaceAll(["تنها"]);
+
+    expect(database.list().map((note) => note.title)).toEqual(["تنها"]);
+  });
+
+  test("stores every title with an empty body", () => {
+    database.replaceAll(["یک", "دو", "سه"]);
+
+    expect(database.list().map((note) => note.body)).toEqual(["", "", ""]);
+  });
+
+  test("lists the titles in the order they were given", () => {
+    database.replaceAll(["جدیدترین", "میانی", "قدیمی‌ترین"]);
+
+    expect(database.list().map((note) => note.title)).toEqual([
+      "جدیدترین",
+      "میانی",
+      "قدیمی‌ترین",
+    ]);
+  });
+
+  test("restarts the ids at one so routes stay stable", () => {
+    database.create("قدیمی", "");
+    database.create("دیگر", "");
+
+    database.replaceAll(["تنها"]);
+
+    expect(database.list()[0]?.id).toBe(1);
+  });
+
+  test("spaces the timestamps one minute apart", () => {
+    database.replaceAll(["یک", "دو", "سه"]);
+
+    const times = database.list().map((note) => toEpochSeconds(note.createdAt));
+
+    expect(times[0]! - times[1]!).toBe(60);
+    expect(times[1]! - times[2]!).toBe(60);
+  });
+
+  test("places the newest note one minute before now", () => {
+    database.replaceAll(["جدیدترین"]);
+
+    const elapsed =
+      Math.floor(Date.now() / 1000) -
+      toEpochSeconds(database.list()[0]!.createdAt);
+
+    expect(elapsed).toBe(60);
+  });
+
+  test("spaces the timestamps so the newest note sorts first", () => {
+    database.replaceAll(["جدیدترین", "قدیمی‌ترین"]);
+
+    const [newest, oldest] = database.list();
+
+    expect(newest?.createdAt > (oldest?.createdAt ?? "")).toBe(true);
+  });
+
+  test("leaves the table empty for an empty title list", () => {
+    database.create("قدیمی", "");
+
+    database.replaceAll([]);
+
+    expect(database.list()).toEqual([]);
   });
 });
 

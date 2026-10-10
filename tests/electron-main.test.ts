@@ -15,6 +15,7 @@ import {
   type DevToolsInput,
   type MainProcessHarness,
 } from "./helpers/main-process";
+import { DEV_NOTE_TITLES } from "../electron/dev-notes.mjs";
 
 let harness: MainProcessHarness | null = null;
 
@@ -238,6 +239,71 @@ describe("NoteApp_USER_DATA override", () => {
 
     rmSync(override, { force: true, recursive: true });
     rmSync(defaultDir, { force: true, recursive: true });
+  });
+});
+
+describe("dev seed notes", () => {
+  test("replaces every note when the dev user data directory is set", async () => {
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = override;
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.replacedNoteBatches).toEqual([DEV_NOTE_TITLES]);
+
+    rmSync(override, { force: true, recursive: true });
+  });
+
+  test("seeds fifty Persian titles with no bodies", async () => {
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = override;
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const titles = harness.stub.replacedNoteBatches[0] ?? [];
+    expect(titles).toHaveLength(50);
+    expect(new Set(titles).size).toBe(50);
+    expect(titles.every((title) => !/[A-Za-z]/.test(title))).toBe(true);
+
+    rmSync(override, { force: true, recursive: true });
+  });
+
+  test("seeds short, medium and long titles", async () => {
+    const override = mkdtempSync(path.join(tmpdir(), "NoteApp-override-"));
+    process.env["NoteApp_USER_DATA"] = override;
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    const titles = harness.stub.replacedNoteBatches[0] ?? [];
+    const lengths = titles.map((title) => title.length);
+
+    expect(lengths.filter((length) => length <= 15).length).toBeGreaterThan(0);
+    expect(
+      lengths.filter((length) => length > 15 && length <= 30).length,
+    ).toBeGreaterThan(0);
+    expect(lengths.filter((length) => length > 30).length).toBeGreaterThan(0);
+    expect(Math.max(...lengths) - Math.min(...lengths)).toBeGreaterThan(30);
+
+    rmSync(override, { force: true, recursive: true });
+  });
+
+  test("never seeds a packaged run", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.replacedNoteBatches).toEqual([]);
+  });
+
+  test("never seeds a packaged run even with a dev server", async () => {
+    process.env["VITE_DEV_SERVER_URL"] = "http://127.0.0.1:5173";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+
+    expect(harness.stub.replacedNoteBatches).toEqual([]);
   });
 });
 

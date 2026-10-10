@@ -9,8 +9,11 @@ import {
   deleteNote,
   listNotes,
   openDatabase,
+  replaceAllNotes,
   updateNote,
 } from "./db.mjs";
+
+import { DEV_NOTE_TITLES } from "./dev-notes.mjs";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -282,6 +285,8 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(null);
 
     openDatabase(app.getPath("userData"));
+
+    if (OVERRIDE_USER_DATA !== undefined) replaceAllNotes(DEV_NOTE_TITLES);
 
     createWindow();
 

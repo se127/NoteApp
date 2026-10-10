@@ -419,7 +419,142 @@ describe("NotesPage states", () => {
       { id: 1, title: "اول", body: "", createdAt: "", updatedAt: "" },
     ]);
 
-    expect(screen.getByRole("table", { name: "یادداشت‌ها" })).toBeDefined();
+    expect(screen.getByRole("table", { name: "یادداشت ها" })).toBeDefined();
+  });
+});
+
+describe("NotesPage heading", () => {
+  test("counts the notes in persian digits below the new note button", () => {
+    renderPage(buildStore(), NOTES);
+
+    const heading = screen.getByRole("heading", { name: "یادداشت ها (۲)" });
+    const newNote = screen.getByRole("button", { name: "یادداشت جدید" });
+
+    expect(heading.tagName).toBe("H1");
+    expect(
+      newNote.compareDocumentPosition(heading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("counts an empty list as zero", () => {
+    renderPage();
+
+    expect(
+      screen.getByRole("heading", { name: "یادداشت ها (۰)" }),
+    ).toBeDefined();
+  });
+
+  test("carries a real heading size", () => {
+    renderPage(buildStore(), NOTES);
+
+    const heading = screen.getByRole("heading", { name: "یادداشت ها (۲)" });
+
+    expect(heading.className).toContain("text-2xl");
+    expect(heading.className).toContain("font-bold");
+  });
+});
+
+describe("NotesPage scrolling", () => {
+  function scrollAncestorOf(element: Element): Element | null {
+    let current = element.parentElement;
+
+    while (current !== null) {
+      if (current.className.includes("overflow-auto")) return current;
+      current = current.parentElement;
+    }
+
+    return null;
+  }
+
+  test("keeps the select toolbar out of the scrolling area", () => {
+    renderPage(buildStore(), NOTES);
+
+    const toggle = screen.getByRole("button", {
+      name: "حالت انتخاب برای یادداشت ها",
+    });
+
+    expect(scrollAncestorOf(toggle)).toBeNull();
+  });
+
+  test("keeps the delete button out of the scrolling area", () => {
+    renderPage(buildStore(), NOTES);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+
+    const deleteButton = screen.getByRole("button", { name: DELETE_NAME });
+    expect(scrollAncestorOf(deleteButton)).toBeNull();
+  });
+
+  test("scrolls the table itself", () => {
+    renderPage(buildStore(), NOTES);
+
+    const table = screen.getByRole("table", { name: "یادداشت ها" });
+
+    expect(scrollAncestorOf(table)).not.toBeNull();
+  });
+
+  test("leaves the table container free to scroll so the header can stick", () => {
+    const { container } = renderPage(buildStore(), NOTES);
+
+    const tableContainer = container.querySelector(
+      '[data-slot="table-container"]',
+    );
+
+    expect(tableContainer?.parentElement?.className).toContain(
+      "overflow-x-visible",
+    );
+  });
+
+  test("puts the gap on the یادداشت ها heading itself", () => {
+    renderPage(buildStore(), NOTES);
+
+    const heading = screen.getByRole("heading", { name: "یادداشت ها (۲)" });
+
+    expect(heading.className).toContain("mb-4");
+  });
+
+  test("spaces the empty notes box below the heading with no double gap", () => {
+    renderPage();
+
+    const heading = screen.getByRole("heading", { name: "یادداشت ها (۰)" });
+    const scroller = screen
+      .getByText("هیچ یادداشتی نیست")
+      .closest(".overflow-auto");
+
+    expect(heading.className).toContain("mb-4");
+    expect(scroller?.className).not.toContain("mt-");
+  });
+
+  test("gives the table a tighter gap than the heading gets", () => {
+    renderPage(buildStore(), NOTES);
+
+    const heading = screen.getByRole("heading", { name: "یادداشت ها (۲)" });
+    const toggle = screen.getByRole("button", {
+      name: "حالت انتخاب برای یادداشت ها",
+    });
+    const bar = toggle.parentElement;
+
+    expect(bar?.className).not.toContain("mt-");
+    expect(bar?.className).toContain("mb-2");
+    expect(bar?.className).not.toContain("mb-4");
+    expect(heading.className).toContain("mb-4");
+  });
+
+  test("puts the heading directly above the select toolbar", () => {
+    renderPage(buildStore(), NOTES);
+
+    const heading = screen.getByRole("heading", { name: "یادداشت ها (۲)" });
+    const toggle = screen.getByRole("button", {
+      name: "حالت انتخاب برای یادداشت ها",
+    });
+
+    expect(heading.compareDocumentPosition(toggle.parentElement as Node)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 });
 

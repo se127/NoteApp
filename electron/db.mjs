@@ -139,6 +139,32 @@ export function updateNote(id, title, body) {
   return row ?? null;
 }
 
+export function replaceAllNotes(titles) {
+  const database = requireDb();
+
+  database.exec("BEGIN");
+
+  try {
+    database.exec("DELETE FROM notes");
+    database.exec("DELETE FROM sqlite_sequence WHERE name = 'notes'");
+
+    const insert = database.prepare(
+      `INSERT INTO notes (title, body, created_at, updated_at)
+       VALUES (?, '', datetime('now', ?), datetime('now', ?))`,
+    );
+
+    titles.forEach((title, index) => {
+      const age = `-${index + 1} minutes`;
+      insert.run(title, age, age);
+    });
+
+    database.exec("COMMIT");
+  } catch (error) {
+    database.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 export function closeDatabase() {
   db?.close();
   db = null;

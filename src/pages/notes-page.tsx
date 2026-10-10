@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { DeleteSelectedNotesDialog } from "@/components/delete-selected-notes-dialog";
-import { NotesTable } from "@/components/notes-table";
+import { LIST_LABEL, NotesTable } from "@/components/notes-table";
 import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import { useNotesStore } from "@/lib/notes-store";
@@ -28,6 +28,7 @@ export function NotesPage() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const deleteSelectedLabel = `${DELETE_SELECTED_LABEL} (${formatPersianNumber(selectedIds.length)})`;
+  const notesHeading = `${LIST_LABEL} (${formatPersianNumber(notes.length)})`;
 
   const handleToggleSelectMode = useCallback(() => {
     setIsSelecting((previous) => !previous);
@@ -107,7 +108,42 @@ export function NotesPage() {
         )}
       </div>
 
-      <div className="mx-6 mt-4 mb-6 min-h-0 flex-1 overflow-auto">
+      <div className="mt-6 px-6">
+        <h1 className="mb-4 text-2xl font-bold">{notesHeading}</h1>
+
+        {notes.length > 0 && (
+          <div className="mb-2 flex items-center gap-2">
+            <ShortcutTooltip shortcut={SELECT_MODE_SHORTCUT}>
+              <Button
+                size="icon"
+                variant={isSelecting ? "default" : "outline"}
+                aria-label={SELECT_MODE_SHORTCUT.label}
+                aria-pressed={isSelecting}
+                onClick={handleToggleSelectMode}
+              >
+                <ListChecks />
+              </Button>
+            </ShortcutTooltip>
+
+            {selectedIds.length > 0 && (
+              <ShortcutTooltip
+                shortcut={DELETE_SELECTED_SHORTCUT}
+                combinationOnly
+              >
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="size-4" />
+                  {deleteSelectedLabel}
+                </Button>
+              </ShortcutTooltip>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mx-6 mb-6 min-h-0 flex-1 overflow-auto [&>[data-slot=table-container]]:overflow-x-visible">
         {error !== null ? (
           <p role="alert" className="text-sm text-destructive">
             {error}
@@ -123,43 +159,12 @@ export function NotesPage() {
             <p className="text-sm">{EMPTY_MESSAGE}</p>
           </div>
         ) : (
-          <>
-            <div className="mb-2 flex items-center gap-2">
-              <ShortcutTooltip shortcut={SELECT_MODE_SHORTCUT}>
-                <Button
-                  size="icon"
-                  variant={isSelecting ? "default" : "outline"}
-                  aria-label={SELECT_MODE_SHORTCUT.label}
-                  aria-pressed={isSelecting}
-                  onClick={handleToggleSelectMode}
-                >
-                  <ListChecks />
-                </Button>
-              </ShortcutTooltip>
-
-              {selectedIds.length > 0 && (
-                <ShortcutTooltip
-                  shortcut={DELETE_SELECTED_SHORTCUT}
-                  combinationOnly
-                >
-                  <Button
-                    variant="destructive"
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                  >
-                    <Trash2 className="size-4" />
-                    {deleteSelectedLabel}
-                  </Button>
-                </ShortcutTooltip>
-              )}
-            </div>
-
-            <NotesTable
-              notes={notes}
-              isSelecting={isSelecting}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-            />
-          </>
+          <NotesTable
+            notes={notes}
+            isSelecting={isSelecting}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+          />
         )}
       </div>
 

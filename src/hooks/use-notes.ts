@@ -22,7 +22,7 @@ export function useNotes() {
       setError(null);
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "خواندن یادداشت‌ها ناموفق بود",
+        cause instanceof Error ? cause.message : "خواندن یادداشت ها ناموفق بود",
       );
     } finally {
       setIsLoading(false);

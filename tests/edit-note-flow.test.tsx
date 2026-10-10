@@ -397,7 +397,7 @@ describe("leaving the editor with the back button", () => {
     fireEvent.click(screen.getByRole("button", backButton));
 
     expect(
-      await screen.findByRole("table", { name: "یادداشت‌ها" }),
+      await screen.findByRole("table", { name: "یادداشت ها" }),
     ).toBeDefined();
     expect(updateCalls).toBe(0);
   });
@@ -406,7 +406,7 @@ describe("leaving the editor with the back button", () => {
     bridge.notes.push(makeNote({ id: 9, title: "سالم" }));
 
     renderWithProviders(<App />, { route: "/" });
-    await screen.findByRole("table", { name: "یادداشت‌ها" });
+    await screen.findByRole("table", { name: "یادداشت ها" });
 
     expect(screen.queryByRole("button", backButton)).toBeNull();
   });

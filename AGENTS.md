@@ -31,6 +31,8 @@ A change under `electron/` needs a full app restart — Vite HMR reloads the ren
 
 `%APPDATA%\NoteApp` on Windows is the packaged app's live database. Never read, edit, move, or delete it. Dev runs against `%APPDATA%\NoteApp-dev`, set by `scripts/dev.ts` through `NoteApp_USER_DATA`.
 
+`NoteApp_USER_DATA` is also the only signal that reseeds the dev notes on startup (`replaceAllNotes` in `electron/db.mjs`, titles in `electron/dev-notes.mjs`). Do not key that off `VITE_DEV_SERVER_URL` or `app.isPackaged` alone: `bun run dev:web` plus a bare `bunx electron .` has a dev server and no override, so it would empty `%APPDATA%\NoteApp`.
+
 ## Tests
 
 - Always pass `--parallel`. Never run a bare `bun test`.
@@ -68,6 +70,8 @@ Measure before changing CSS. Read the computed DOM rather than guessing a paddin
 - Adding a block type means adding it to `isStoredHtml` in `src/lib/note-body.ts`, or saved headings reload as escaped text.
 - `created_at` and `updated_at` come back from SQLite as `"YYYY-MM-DD HH:MM:SS"` in UTC with no zone marker, so `parseSqliteTimestamp` in `src/lib/relative-time.ts` appends the `Z` before parsing. Drop it and every time silently shifts by the machine's offset.
 - Never put `scrollbar-thin` back on a scroller. It sets `scrollbar-width`, and a computed `scrollbar-width` other than `auto` makes Chromium ignore every `::-webkit-scrollbar-*` rule, which silently brings back the arrow buttons at both ends. The size lives in the `--scrollbar-thin-size` token in `src/index.css` instead.
+- The sticky notes-table header only works because the page's scroller carries `[&>[data-slot=table-container]]:overflow-x-visible`. The vendored `Table` wraps the `<table>` in `overflow-x-auto`, and `overflow-x: auto` makes the wrapper a scroll container in **both** axes, so a sticky `<th>` binds to that wrapper instead of the page scroller, never sticks, and scrolls out of view with no visible cause. Neutralize it from the parent rather than editing `src/components/ui/**`.
+- happy-dom has no layout, so `sticky`, margins and stacking are untestable in the DOM. Assert the class names (`tests/notes-table.test.tsx` checks `sticky top-0 bg-background`) and the element's ancestor chain instead, then ask the user to eyeball the scroll.
 - An accent lives in four places that have to agree: `ACCENTS`/`ACCENT_LABELS` in `src/lib/theme.ts`, the `ACCENTS` list in `electron/main.mjs`, the `[data-accent="..."]` and `.dark[data-accent="..."]` blocks in `src/index.css`, and the pre-paint script in `index.html`. Miss the main-process list and the picker writes a colour the main process throws away, so it silently reverts on the next launch.
 - The accent blocks must stay **after** `:root`/`.dark` and the dark one must be `.dark[data-accent=...]`, not a second `[data-accent=...]`. A bare attribute selector has the same specificity as `.dark`, so whichever comes last wins and the dark theme renders light accents.
 - `theme.json` holds `theme` and `accent` together, so every write in `electron/main.mjs` goes through `writeStoredAppearance`, which merges over the file as it stands. Writing the whole object instead drops the other key.

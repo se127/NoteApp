@@ -8,6 +8,7 @@ import {
   deleteNote,
   listNotes,
   openDatabase,
+  replaceAllNotes,
   updateNote,
 } from "../../electron/db.mjs";
 import type { Note } from "../../src/lib/notes";
@@ -66,6 +67,7 @@ export type TestDatabase = {
   remove: (id: number) => boolean;
   update: (id: number, title: string, body: string) => Note | null;
   list: () => Note[];
+  replaceAll: (titles: string[]) => void;
   dispose: () => void;
 };
 
@@ -81,6 +83,9 @@ export function createTestDatabase(): TestDatabase {
     remove: (id) => deleteNote(id),
     update: (id, title, body) => updateNote(id, title, body) as Note | null,
     list: () => listNotes() as Note[],
+    replaceAll: (titles) => {
+      replaceAllNotes(titles);
+    },
     dispose: () => {
       closeDatabase();
       removeQuietly(userDataPath);

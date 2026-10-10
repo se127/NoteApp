@@ -33,7 +33,7 @@ describe("App routing", () => {
     renderApp([makeNote({ id: 1 })], "/nothing/here");
 
     expect(
-      await screen.findByRole("table", { name: "یادداشت‌ها" }),
+      await screen.findByRole("table", { name: "یادداشت ها" }),
     ).toBeDefined();
   });
 

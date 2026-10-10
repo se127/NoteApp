@@ -82,6 +82,7 @@ export type MainProcessStub = {
   updateNoteThrows: boolean;
   singleInstanceLock: boolean;
   addedDictionaryWords: string[];
+  replacedNoteBatches: string[][];
 };
 
 export type MainProcessHarness = {
@@ -317,6 +318,9 @@ function installMocksOnce(): void {
       return active?.updateNoteResult ?? null;
     },
     deleteNote: () => active?.deleteNoteResult ?? false,
+    replaceAllNotes: (titles: string[]) => {
+      active?.replacedNoteBatches.push(titles);
+    },
   }));
 }
 
@@ -351,6 +355,7 @@ export function createMainProcessHarness(
     updateNoteThrows: false,
     singleInstanceLock: options.singleInstanceLock ?? true,
     addedDictionaryWords: [],
+    replacedNoteBatches: [],
   };
 
   active = stub;

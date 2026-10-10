@@ -131,6 +131,39 @@ describe("NotesTable rows", () => {
   });
 });
 
+describe("NotesTable sticky header", () => {
+  function headClasses(names: string[]): string[] {
+    renderTable([noteWith({})]);
+
+    return names.map(
+      (name) => screen.getByRole("columnheader", { name }).className,
+    );
+  }
+
+  const COLUMNS = ["عنوان", "زمان ایجاد", "گزینه ها"];
+
+  test("pins every column to the top of the scroller", () => {
+    for (const classes of headClasses(COLUMNS)) {
+      expect(classes).toContain("sticky");
+      expect(classes).toContain("top-0");
+    }
+  });
+
+  test("paints an opaque background behind every column so rows cannot show through", () => {
+    for (const classes of headClasses(COLUMNS)) {
+      expect(classes).toContain("bg-background");
+    }
+  });
+
+  test("stacks the header above the rows", () => {
+    renderTable([noteWith({})]);
+
+    expect(
+      screen.getByRole("columnheader", { name: "عنوان" }).className,
+    ).toContain("z-10");
+  });
+});
+
 describe("NotesTable edited time", () => {
   function editedNote(): Note {
     return noteWith({

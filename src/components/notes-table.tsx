@@ -25,7 +25,7 @@ import {
 } from "@/lib/relative-time";
 import { cn } from "@/lib/utils";
 
-const LIST_LABEL = "یادداشت‌ها";
+export const LIST_LABEL = "یادداشت ها";
 const TITLE_HEADING = "عنوان";
 const CREATED_HEADING = "زمان ایجاد";
 const ACTIONS_HEADING = "گزینه ها";
@@ -35,6 +35,7 @@ const CREATED_COLUMN = "w-1/4";
 const ACTIONS_COLUMN = "w-1/4";
 const TABLE_WIDTH = "w-full table-fixed";
 const CHECKBOX_LABEL = "انتخاب یادداشت";
+const HEAD_CELL = "sticky top-0 z-10 bg-background";
 
 type NotesTableProps = {
   notes: Note[];
@@ -53,11 +54,13 @@ export function NotesTable({
     <Table aria-label={LIST_LABEL} className={TABLE_WIDTH}>
       <TableHeader>
         <TableRow>
-          <TableHead className={TITLE_COLUMN}>{TITLE_HEADING}</TableHead>
-          <TableHead className={cn(CREATED_COLUMN, "text-center")}>
+          <TableHead className={cn(TITLE_COLUMN, HEAD_CELL)}>
+            {TITLE_HEADING}
+          </TableHead>
+          <TableHead className={cn(CREATED_COLUMN, "text-center", HEAD_CELL)}>
             {CREATED_HEADING}
           </TableHead>
-          <TableHead className={ACTIONS_COLUMN}>
+          <TableHead className={cn(ACTIONS_COLUMN, HEAD_CELL)}>
             <span className="sr-only">{ACTIONS_HEADING}</span>
           </TableHead>
         </TableRow>

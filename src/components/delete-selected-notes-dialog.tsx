@@ -15,7 +15,7 @@ import { formatPersianNumber } from "@/lib/persian-number";
 
 const TITLE = "حذف یادداشت های انتخاب شده";
 const WARNING = "برای همیشه حذف می شوند و قابل بازگشت نیستند.";
-const DELETE_FAILED_MESSAGE = "حذف یادداشت‌ها ناموفق بود";
+const DELETE_FAILED_MESSAGE = "حذف یادداشت ها ناموفق بود";
 
 export function DeleteSelectedNotesDialog({
   ids,
