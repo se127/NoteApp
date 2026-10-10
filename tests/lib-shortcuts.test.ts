@@ -5,6 +5,7 @@ import {
   isShortcut,
   NEW_NOTE_SHORTCUT,
   SAVE_NOTE_SHORTCUT,
+  SELECT_MODE_SHORTCUT,
   SHORTCUTS,
   TITLE_EMOJI_SHORTCUT,
   TOOLBAR_SHORTCUTS,
@@ -21,6 +22,7 @@ describe("SHORTCUTS", () => {
       "Ctrl + N",
       "Ctrl + S",
       "Ctrl + L",
+      "Ctrl + Shift + E",
       "Ctrl + Alt + G",
       "Ctrl + Z",
       "Ctrl + Y",
@@ -48,6 +50,27 @@ describe("SHORTCUTS", () => {
     const combinations = SHORTCUTS.map((shortcut) => shortcut.combination);
 
     expect(new Set(combinations).size).toBe(combinations.length);
+  });
+
+  test("matches the select shortcut on its physical key", () => {
+    const event = keyEvent({
+      code: SELECT_MODE_SHORTCUT.code,
+      ctrlKey: true,
+      key: SELECT_MODE_SHORTCUT.key,
+      shiftKey: true,
+    });
+
+    expect(isShortcut(event, SELECT_MODE_SHORTCUT)).toBe(true);
+  });
+
+  test("rejects the select shortcut without shift", () => {
+    const event = keyEvent({
+      code: SELECT_MODE_SHORTCUT.code,
+      ctrlKey: true,
+      key: SELECT_MODE_SHORTCUT.key,
+    });
+
+    expect(isShortcut(event, SELECT_MODE_SHORTCUT)).toBe(false);
   });
 
   test("leaves Ctrl + S and Ctrl + N to the note shortcuts", () => {

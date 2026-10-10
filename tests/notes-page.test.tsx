@@ -3,12 +3,14 @@ import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 
 import type { Note } from "@/lib/notes";
 import { NotesPage } from "@/pages/notes-page";
-import { NEW_NOTE_SHORTCUT } from "@/lib/shortcuts";
+import { NEW_NOTE_SHORTCUT, SELECT_MODE_SHORTCUT } from "@/lib/shortcuts";
 import { createFakeStore } from "./helpers/fake-store";
 import { fireHover } from "./helpers/hover";
 import { renderWithProviders } from "./helpers/render";
 
 type Store = ReturnType<typeof createFakeStore>;
+
+const DELETE_NAME = /^حذف یادداشت های انتخاب شده/;
 
 let created: Array<{ title: string; body: string }> = [];
 let createFailure: Error | null = null;
@@ -45,6 +47,295 @@ beforeEach(() => {
 
 afterEach(() => {
   delete (globalThis as unknown as Record<string, unknown>)["NoteApp"];
+});
+
+const NOTES: Note[] = [
+  { id: 1, title: "اول", body: "", createdAt: "", updatedAt: "" },
+  { id: 2, title: "دوم", body: "", createdAt: "", updatedAt: "" },
+];
+
+describe("NotesPage select mode", () => {
+  test("hides the select toggle while there are no notes", () => {
+    renderPage();
+
+    expect(
+      screen.queryByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    ).toBeNull();
+  });
+
+  test("shows no checkbox until the mode is on", () => {
+    renderPage(buildStore(), NOTES);
+
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  test("adds a checkbox to every row once the mode is on", () => {
+    renderPage(buildStore(), NOTES);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+
+    expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+  });
+
+  test("marks the toggle as pressed while the mode is on", () => {
+    renderPage(buildStore(), NOTES);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+
+    expect(
+      screen
+        .getByRole("button", { name: "حالت انتخاب برای یادداشت ها" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+
+  test("removes the checkboxes again when the mode is switched off", () => {
+    renderPage(buildStore(), NOTES);
+    const toggle = screen.getByRole("button", {
+      name: "حالت انتخاب برای یادداشت ها",
+    });
+
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  test("opens the note from the title when no checkbox is showing", () => {
+    renderPage(buildStore(), NOTES);
+
+    expect(screen.getByRole("link", { name: "اول" })).toBeDefined();
+  });
+
+  test("shows the select toggle as an icon only button", () => {
+    renderPage(buildStore(), NOTES);
+
+    expect(
+      screen
+        .getByRole("button", { name: "حالت انتخاب برای یادداشت ها" })
+        .getAttribute("data-size"),
+    ).toBe("icon");
+  });
+
+  test("names the select shortcut in its tooltip", async () => {
+    renderPage(buildStore(), NOTES);
+
+    fireHover(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip").textContent).toContain(
+        SELECT_MODE_SHORTCUT.combination,
+      ),
+    );
+  });
+
+  test("toggles the mode with its shortcut", () => {
+    renderPage(buildStore(), NOTES);
+
+    pressShortcut("e", { shiftKey: true });
+    expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+
+    pressShortcut("e", { shiftKey: true });
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  test("prevents the default window behavior of the select shortcut", () => {
+    renderPage(buildStore(), NOTES);
+
+    expect(pressShortcut("e", { shiftKey: true }).defaultPrevented).toBe(true);
+  });
+
+  test("leaves a bare shift+e to the page", () => {
+    renderPage(buildStore(), NOTES);
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "e",
+          code: "KeyE",
+          shiftKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+});
+
+describe("NotesPage deleting selected notes", () => {
+  let removedIds: number[] = [];
+  let removeFailure: Error | null = null;
+
+  beforeEach(() => {
+    removedIds = [];
+    removeFailure = null;
+  });
+
+  function renderSelectable() {
+    const store = createFakeStore({
+      remove: async (id) => {
+        if (removeFailure !== null) throw removeFailure;
+
+        removedIds.push(id);
+        return true;
+      },
+    });
+
+    return renderPage(store, NOTES);
+  }
+
+  async function selectFirstAndOpenDialog(): Promise<void> {
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+    fireEvent.click(await screen.findByRole("button", { name: DELETE_NAME }));
+  }
+
+  test("keeps the delete button hidden until something is selected", () => {
+    renderSelectable();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+
+    expect(screen.queryByRole("button", { name: DELETE_NAME })).toBeNull();
+  });
+
+  test("counts the selected notes on the delete button", async () => {
+    renderSelectable();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+
+    expect(
+      screen.getByRole("button", { name: "حذف یادداشت های انتخاب شده (۱)" }),
+    ).toBeDefined();
+  });
+
+  test("shows the label and the count as the button text", () => {
+    renderSelectable();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+
+    expect(screen.getByRole("button", { name: DELETE_NAME }).textContent).toBe(
+      "حذف یادداشت های انتخاب شده (۱)",
+    );
+  });
+
+  test("shows no tooltip on the delete button", async () => {
+    renderSelectable();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+    fireHover(screen.getByRole("button", { name: DELETE_NAME }));
+
+    await Bun.sleep(200);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  test("says how many notes are about to be deleted", async () => {
+    renderSelectable();
+
+    await selectFirstAndOpenDialog();
+
+    expect(
+      await screen.findByText(
+        "۱ یادداشت برای همیشه حذف می شوند و قابل بازگشت نیستند.",
+      ),
+    ).toBeDefined();
+  });
+
+  test("counts a multi note selection in persian digits", async () => {
+    renderSelectable();
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+    fireEvent.click(screen.getByRole("button", { name: "دوم" }));
+    fireEvent.click(screen.getByRole("button", { name: DELETE_NAME }));
+
+    expect(
+      await screen.findByText(
+        "۲ یادداشت برای همیشه حذف می شوند و قابل بازگشت نیستند.",
+      ),
+    ).toBeDefined();
+  });
+
+  test("deletes only the selected notes once confirmed", async () => {
+    renderSelectable();
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+    fireEvent.click(screen.getByRole("button", { name: "دوم" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: DELETE_NAME }));
+    fireEvent.click(await screen.findByRole("button", { name: "بله" }));
+
+    await waitFor(() => expect(removedIds).toEqual([1, 2]));
+  });
+
+  test("deletes nothing before the confirmation", async () => {
+    renderSelectable();
+
+    await selectFirstAndOpenDialog();
+    expect(removedIds).toHaveLength(0);
+  });
+
+  test("deletes nothing when the confirmation is cancelled", async () => {
+    renderSelectable();
+
+    await selectFirstAndOpenDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "انصراف" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText(/قابل بازگشت نیستند/)).toBeNull(),
+    );
+    expect(removedIds).toHaveLength(0);
+  });
+
+  test("clears the selection and leaves the mode after deleting", async () => {
+    renderSelectable();
+
+    await selectFirstAndOpenDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "بله" }));
+
+    await waitFor(() =>
+      expect(screen.queryAllByRole("checkbox")).toHaveLength(0),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "حالت انتخاب برای یادداشت ها" })
+        .getAttribute("aria-pressed"),
+    ).toBe("false");
+  });
+
+  test("keeps the dialog open and reports a delete failure", async () => {
+    removeFailure = new Error("حذف ناموفق بود");
+    renderSelectable();
+
+    await selectFirstAndOpenDialog();
+    fireEvent.click(await screen.findByRole("button", { name: "بله" }));
+
+    expect(await screen.findByText("حذف ناموفق بود")).toBeDefined();
+  });
 });
 
 describe("NotesPage states", () => {
@@ -127,6 +418,24 @@ function pressCtrl(key: string): KeyboardEvent {
     ctrlKey: true,
     bubbles: true,
     cancelable: true,
+  });
+  act(() => {
+    window.dispatchEvent(event);
+  });
+  return event;
+}
+
+function pressShortcut(
+  key: string,
+  modifiers: { altKey?: boolean; shiftKey?: boolean } = {},
+): KeyboardEvent {
+  const event = new KeyboardEvent("keydown", {
+    key,
+    code: `Key${key.toUpperCase()}`,
+    ctrlKey: true,
+    bubbles: true,
+    cancelable: true,
+    ...modifiers,
   });
   act(() => {
     window.dispatchEvent(event);

@@ -1,21 +1,50 @@
-import { Inbox, Loader2, Plus } from "lucide-react";
+import { Inbox, ListChecks, Loader2, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
+import { DeleteSelectedNotesDialog } from "@/components/delete-selected-notes-dialog";
 import { NotesTable } from "@/components/notes-table";
 import { ShortcutTooltip } from "@/components/shortcut-tooltip";
 import { Button } from "@/components/ui/button";
 import { useNotesStore } from "@/lib/notes-store";
-import { isShortcut, NEW_NOTE_SHORTCUT } from "@/lib/shortcuts";
+import { formatPersianNumber } from "@/lib/persian-number";
+import {
+  isShortcut,
+  NEW_NOTE_SHORTCUT,
+  SELECT_MODE_SHORTCUT,
+} from "@/lib/shortcuts";
 
 const EMPTY_MESSAGE = "هیچ یادداشتی نیست";
 const CREATE_FAILED_MESSAGE = "ساخت یادداشت ناموفق بود";
+const DELETE_SELECTED_LABEL = "حذف یادداشت های انتخاب شده";
 
 export function NotesPage() {
   const navigate = useNavigate();
   const { notes, isLoading, error, create, isSaving } = useNotesStore();
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const deleteSelectedLabel = `${DELETE_SELECTED_LABEL} (${formatPersianNumber(selectedIds.length)})`;
+
+  const handleToggleSelectMode = useCallback(() => {
+    setIsSelecting((previous) => !previous);
+    setSelectedIds([]);
+  }, []);
+
+  const handleToggleSelect = useCallback((id: number) => {
+    setSelectedIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((selected) => selected !== id)
+        : [...previous, id],
+    );
+  }, []);
+
+  const handleDeleted = useCallback(() => {
+    setSelectedIds([]);
+    setIsSelecting(false);
+  }, []);
 
   const handleNewNote = useCallback(async () => {
     if (isCreating || isSaving) return;
@@ -36,6 +65,12 @@ export function NotesPage() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isShortcut(event, SELECT_MODE_SHORTCUT)) {
+        event.preventDefault();
+        handleToggleSelectMode();
+        return;
+      }
+
       if (!isShortcut(event, NEW_NOTE_SHORTCUT)) return;
 
       event.preventDefault();
@@ -45,7 +80,7 @@ export function NotesPage() {
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () =>
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [handleNewNote]);
+  }, [handleNewNote, handleToggleSelectMode]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -79,9 +114,47 @@ export function NotesPage() {
             <p className="text-sm">{EMPTY_MESSAGE}</p>
           </div>
         ) : (
-          <NotesTable notes={notes} />
+          <>
+            <div className="mb-2 flex items-center gap-2">
+              <ShortcutTooltip shortcut={SELECT_MODE_SHORTCUT}>
+                <Button
+                  size="icon"
+                  variant={isSelecting ? "default" : "outline"}
+                  aria-label={SELECT_MODE_SHORTCUT.label}
+                  aria-pressed={isSelecting}
+                  onClick={handleToggleSelectMode}
+                >
+                  <ListChecks />
+                </Button>
+              </ShortcutTooltip>
+
+              {selectedIds.length > 0 && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="size-4" />
+                  {deleteSelectedLabel}
+                </Button>
+              )}
+            </div>
+
+            <NotesTable
+              notes={notes}
+              isSelecting={isSelecting}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+            />
+          </>
         )}
       </div>
+
+      <DeleteSelectedNotesDialog
+        ids={selectedIds}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onDeleted={handleDeleted}
+      />
     </div>
   );
 }

@@ -60,6 +60,16 @@ export const SAVE_NOTE_SHORTCUT: Shortcut = {
   label: "ذخیره ی یادداشت فعلی",
 };
 
+export const SELECT_MODE_SHORTCUT: Shortcut = {
+  code: "KeyE",
+  combination: "Ctrl + Shift + E",
+  description:
+    "حالت انتخاب را روشن یا خاموش می‌ کند و کنار عنوان هر یادداشت یک چک باکس می‌ آورد.",
+  key: "e",
+  label: "حالت انتخاب برای یادداشت ها",
+  shift: true,
+};
+
 export const TITLE_EMOJI_SHORTCUT: Shortcut = {
   alt: true,
   code: "KeyG",
@@ -297,7 +307,12 @@ export const SHORTCUT_GROUPS: readonly {
 }[] = [
   {
     heading: "یادداشت",
-    shortcuts: [NEW_NOTE_SHORTCUT, SAVE_NOTE_SHORTCUT, BACK_TO_NOTES_SHORTCUT],
+    shortcuts: [
+      NEW_NOTE_SHORTCUT,
+      SAVE_NOTE_SHORTCUT,
+      BACK_TO_NOTES_SHORTCUT,
+      SELECT_MODE_SHORTCUT,
+    ],
   },
   {
     heading: "عنوان یادداشت",

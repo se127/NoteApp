@@ -1,5 +1,7 @@
 import dayjs from "dayjs";
 
+import { formatPersianNumber } from "@/lib/persian-number";
+
 const MISSING_VALUE = "—";
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -7,7 +9,6 @@ const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const DAYS_IN_MONTH = 30;
 const MONTHS_IN_YEAR = 12;
-const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 const DATE_FORMATTER = new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
   weekday: "long",
   day: "numeric",
@@ -28,10 +29,6 @@ function partValue(
   type: Intl.DateTimeFormatPartTypes,
 ): string {
   return parts.find((part) => part.type === type)?.value ?? "";
-}
-
-function toPersianDigits(value: number): string {
-  return String(value).replace(/\d/g, (digit) => PERSIAN_DIGITS[Number(digit)]);
 }
 
 function parseSqliteTimestamp(value: string): dayjs.Dayjs {
@@ -74,7 +71,7 @@ export function formatRelativeTime(value: string): string {
     Math.abs(date.diff(now)),
     Math.abs(date.diff(now, "month")),
   );
-  const elapsed = `${toPersianDigits(count)} ${unit}`;
+  const elapsed = `${formatPersianNumber(count)} ${unit}`;
 
   return isFuture ? `${IN_PREFIX}${elapsed}` : `${elapsed}${AGO_SUFFIX}`;
 }

@@ -21,7 +21,15 @@ function buildStore() {
 }
 
 function renderTable(notes: Note[], store = buildStore()) {
-  return renderWithProviders(<NotesTable notes={notes} />, { store });
+  return renderWithProviders(
+    <NotesTable
+      notes={notes}
+      isSelecting={false}
+      selectedIds={[]}
+      onToggleSelect={() => {}}
+    />,
+    { store },
+  );
 }
 
 function noteWith(overrides: Partial<Note>): Note {
@@ -171,6 +179,87 @@ describe("NotesTable edited time", () => {
     fireHover(screen.getByText(/^ویرایش شده:/));
 
     await waitFor(() => expect(screen.getByRole("tooltip")).toBeDefined());
+  });
+});
+
+describe("NotesTable select mode", () => {
+  const notes = [
+    noteWith({ id: 1, title: "اول" }),
+    noteWith({ id: 2, title: "دوم" }),
+  ];
+
+  function renderSelecting(
+    selectedIds: number[] = [],
+    onToggleSelect: (id: number) => void = () => {},
+  ) {
+    return renderWithProviders(
+      <NotesTable
+        notes={notes}
+        isSelecting
+        selectedIds={selectedIds}
+        onToggleSelect={onToggleSelect}
+      />,
+      { store: buildStore() },
+    );
+  }
+
+  test("shows no checkbox while the mode is off", () => {
+    renderTable(notes);
+
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
+  test("puts a checkbox before the title of every note", () => {
+    renderSelecting();
+
+    expect(
+      screen.getByRole("checkbox", { name: "انتخاب یادداشت اول" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("checkbox", { name: "انتخاب یادداشت دوم" }),
+    ).toBeDefined();
+  });
+
+  test("turns the title into a toggle instead of a link", () => {
+    renderSelecting();
+
+    expect(screen.queryByRole("link", { name: "اول" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "اول" }).getAttribute("aria-pressed"),
+    ).toBe("false");
+  });
+
+  test("toggles the checkbox when the title is clicked", () => {
+    const toggled: number[] = [];
+    renderSelecting([], (id) => toggled.push(id));
+
+    fireEvent.click(screen.getByRole("button", { name: "دوم" }));
+
+    expect(toggled).toEqual([2]);
+  });
+
+  test("toggles the checkbox itself", () => {
+    const toggled: number[] = [];
+    renderSelecting([], (id) => toggled.push(id));
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "انتخاب یادداشت اول" }),
+    );
+
+    expect(toggled).toEqual([1]);
+  });
+
+  test("marks the selected titles as pressed", () => {
+    renderSelecting([2]);
+
+    expect(
+      screen.getByRole("button", { name: "دوم" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      screen
+        .getByRole("checkbox", { name: "انتخاب یادداشت دوم" })
+        .getAttribute("data-state"),
+    ).toBe("checked");
   });
 });
 
