@@ -8,6 +8,7 @@ import {
   countNotes,
   createNote,
   deleteNote,
+  deleteNotes,
   listNotes,
   openDatabase,
   replaceAllNotes,
@@ -147,6 +148,18 @@ ipcMain.handle("notes:delete", (_event, id) =>
     return deleted;
   }),
 );
+
+ipcMain.handle("notes:delete-many", (_event, ids) =>
+  withDevDbDelay(() => {
+    const deleted = deleteNotes(readNoteIds(ids));
+    if (deleted > 0) broadcastNotesChanged();
+    return deleted;
+  }),
+);
+
+function readNoteIds(ids) {
+  return Array.isArray(ids) ? ids : [];
+}
 
 ipcMain.handle("notes:update", (_event, { id, title, body } = {}) =>
   withDevDbDelay(() => {

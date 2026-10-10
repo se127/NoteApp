@@ -34,6 +34,7 @@ describe("useNotes without the electron bridge", () => {
       result.current.create({ title: "a", body: "b" }),
     ).rejects.toThrow("پایگاه داده فقط در اپلیکیشن دسکتاپ در دسترس است");
     await expect(result.current.remove(1)).rejects.toThrow();
+    await expect(result.current.removeMany([1, 2])).rejects.toThrow();
     await expect(
       result.current.update(1, { title: "", body: "" }),
     ).rejects.toThrow();
@@ -190,6 +191,47 @@ describe("useNotes with the electron bridge", () => {
 
     expect(removed).toBe(true);
     expect(result.current.notes).toHaveLength(0);
+  });
+
+  test("removeMany drops the whole selection in one refresh", async () => {
+    const { result } = renderHook(() => useNotes());
+    bridge.notes.push(makeNote({ id: 5 }), makeNote({ id: 6 }));
+    await waitFor(() => expect(result.current.notes).toHaveLength(2));
+    const readsBefore = bridge.requestedLimits.length;
+
+    let deleted = 0;
+    await act(async () => {
+      deleted = await result.current.removeMany([5, 6]);
+    });
+
+    expect(deleted).toBe(2);
+    expect(result.current.notes).toHaveLength(0);
+    expect(result.current.totalCount).toBe(0);
+    expect(bridge.requestedLimits.length - readsBefore).toBe(1);
+  });
+
+  test("removeMany ignores ids that are already gone", async () => {
+    const { result } = renderHook(() => useNotes());
+    bridge.notes.push(makeNote({ id: 5 }));
+    await waitFor(() => expect(result.current.notes).toHaveLength(1));
+
+    let deleted = 0;
+    await act(async () => {
+      deleted = await result.current.removeMany([5, 404]);
+    });
+
+    expect(deleted).toBe(1);
+    expect(result.current.notes).toHaveLength(0);
+  });
+
+  test("removeMany propagates a failure to the caller", async () => {
+    const { result } = renderHook(() => useNotes());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    bridge.failRemoveMany(new Error("حذف گروهی ناموفق بود"));
+
+    await expect(result.current.removeMany([1, 2])).rejects.toThrow(
+      "حذف گروهی ناموفق بود",
+    );
   });
 
   test("remove returns false for an unknown id", async () => {

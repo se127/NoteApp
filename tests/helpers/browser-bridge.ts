@@ -12,6 +12,7 @@ export type FakeNotesBridge = NotesBridge & {
   failCreate: (error: Error) => void;
   failUpdate: (error: Error) => void;
   failRemove: (error: Error) => void;
+  failRemoveMany: (error: Error) => void;
   clearFailures: () => void;
   syncedUpdates: Array<{ id: number; title: string; body: string }>;
   requestedLimits: number[];
@@ -38,6 +39,7 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
   let createError: Error | null = null;
   let updateError: Error | null = null;
   let removeError: Error | null = null;
+  let removeManyError: Error | null = null;
 
   const syncedUpdates: Array<{ id: number; title: string; body: string }> = [];
   const requestedLimits: number[] = [];
@@ -72,12 +74,16 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
     failRemove: (error) => {
       removeError = error;
     },
+    failRemoveMany: (error) => {
+      removeManyError = error;
+    },
     clearFailures: () => {
       listError = null;
       countError = null;
       createError = null;
       updateError = null;
       removeError = null;
+      removeManyError = null;
     },
     emitChanged: () => {
       for (const listener of [...listeners]) listener();
@@ -110,6 +116,19 @@ export function createFakeNotesBridge(initial: Note[] = []): FakeNotesBridge {
       if (index === -1) return false;
       notes.splice(index, 1);
       return true;
+    },
+    removeMany: async (ids: number[]) => {
+      guard(removeManyError);
+      const gone = new Set(ids);
+      let deleted = 0;
+
+      for (let index = notes.length - 1; index >= 0; index -= 1) {
+        if (!gone.has(notes[index]!.id)) continue;
+        notes.splice(index, 1);
+        deleted += 1;
+      }
+
+      return deleted;
     },
     update: async (id: number, note: NewNote) => {
       guard(updateError);

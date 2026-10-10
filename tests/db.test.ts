@@ -283,6 +283,66 @@ describe("deleteNote", () => {
   });
 });
 
+describe("deleteNotes", () => {
+  test("removes every note in the batch and reports the count", () => {
+    const first = database.create("اول", "");
+    database.create("دوم", "");
+    const third = database.create("سوم", "");
+
+    expect(database.removeMany([first.id, third.id])).toBe(2);
+    expect(database.list()).toHaveLength(1);
+    expect(database.count()).toBe(1);
+  });
+
+  test("leaves notes outside the batch alone", () => {
+    const kept = database.create("مانده", "");
+    const gone = database.create("رفته", "");
+
+    database.removeMany([gone.id]);
+
+    expect(database.list().map((note) => note.id)).toEqual([kept.id]);
+  });
+
+  test("counts only the rows that existed", () => {
+    const note = database.create("تنها", "");
+
+    expect(database.removeMany([note.id, 9999])).toBe(1);
+  });
+
+  test("removes nothing for an empty batch", () => {
+    database.create("اول", "");
+
+    expect(database.removeMany([])).toBe(0);
+    expect(database.count()).toBe(1);
+  });
+
+  test("keeps every note when one id in the batch is invalid", () => {
+    const first = database.create("اول", "");
+    database.create("دوم", "");
+
+    expect(() => database.removeMany([first.id, 0])).toThrow(
+      "شناسه یادداشت نامعتبر است",
+    );
+
+    expect(database.count()).toBe(2);
+  });
+
+  test.each([1.5, Number.NaN, -1])("rejects the id %p", (id) => {
+    database.create("اول", "");
+
+    expect(() => database.removeMany([id])).toThrow(
+      "شناسه یادداشت نامعتبر است",
+    );
+    expect(database.count()).toBe(1);
+  });
+
+  test("rejects a payload that is not a list", () => {
+    expect(() => database.removeMany(7 as unknown as number[])).toThrow(
+      "شناسه یادداشت نامعتبر است",
+    );
+  });
+});
+
 describe("replaceAllNotes", () => {
   test("drops every existing note", () => {
     database.create("قدیمی", "متن");

@@ -13,6 +13,8 @@ let insertStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
 let deleteStatement = null;
 /** @type {import("node:sqlite").StatementSync | null} */
+let deleteManyStatement = null;
+/** @type {import("node:sqlite").StatementSync | null} */
 let updateStatement = null;
 
 const BUSY_TIMEOUT_MS = 5000;
@@ -113,6 +115,10 @@ export function openDatabase(userDataPath) {
 
   deleteStatement = db.prepare("DELETE FROM notes WHERE id = ?");
 
+  deleteManyStatement = db.prepare(
+    "DELETE FROM notes WHERE id IN (SELECT value FROM json_each(?))",
+  );
+
   updateStatement = db.prepare(
     `UPDATE notes
         SET title = ?, body = ?, updated_at = datetime('now')
@@ -150,15 +156,37 @@ export function createNote(title, body) {
   return /** @type {any} */ (insertStatement).get(title, body);
 }
 
-export function deleteNote(id) {
-  requireDb();
-
+function assertValidId(id) {
   if (!Number.isInteger(id) || id <= 0) {
     throw new Error("شناسه یادداشت نامعتبر است");
   }
+}
+
+export function deleteNote(id) {
+  requireDb();
+
+  assertValidId(id);
 
   const result = /** @type {any} */ (deleteStatement).run(id);
   return Number(result.changes) > 0;
+}
+
+export function deleteNotes(ids) {
+  requireDb();
+
+  if (!Array.isArray(ids)) {
+    throw new Error("شناسه یادداشت نامعتبر است");
+  }
+
+  for (const id of ids) assertValidId(id);
+
+  if (ids.length === 0) return 0;
+
+  const result = /** @type {any} */ (deleteManyStatement).run(
+    JSON.stringify(ids),
+  );
+
+  return Number(result.changes);
 }
 
 export function updateNote(id, title, body) {
@@ -206,5 +234,6 @@ export function closeDatabase() {
   countStatement = null;
   insertStatement = null;
   deleteStatement = null;
+  deleteManyStatement = null;
   updateStatement = null;
 }

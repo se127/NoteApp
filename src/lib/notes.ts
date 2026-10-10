@@ -16,6 +16,7 @@ export type NotesBridge = {
   count: () => Promise<number>;
   create: (note: NewNote) => Promise<Note>;
   remove: (id: number) => Promise<boolean>;
+  removeMany: (ids: number[]) => Promise<number>;
   update: (id: number, note: NewNote) => Promise<Note | null>;
   updateSync: (id: number, note: NewNote) => void;
   onChanged: (callback: () => void) => () => void;

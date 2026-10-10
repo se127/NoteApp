@@ -8,6 +8,7 @@ import {
   countNotes,
   createNote,
   deleteNote,
+  deleteNotes,
   listNotes,
   openDatabase,
   replaceAllNotes,
@@ -69,6 +70,7 @@ export type TestDatabase = {
   pragma: (name: string) => number | string;
   create: (title: string, body: string) => Note;
   remove: (id: number) => boolean;
+  removeMany: (ids: number[]) => number;
   update: (id: number, title: string, body: string) => Note | null;
   list: (limit?: number, offset?: number) => Note[];
   count: () => number;
@@ -95,6 +97,7 @@ export function createTestDatabase(): TestDatabase {
     },
     create: (title, body) => createNote(title, body) as Note,
     remove: (id) => deleteNote(id),
+    removeMany: (ids) => deleteNotes(ids),
     update: (id, title, body) => updateNote(id, title, body) as Note | null,
     list: (limit?: number, offset?: number) =>
       listNotes(limit, offset) as Note[],

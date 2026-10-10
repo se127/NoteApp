@@ -25,6 +25,7 @@ describe("preload bridge", () => {
       "list",
       "onChanged",
       "remove",
+      "removeMany",
       "update",
       "updateSync",
     ]);
@@ -159,6 +160,17 @@ describe("preload bridge", () => {
     expect(preload.invokeCalls.at(-1)).toEqual({
       channel: "notes:delete",
       args: [7],
+    });
+  });
+
+  test("deletes a whole selection over one channel", async () => {
+    const preload = loadPreload();
+
+    await preload.bridge.notes.removeMany([1, 2, 3]);
+
+    expect(preload.invokeCalls.at(-1)).toEqual({
+      channel: "notes:delete-many",
+      args: [[1, 2, 3]],
     });
   });
 

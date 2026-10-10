@@ -14,6 +14,7 @@ export type NotesStore = {
   loadMore: () => Promise<void>;
   create: (note: NewNote) => Promise<Note>;
   remove: (id: number) => Promise<boolean>;
+  removeMany: (ids: number[]) => Promise<number>;
   update: (id: number, note: NewNote) => Promise<Note | null>;
 };
 

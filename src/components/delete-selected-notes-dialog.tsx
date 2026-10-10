@@ -28,7 +28,7 @@ export function DeleteSelectedNotesDialog({
   onOpenChange: (open: boolean) => void;
   onDeleted: () => void;
 }) {
-  const { remove } = useNotesStore();
+  const { removeMany } = useNotesStore();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -46,9 +46,7 @@ export function DeleteSelectedNotesDialog({
     setDeleteError(null);
 
     try {
-      for (const id of ids) {
-        await remove(id);
-      }
+      await removeMany(ids);
 
       onDeleted();
       onOpenChange(false);
@@ -59,7 +57,7 @@ export function DeleteSelectedNotesDialog({
     } finally {
       setIsDeleting(false);
     }
-  }, [ids, onDeleted, onOpenChange, remove]);
+  }, [ids, onDeleted, onOpenChange, removeMany]);
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>

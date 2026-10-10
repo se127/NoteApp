@@ -12,6 +12,7 @@ export type PreloadBridge = {
     count: () => Promise<unknown>;
     create: (note: unknown) => Promise<unknown>;
     remove: (id: number) => Promise<unknown>;
+    removeMany: (ids: number[]) => Promise<unknown>;
     update: (id: number, note: unknown) => Promise<unknown>;
     updateSync: (id: number, note: unknown) => unknown;
     onChanged: (callback: () => void) => () => void;

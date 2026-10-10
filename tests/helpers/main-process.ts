@@ -80,6 +80,8 @@ export type MainProcessStub = {
   listNotesCalls: Array<[number, number]>;
   createNoteResult: unknown;
   deleteNoteResult: boolean;
+  deleteNotesResult: number;
+  deletedNoteBatches: number[][];
   updateNoteResult: unknown;
   updateNoteThrows: boolean;
   singleInstanceLock: boolean;
@@ -324,6 +326,10 @@ function installMocksOnce(): void {
       return active?.updateNoteResult ?? null;
     },
     deleteNote: () => active?.deleteNoteResult ?? false,
+    deleteNotes: (ids: number[]) => {
+      if (active !== null) active.deletedNoteBatches.push(ids);
+      return active?.deleteNotesResult ?? 0;
+    },
     replaceAllNotes: (titles: string[]) => {
       active?.replacedNoteBatches.push(titles);
     },
@@ -359,6 +365,8 @@ export function createMainProcessHarness(
     listNotesCalls: [],
     createNoteResult: { id: 1, title: "t", body: "b" },
     deleteNoteResult: true,
+    deleteNotesResult: 0,
+    deletedNoteBatches: [],
     updateNoteResult: { id: 1 },
     updateNoteThrows: false,
     singleInstanceLock: options.singleInstanceLock ?? true,

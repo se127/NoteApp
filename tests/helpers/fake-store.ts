@@ -21,6 +21,7 @@ export function createFakeStore(
     loadMore: async () => {},
     create: notImplemented,
     remove: async () => false,
+    removeMany: async () => 0,
     update: async () => null,
     ...overrides,
   };

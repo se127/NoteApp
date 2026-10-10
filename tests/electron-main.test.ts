@@ -389,6 +389,7 @@ describe("notes ipc", () => {
       "notes:count",
       "notes:create",
       "notes:delete",
+      "notes:delete-many",
       "notes:list",
       "notes:update",
     ]);
@@ -478,6 +479,24 @@ describe("notes ipc", () => {
     expect(harness.getIpcHandler("notes:delete")?.({}, 3)).toBe(true);
   });
 
+  test("deletes a whole selection in one call", async () => {
+    harness = await loadMainProcess();
+    harness.stub.deleteNotesResult = 4;
+
+    expect(harness.getIpcHandler("notes:delete-many")?.({}, [1, 2, 3, 4])).toBe(
+      4,
+    );
+
+    expect(harness.stub.deletedNoteBatches).toEqual([[1, 2, 3, 4]]);
+  });
+
+  test("bounces a payload that is not a list rather than deleting anything", async () => {
+    harness = await loadMainProcess();
+
+    expect(harness.getIpcHandler("notes:delete-many")?.({}, "1,2,3")).toBe(0);
+    expect(harness.stub.deletedNoteBatches).toEqual([[]]);
+  });
+
   test("updates a note and returns it", async () => {
     harness = await loadMainProcess();
 
@@ -550,25 +569,44 @@ describe("dev db delay", () => {
     expect(countElapsed).toBeGreaterThanOrEqual(100);
   });
 
-  test.each(["notes:create", "notes:delete", "notes:update"])(
-    "delays the %s channel",
-    async (channel) => {
-      overrideUserData();
-      process.env["NoteApp_DB_DELAY"] = "120";
+  test.each([
+    "notes:create",
+    "notes:delete",
+    "notes:delete-many",
+    "notes:update",
+  ])("delays the %s channel", async (channel) => {
+    overrideUserData();
+    process.env["NoteApp_DB_DELAY"] = "120";
 
-      harness = await loadMainProcess();
-      harness.whenReady();
+    harness = await loadMainProcess();
+    harness.whenReady();
 
-      const startedAt = Date.now();
-      await harness.getIpcHandler(channel)?.(
-        {},
-        { id: 1, title: "t", body: "b" },
-      );
-      const elapsed = Date.now() - startedAt;
+    const startedAt = Date.now();
+    await harness.getIpcHandler(channel)?.(
+      {},
+      { id: 1, title: "t", body: "b" },
+    );
+    const elapsed = Date.now() - startedAt;
 
-      expect(elapsed).toBeGreaterThanOrEqual(100);
-    },
-  );
+    expect(elapsed).toBeGreaterThanOrEqual(100);
+  });
+
+  test("holds a whole deleted selection back once, not once per note", async () => {
+    overrideUserData();
+    process.env["NoteApp_DB_DELAY"] = "150";
+
+    harness = await loadMainProcess();
+    harness.whenReady();
+    harness.stub.deleteNotesResult = 0;
+
+    const startedAt = Date.now();
+    await harness.getIpcHandler("notes:delete-many")?.({}, [1, 2, 3, 4, 5, 6]);
+    const elapsed = Date.now() - startedAt;
+
+    expect(elapsed).toBeGreaterThanOrEqual(120);
+    expect(elapsed).toBeLessThan(400);
+    expect(harness.stub.deletedNoteBatches).toHaveLength(1);
+  });
 
   test("answers straight away with no delay configured", async () => {
     overrideUserData();
@@ -659,6 +697,34 @@ describe("change broadcasts", () => {
     harness.stub.deleteNoteResult = false;
 
     harness.getIpcHandler("notes:delete")?.({}, 999);
+
+    expect(harness.firstWindow().webContents.sentChannels).not.toContain(
+      "notes:changed",
+    );
+  });
+
+  test("tells windows once for a whole deleted selection", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+    harness.stub.deleteNotesResult = 4;
+
+    harness.getIpcHandler("notes:delete-many")?.({}, [1, 2, 3, 4]);
+
+    const broadcasts = harness
+      .firstWindow()
+      .webContents.sentChannels.filter(
+        (channel) => channel === "notes:changed",
+      );
+
+    expect(broadcasts).toHaveLength(1);
+  });
+
+  test("stays quiet when the deleted selection matched no row", async () => {
+    harness = await loadMainProcess();
+    harness.whenReady();
+    harness.stub.deleteNotesResult = 0;
+
+    harness.getIpcHandler("notes:delete-many")?.({}, [999]);
 
     expect(harness.firstWindow().webContents.sentChannels).not.toContain(
       "notes:changed",

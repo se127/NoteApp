@@ -128,6 +128,19 @@ export function useNotes() {
     [bridge, refreshRows],
   );
 
+  const removeMany = useCallback(
+    async (ids: number[]) => {
+      if (bridge === null) {
+        throw new Error(UNAVAILABLE_MESSAGE);
+      }
+
+      const deleted = await bridge.removeMany(ids);
+      await refreshRows();
+      return deleted;
+    },
+    [bridge, refreshRows],
+  );
+
   const update = useCallback(
     async (id: number, note: NewNote) => {
       if (bridge === null) {
@@ -153,6 +166,7 @@ export function useNotes() {
     loadMore,
     create,
     remove,
+    removeMany,
     update,
   };
 }

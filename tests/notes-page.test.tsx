@@ -180,10 +180,12 @@ describe("NotesPage select mode", () => {
 
 describe("NotesPage deleting selected notes", () => {
   let removedIds: number[] = [];
+  let removeBatches: number[][] = [];
   let removeFailure: Error | null = null;
 
   beforeEach(() => {
     removedIds = [];
+    removeBatches = [];
     removeFailure = null;
   });
 
@@ -194,6 +196,13 @@ describe("NotesPage deleting selected notes", () => {
 
         removedIds.push(id);
         return true;
+      },
+      removeMany: async (ids) => {
+        if (removeFailure !== null) throw removeFailure;
+
+        removeBatches.push(ids);
+        removedIds.push(...ids);
+        return ids.length;
       },
     });
 
@@ -351,6 +360,21 @@ describe("NotesPage deleting selected notes", () => {
     fireEvent.click(await screen.findByRole("button", { name: "بله" }));
 
     await waitFor(() => expect(removedIds).toEqual([1, 2]));
+  });
+
+  test("sends the whole selection as one batch rather than one call per note", async () => {
+    renderSelectable();
+    fireEvent.click(
+      screen.getByRole("button", { name: "حالت انتخاب برای یادداشت ها" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "اول" }));
+    fireEvent.click(screen.getByRole("button", { name: "دوم" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: DELETE_NAME }));
+    fireEvent.click(await screen.findByRole("button", { name: "بله" }));
+
+    await waitFor(() => expect(removeBatches).toHaveLength(1));
+    expect(removeBatches[0]).toEqual([1, 2]);
   });
 
   test("deletes nothing before the confirmation", async () => {
