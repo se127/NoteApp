@@ -135,6 +135,7 @@ export function NoteEditor({ note }: { note: Note }) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   const Icon = STATUS_ICONS[status];
 
@@ -145,6 +146,7 @@ export function NoteEditor({ note }: { note: Note }) {
   const bodyEditorRef = useRef<BodyEditor | null>(null);
   const latestRef = useRef({ title, body });
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leavingRef = useRef(false);
 
   const handleBodyReady = useCallback((editor: BodyEditor) => {
     bodyEditorRef.current = editor;
@@ -199,7 +201,17 @@ export function NoteEditor({ note }: { note: Note }) {
   }, [clearPendingSave, saveNow]);
 
   const handleBack = useCallback(async () => {
-    if (await flushPendingSave()) navigate("/");
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    setIsLeaving(true);
+
+    if (!(await flushPendingSave())) {
+      leavingRef.current = false;
+      setIsLeaving(false);
+      return;
+    }
+
+    navigate("/");
   }, [flushPendingSave, navigate]);
 
   useEffect(() => {
@@ -346,12 +358,17 @@ export function NoteEditor({ note }: { note: Note }) {
             <Button
               type="button"
               variant="outline"
+              disabled={isLeaving}
               onClick={(event) => {
                 event.preventDefault();
                 void handleBack();
               }}
             >
-              <ArrowRight className="size-4" />
+              {isLeaving ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ArrowRight className="size-4" />
+              )}
               {BACK_LABEL}
             </Button>
           </ShortcutTooltip>

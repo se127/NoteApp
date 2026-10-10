@@ -412,6 +412,117 @@ describe("leaving the editor with the back button", () => {
   });
 });
 
+describe("holding the back button until the note is saved", () => {
+  const backButton = { name: "بازگشت به یادداشت ها" };
+
+  test("disables the button and spins while the save runs", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "قدیمی" }));
+
+    let savedTitle = "";
+    let releaseUpdate = () => {};
+
+    bridge.update = (_id, note) => {
+      savedTitle = note.title;
+      return new Promise((resolve) => {
+        releaseUpdate = () => resolve(null);
+      });
+    };
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    const titleField = await screen.findByRole("textbox", { name: "عنوان" });
+    typeIntoTitle(titleField, "تازه");
+
+    fireEvent.click(screen.getByRole("button", backButton));
+
+    const pending = screen.getByRole("button", backButton);
+    expect(pending.hasAttribute("disabled")).toBe(true);
+    expect(pending.querySelector(".animate-spin")).not.toBeNull();
+
+    act(() => releaseUpdate());
+
+    expect(
+      await screen.findByRole("table", { name: "یادداشت ها" }),
+    ).toBeDefined();
+    expect(savedTitle).toBe("تازه");
+  });
+
+  test("ignores a second press while the save is still running", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "قدیمی" }));
+
+    let updateCalls = 0;
+    let releaseUpdate = () => {};
+
+    bridge.update = (id, note) => {
+      updateCalls += 1;
+      return new Promise((resolve) => {
+        releaseUpdate = () =>
+          resolve({ ...makeNote({ id, title: note.title, body: note.body }) });
+      });
+    };
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    const titleField = await screen.findByRole("textbox", { name: "عنوان" });
+    typeIntoTitle(titleField, "تازه");
+
+    const button = screen.getByRole("button", backButton);
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "l",
+          code: "KeyL",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "l",
+          code: "KeyL",
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    expect(updateCalls).toBe(1);
+
+    act(() => releaseUpdate());
+
+    await waitFor(() => expect(bridge.notes).toHaveLength(1));
+    expect(
+      await screen.findByRole("table", { name: "یادداشت ها" }),
+    ).toBeDefined();
+  });
+
+  test("re-enables the button when the save fails", async () => {
+    bridge.notes.push(makeNote({ id: 9, title: "قدیمی" }));
+    bridge.failUpdate(new Error("ذخیره ناموفق بود"));
+
+    renderWithProviders(<App />, { route: "/notes/9/edit" });
+
+    const titleField = await screen.findByRole("textbox", { name: "عنوان" });
+    typeIntoTitle(titleField, "تازه");
+
+    fireEvent.click(screen.getByRole("button", backButton));
+
+    expect(await screen.findByText("ذخیره ناموفق بود")).toBeDefined();
+    expect(
+      screen.getByRole("button", backButton).hasAttribute("disabled"),
+    ).toBe(false);
+
+    typeIntoTitle(screen.getByRole("textbox", { name: "عنوان" }), "قدیمی");
+  });
+});
+
 describe("reflecting a broadcast from the main process", () => {
   test("adds a note another window created", async () => {
     renderWithProviders(<App />, { route: "/" });
