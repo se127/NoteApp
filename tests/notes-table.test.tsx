@@ -162,6 +162,126 @@ describe("NotesTable sticky header", () => {
       screen.getByRole("columnheader", { name: "عنوان" }).className,
     ).toContain("z-10");
   });
+
+  test("draws the divider on the sticky cells so it scrolls with the header", () => {
+    for (const classes of headClasses(COLUMNS)) {
+      expect(classes).toContain("shadow-[inset_0_-1px_0_var(--border)]");
+      expect(classes).not.toContain("border-b");
+    }
+  });
+
+  test("overrides the divider the vendored header row ships with", () => {
+    renderTable([noteWith({})]);
+
+    const header = screen
+      .getByRole("table", { name: "یادداشت ها" })
+      .querySelector('[data-slot="table-header"]');
+
+    expect(header?.className).toContain("[&_tr]:border-0!");
+  });
+});
+
+describe("NotesTable virtualization", () => {
+  const ROW_HEIGHT = 48;
+  const NOTE_COUNT = 500;
+
+  function manyNotes(count = NOTE_COUNT): Note[] {
+    return Array.from({ length: count }, (_, index) =>
+      noteWith({ id: index + 1, title: `یادداشت ${index + 1}` }),
+    );
+  }
+
+  function bodyRows(): HTMLElement[] {
+    return screen
+      .getAllByRole("row")
+      .filter((row) => row.hasAttribute("data-index")) as HTMLElement[];
+  }
+
+  function spacerRows(container: HTMLElement): HTMLElement[] {
+    return Array.from(
+      container.querySelectorAll('tr[aria-hidden="true"]'),
+    ) as HTMLElement[];
+  }
+
+  function scrollTo(row: number, container: HTMLElement): void {
+    const scroller = container.querySelector(
+      "[data-virtual-scroll]",
+    ) as HTMLDivElement;
+
+    act(() => {
+      scroller.scrollTop = ROW_HEIGHT * row;
+      fireEvent.scroll(scroller);
+    });
+  }
+
+  test("keeps only the rows that fit in the scroller", () => {
+    renderTable(manyNotes());
+
+    const rendered = bodyRows();
+
+    expect(rendered.length).toBeGreaterThan(0);
+    expect(rendered.length).toBeLessThan(NOTE_COUNT);
+  });
+
+  test("numbers the rows so the virtualizer can read a height back", () => {
+    renderTable(manyNotes());
+
+    expect(bodyRows()[0]?.getAttribute("data-index")).toBe("0");
+  });
+
+  test("reserves the height of every note so the last one is reachable", () => {
+    const { container } = renderTable(manyNotes());
+
+    const reserved = spacerRows(container).reduce(
+      (sum, row) => sum + Number.parseInt(row.style.height, 10),
+      0,
+    );
+
+    expect(reserved + bodyRows().length * ROW_HEIGHT).toBe(
+      NOTE_COUNT * ROW_HEIGHT,
+    );
+  });
+
+  test("reserves the space of the notes scrolled past", () => {
+    const { container } = renderTable(manyNotes());
+
+    scrollTo(400, container);
+
+    const firstIndex = Number(bodyRows()[0]?.getAttribute("data-index"));
+
+    expect(spacerRows(container)[0]?.style.height).toBe(
+      `${firstIndex * ROW_HEIGHT}px`,
+    );
+  });
+
+  test("swaps the rendered rows when the list is scrolled", () => {
+    const { container } = renderTable(manyNotes());
+
+    expect(bodyRows()[0]?.getAttribute("data-index")).toBe("0");
+
+    scrollTo(400, container);
+
+    const indexes = bodyRows().map((row) => row.getAttribute("data-index"));
+
+    expect(indexes).toContain("400");
+    expect(indexes).toContain("401");
+    expect(indexes).not.toContain("0");
+    expect(bodyRows().length).toBeLessThan(NOTE_COUNT / 10);
+    expect(screen.queryByRole("link", { name: "یادداشت 1" })).toBeNull();
+  });
+
+  test("keeps the note rows in the table flow so the columns line up", () => {
+    const { container } = renderTable(manyNotes());
+
+    const rows = container.querySelectorAll("tr[data-index]");
+
+    expect(rows.length).toBeGreaterThan(0);
+
+    for (const row of rows) {
+      expect(row.className).not.toContain("absolute");
+      expect((row as HTMLElement).style.transform).toBe("");
+    }
+  });
 });
 
 describe("NotesTable edited time", () => {

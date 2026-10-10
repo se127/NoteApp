@@ -1,3 +1,5 @@
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 
 import { NoteActionsMenu } from "@/components/note-actions-menu";
@@ -35,7 +37,14 @@ const CREATED_COLUMN = "w-1/4";
 const ACTIONS_COLUMN = "w-1/4";
 const TABLE_WIDTH = "w-full table-fixed";
 const CHECKBOX_LABEL = "انتخاب یادداشت";
-const HEAD_CELL = "sticky top-0 z-10 bg-background";
+const HEAD_CELL =
+  "sticky top-0 z-10 bg-background shadow-[inset_0_-1px_0_var(--border)]";
+const HEAD_ROW = "[&_tr]:border-0!";
+const ROW_ESTIMATED_HEIGHT = 48;
+const ROW_OVERSCAN = 8;
+const COLUMN_COUNT = 3;
+const LIST_SCROLLER =
+  "h-full overflow-auto [&>[data-slot=table-container]]:overflow-x-visible";
 
 type NotesTableProps = {
   notes: Note[];
@@ -50,43 +59,99 @@ export function NotesTable({
   selectedIds,
   onToggleSelect,
 }: NotesTableProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLTableSectionElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
+  }, []);
+
+  const getItemKey = useCallback(
+    (index: number) => notes[index]?.id ?? index,
+    [notes],
+  );
+
+  // oxlint-disable-next-line react/incompatible-library -- the rows come from the virtualizer's own mutable state, so this component must stay un-memoized
+  const rows = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    count: notes.length,
+    getScrollElement: () => scrollRef.current,
+    getItemKey,
+    estimateSize: () => ROW_ESTIMATED_HEIGHT,
+    overscan: ROW_OVERSCAN,
+    scrollMargin: headerHeight,
+  });
+
+  const items = rows.getVirtualItems();
+  const lastItem = items.at(-1);
+
   return (
-    <Table aria-label={LIST_LABEL} className={TABLE_WIDTH}>
-      <TableHeader>
-        <TableRow>
-          <TableHead className={cn(TITLE_COLUMN, HEAD_CELL)}>
-            {TITLE_HEADING}
-          </TableHead>
-          <TableHead className={cn(CREATED_COLUMN, "text-center", HEAD_CELL)}>
-            {CREATED_HEADING}
-          </TableHead>
-          <TableHead className={cn(ACTIONS_COLUMN, HEAD_CELL)}>
-            <span className="sr-only">{ACTIONS_HEADING}</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {notes.map((note) => (
-          <NoteTableRow
-            key={note.id}
-            note={note}
-            isSelecting={isSelecting}
-            isSelected={selectedIds.includes(note.id)}
-            onToggleSelect={onToggleSelect}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <div ref={scrollRef} data-virtual-scroll className={LIST_SCROLLER}>
+      <Table aria-label={LIST_LABEL} className={TABLE_WIDTH}>
+        <TableHeader ref={headerRef} className={HEAD_ROW}>
+          <TableRow>
+            <TableHead className={cn(TITLE_COLUMN, HEAD_CELL)}>
+              {TITLE_HEADING}
+            </TableHead>
+            <TableHead className={cn(CREATED_COLUMN, "text-center", HEAD_CELL)}>
+              {CREATED_HEADING}
+            </TableHead>
+            <TableHead className={cn(ACTIONS_COLUMN, HEAD_CELL)}>
+              <span className="sr-only">{ACTIONS_HEADING}</span>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items[0] !== undefined && (
+            <SpacerRow height={items[0].start - headerHeight} />
+          )}
+          {items.map((row) => {
+            const note = notes[row.index];
+
+            return (
+              <NoteTableRow
+                key={row.key}
+                note={note}
+                index={row.index}
+                measure={rows.measureElement}
+                isSelecting={isSelecting}
+                isSelected={selectedIds.includes(note.id)}
+                onToggleSelect={onToggleSelect}
+              />
+            );
+          })}
+          {lastItem !== undefined && (
+            <SpacerRow
+              height={rows.getTotalSize() - headerHeight - lastItem.end}
+            />
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function SpacerRow({ height }: { height: number }) {
+  if (height <= 0) return null;
+
+  return (
+    <TableRow aria-hidden style={{ height, border: 0 }}>
+      <TableCell colSpan={COLUMN_COUNT} style={{ padding: 0 }} />
+    </TableRow>
   );
 }
 
 function NoteTableRow({
   note,
+  index,
+  measure,
   isSelecting,
   isSelected,
   onToggleSelect,
 }: {
   note: Note;
+  index: number;
+  measure: (node: HTMLTableRowElement | null) => void;
   isSelecting: boolean;
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
@@ -99,7 +164,7 @@ function NoteTableRow({
     note.title.trim() === "" ? "text-muted-foreground" : undefined;
 
   return (
-    <TableRow>
+    <TableRow ref={measure} data-index={index}>
       <TableCell
         className={cn("relative align-top whitespace-normal", TITLE_COLUMN)}
       >

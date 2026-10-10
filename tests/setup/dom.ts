@@ -27,6 +27,31 @@ class TestPointerEvent extends MouseEvent {
   }
 }
 
+const VIRTUAL_SCROLLER_HEIGHT = 1024;
+const VIRTUAL_ROW_HEIGHT = 48;
+
+function installVirtualizerHeights(): void {
+  const original = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "offsetHeight",
+  );
+
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get(this: HTMLElement) {
+      if (this.hasAttribute("data-virtual-scroll")) {
+        return VIRTUAL_SCROLLER_HEIGHT;
+      }
+
+      if (this.hasAttribute("data-index")) {
+        return VIRTUAL_ROW_HEIGHT;
+      }
+
+      return original?.get?.call(this) ?? 0;
+    },
+  });
+}
+
 function installMissingGlobals(): void {
   const target = globalThis as unknown as Record<string, unknown>;
 
@@ -39,6 +64,8 @@ function installMissingGlobals(): void {
   }
 
   target["PointerEvent"] = TestPointerEvent;
+
+  installVirtualizerHeights();
 
   const elementPrototype = globalThis.Element.prototype as unknown as Record<
     string,

@@ -144,7 +144,7 @@ export function NotesPage() {
         )}
       </div>
 
-      <div className="mx-6 mb-6 min-h-0 flex-1 overflow-auto [&>[data-slot=table-container]]:overflow-x-visible">
+      <div className="mx-6 mb-6 min-h-0 flex-1 overflow-auto">
         {error !== null ? (
           <p role="alert" className="text-sm text-destructive">
             {error}

@@ -53,6 +53,7 @@
     "vite": "^8.3.0"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.14.14",
     "@tiptap/extension-code-block-lowlight": "^3.31.4",
     "@tiptap/extension-highlight": "^3.31.4",
     "@tiptap/extension-subscript": "^3.31.4",
